@@ -1,0 +1,224 @@
+{
+    "Version": "2012-10-17",
+    "Statement": [
+        {
+            "Effect": "Allow",
+            "Action": "kms:*",
+            "Resource": "<custom-key-ARN"
+        },
+        {
+            "Effect": "Allow",
+            "Action": [
+                "cloudformation:CreateStack",
+                "cloudformation:UpdateStack",
+                "cloudformation:DeleteStack"
+            ],
+            "Resource": "arn:aws:cloudformation:*:*:stack/SC-*",
+            "Condition": {
+                "ArnLikeIfExists": {
+                    "cloudformation:RoleArn": [
+                        "arn:aws:sts::*:assumed-role/*custom-project-dev*"
+                    ]
+                }
+            }
+        },
+        {
+            "Effect": "Allow",
+            "Action": [
+                "cloudformation:DescribeStackEvents",
+                "cloudformation:DescribeStacks"
+            ],
+            "Resource": "arn:aws:cloudformation:*:*:stack/SC-*"
+        },
+        {
+            "Effect": "Allow",
+            "Action": [
+                "cloudformation:GetTemplateSummary",
+                "cloudformation:ValidateTemplate"
+            ],
+            "Resource": "*"
+        },
+        {
+            "Effect": "Allow",
+            "Action": [
+                "codebuild:CreateProject",
+                "codebuild:DeleteProject",
+                "codebuild:UpdateProject"
+            ],
+            "Resource": [
+                "arn:aws:codebuild:*:*:project/*custom-project*",
+                "arn:aws:codebuild:*:*:build/*custom-project*"
+            ]
+        },
+        {
+            "Effect": "Allow",
+            "Action": [
+                "codecommit:CreateCommit",
+                "codecommit:CreateRepository",
+                "codecommit:DeleteRepository",
+                "codecommit:GetRepository",
+                "codecommit:TagResource"
+            ],
+            "Resource": [
+                "arn:aws:codecommit:*:*:sagemaker-custom-project-dev*"
+            ]
+        },
+        {
+            "Effect": "Allow",
+            "Action": [
+                "codecommit:ListRepositories"
+            ],
+            "Resource": "*"
+        },
+        {
+            "Effect": "Allow",
+            "Action": [
+                "codepipeline:CreatePipeline",
+                "codepipeline:DeletePipeline",
+                "codepipeline:GetPipeline",
+                "codepipeline:GetPipelineState",
+                "codepipeline:StartPipelineExecution",
+                "codepipeline:TagResource",
+                "codepipeline:UpdatePipeline"
+            ],
+            "Resource": [
+                "arn:aws:codepipeline:*:*:sagemaker-custom-project-dev*"
+            ]
+        },
+        {
+            "Action": [
+                "ecr:CreateRepository",
+                "ecr:DeleteRepository"
+            ],
+            "Resource": [
+                "arn:aws:ecr:*:*:repository/sagemaker-custom-project-dev*"
+            ],
+            "Effect": "Allow"
+        },
+        {
+            "Effect": "Allow",
+            "Action": [
+                "events:DescribeRule",
+                "events:DeleteRule",
+                "events:DisableRule",
+                "events:EnableRule",
+                "events:PutRule",
+                "events:PutTargets",
+                "events:RemoveTargets"
+            ],
+            "Resource": [
+                "arn:aws:events:*:*:rule/sagemaker-*"
+            ]
+        },
+        {
+            "Effect": "Allow",
+            "Action": [
+                "iam:PassRole"
+            ],
+            "Resource": [
+                "arn:aws:iam::*:role/*custom-project-dev*"
+            ]
+        },
+        {
+            "Effect": "Allow",
+            "Action": [
+                "lambda:AddPermission",
+                "lambda:CreateFunction",
+                "lambda:DeleteFunction",
+                "lambda:GetFunction",
+                "lambda:GetFunctionConfiguration",
+                "lambda:InvokeFunction",
+                "lambda:RemovePermission"
+            ],
+            "Resource": [
+                "arn:aws:lambda:*:*:function:sagemaker-*"
+            ],
+            "Condition": {
+                "StringEquals": {
+                    "aws:RequestTag/project": "custom-project",
+                    "aws:RequestTag/env": "dev"
+                }
+            }
+        },
+        {
+            "Effect": "Allow",
+            "Action": [
+                "logs:CreateLogGroup",
+                "logs:CreateLogStream",
+                "logs:DeleteLogGroup",
+                "logs:DeleteLogStream",
+                "logs:DescribeLogGroups",
+                "logs:DescribeLogStreams",
+                "logs:PutRetentionPolicy"
+            ],
+            "Resource": [
+                "arn:aws:logs:*:*:log-group:/aws/apigateway/AccessLogs/*",
+                "arn:aws:logs:*:*:log-group::log-stream:*"
+            ]
+        },
+        {
+            "Effect": "Allow",
+            "Action": "s3:GetObject",
+            "Resource": "*",
+            "Condition": {
+                "StringEquals": {
+                    "s3:ExistingObjectTag/servicecatalog:provisioning": "true"
+                }
+            }
+        },
+        {
+            "Effect": "Allow",
+            "Action": "s3:GetObject",
+            "Resource": [
+                "arn:aws:s3:::sagemaker-*"
+            ]
+        },
+        {
+            "Effect": "Allow",
+            "Action": [
+                "s3:CreateBucket",
+                "s3:DeleteBucket",
+                "s3:DeleteBucketPolicy",
+                "s3:GetBucketPolicy",
+                "s3:PutBucketAcl",
+                "s3:PutBucketNotification",
+                "s3:PutBucketPolicy",
+                "s3:PutBucketPublicAccessBlock",
+                "s3:PutBucketLogging",
+                "s3:PutEncryptionConfiguration"
+            ],
+            "Resource": "arn:aws:s3:::sagemaker-custom-project-dev*"
+        },
+        {
+            "Action": [
+                "sagemaker:CreateEndpoint",
+                "sagemaker:CreateEndpointConfig",
+                "sagemaker:CreateModel",
+                "sagemaker:CreateWorkteam",
+                "sagemaker:DeleteEndpoint",
+                "sagemaker:DeleteEndpointConfig",
+                "sagemaker:DeleteModel",
+                "sagemaker:DeleteWorkteam",
+                "sagemaker:DescribeModel",
+                "sagemaker:DescribeEndpointConfig",
+                "sagemaker:DescribeEndpoint",
+                "sagemaker:DescribeWorkteam"
+            ],
+            "Resource": [
+                "arn:aws:sagemaker:*:*:*/*custom-project-dev*"
+            ],
+            "Effect": "Allow"
+        },
+        {
+            "Action": [
+                "states:CreateStateMachine",
+                "states:DeleteStateMachine",
+                "states:UpdateStateMachine"
+            ],
+            "Resource": [
+                "arn:aws:states:*:*:stateMachine:sagemaker-*"
+            ],
+            "Effect": "Allow"
+        }
+    ]
+}

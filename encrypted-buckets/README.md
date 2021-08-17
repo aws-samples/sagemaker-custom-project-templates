@@ -1,6 +1,7 @@
-# Custom Project Templates in SageMaker
+## Template Description
 
-This repository contains an example SageMaker Project template. Each folder in this repo contains a custom project template with details on how what that template achieves and how to set it up. 
+The sample template `MLOps-template-example.yml` was created using the first-party MLOps template for model building, training and deployment. The template is updated to have security best practices, i.e., encryption and versioning for S3 buckets. The template also requires the user to provide a customer managed key on KMS for bucket encryption, and uses custom roles as launch constraints for deploying the template with least-privilege permissions.
+
 
 ## Adding the template to Studio
 ### 1. Create a Service Catalog Portfolio
@@ -32,14 +33,17 @@ This repository contains an example SageMaker Project template. Each folder in t
 ### 3. Add a Launch Constraint
 
 A launch constraint designates an IAM role that AWS Service Catalog assumes when an end user launches a product. This ensures that Service Catalog has the required permissions to provision the product (CloudFormation template). 
+The sample uses two roles - one for launching the product (set as Launch constraint), and the second for use by services Policy statements for the launch and product use roles are provided in the `policies` folder.
+
+__Note:__ The policies contain placeholders for account numbers and KMS key ARNs. Update the policy with the right ARNs before deploying.
 
 #### Create IAM roles
 - Open the IAM Console at https://console.aws.amazon.com/iam/
 - Navigate to 'Policies' and choose 'Create Policy'
-    - Create the policy required to launch this template (the examples in this repo may contain sample policies to use). Make sure to update the KMS Key ARN with a customer managed key in your account. If you do not need encryption, remove the KMS policy statement (Line 7, `policies/IAM Policy - ServiceCatalogLaunch.json`), or replace the resoure ARN with "*" to allow access to all keys. 
+    - Choose the JSON tab and copy the sample policy
     - Choose Next, Review policy, enter a suitable name and choose Create policy
 - To create the role, choose Roles from the navigation pane
-    - Choose AWS service as the Trusted entity and choose "Service Catalog"
+    - Choose AWS service as the Trusted entity and choose Service Catalog
     - Choose the policy you just created, add a Role name and choose Create role.
 - Repeat the steps to create both the ServiceCatalogLaunch and ServiceCatalogUse roles.
 #### Add Launch constraint
@@ -71,8 +75,6 @@ After you complete these steps, SageMaker Studio users in your organization can 
 
 You can also add custom key-value tag pairs to restrict access to templates based on teams or users.
 
-_Note: Ensure that the tag is added to the Product, not the Portfolio._
-
 ## Creating the project
 - Open SageMaker Studio and sign in to your user profile.
 - Choose the SageMaker components and registries icon on the left, and choose Create project button.
@@ -85,7 +87,24 @@ _Note: Ensure that the tag is added to the Product, not the Portfolio._
 
 Your project is now created and loaded with sample seed code for training and deploying a model for the abalone dataset!
 
-## License
 
-This library is licensed under the MIT-0 License. See the LICENSE file.
+### Appendix: Resources created
 
+The SageMaker project creates the following AWS resources:
+- S3 Bucket to store artifacts
+- CodePipeline workflow for model building, including - 
+    - CodeCommit repository
+    - CodeBuild project to execute a SageMaker pipeline
+- CodePipeline workflow for model deployment, including
+    - CodeCommit repository
+    - CodeBuild project to create configuration files for deployment
+    - CodeBuild projects to deploy Staging and Prod resources through CloudFormation
+    - Test Staging endpoint
+    - Manual approval step from Staging to Prod
+- EventBridge rules to trigger the pipelines
+In addition, the seed code provided creates the following set up within the Project:
+- Two repositories for model building and deployment
+- A fully executable SageMaker pipeline with code and a sample Jupyter notebook
+- Model package groups in SageMaker Model Registry, associated with this project
+- Staging endpoint once the pipeline executes successfully. 
+_Note: On project creation, the pipeline will automatically execute._
