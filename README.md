@@ -87,5 +87,5 @@ Your project is now created and loaded with sample seed code for training and de
 
 ## License
 
-This library is licensed under the MIT-0 License. See the LICENSE file.
+This library is licensed under the MIT-0 License. See the LICENSE file. 
 
