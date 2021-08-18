@@ -157,7 +157,7 @@
                 "s3:ListBucketMultipartUploads",
                 "s3:PutBucketCors"
             ],
-            "Resource": "arn:aws:s3:::sagemaker-custom-project-dev*"
+            "Resource": "arn:aws:s3:::sagemaker*"
         },
         {
             "Effect": "Allow",
@@ -168,7 +168,7 @@
                 "s3:GetObjectVersion",
                 "s3:PutObject"
             ],
-            "Resource": "arn:aws:s3:::sagemaker-custom-project-dev*"
+            "Resource": "arn:aws:s3:::sagemaker*"
         },
         {
             "Effect": "Allow",

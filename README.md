@@ -1,6 +1,6 @@
 # Custom Project Templates in SageMaker
 
-This repository contains an example SageMaker Project template. Each folder in this repo contains a custom project template with details on how what that template achieves and how to set it up. 
+This repository contains an example SageMaker Project template. Each folder in this repo contains a custom project template with details on how what that template achieves and how to set it up. The generic instructions are shown below.
 
 ## Adding the template to Studio
 ### 1. Create a Service Catalog Portfolio
@@ -36,11 +36,10 @@ A launch constraint designates an IAM role that AWS Service Catalog assumes when
 #### Create IAM roles
 - Open the IAM Console at https://console.aws.amazon.com/iam/
 - Navigate to 'Policies' and choose 'Create Policy'
-    - Create the policy required to launch this template (the examples in this repo may contain sample policies to use). Make sure to update the KMS Key ARN with a customer managed key in your account. If you do not need encryption, remove the KMS policy statement (Line 7, `policies/IAM Policy - ServiceCatalogLaunch.json`), or replace the resoure ARN with "*" to allow access to all keys. 
+    - Create the policy required to launch this template (the examples in this repo may contain sample policies to use).
     - Choose Next, Review policy, enter a suitable name and choose Create policy
 - To create the role, choose Roles from the navigation pane
     - Choose AWS service as the Trusted entity and choose "Service Catalog"
-    - Choose the policy you just created, add a Role name and choose Create role.
 - Repeat the steps to create both the ServiceCatalogLaunch and ServiceCatalogUse roles.
 #### Add Launch constraint
 - Open Service Catalog console at https://console.aws.amazon.com/servicecatalog/
@@ -71,7 +70,7 @@ After you complete these steps, SageMaker Studio users in your organization can 
 
 You can also add custom key-value tag pairs to restrict access to templates based on teams or users.
 
-_Note: Ensure that the tag is added to the Product, not the Portfolio._
+_Note: If you don't see the template under Organizational Templates, ensure that the tag is added as-is to the Product, and not the Portfolio._
 
 ## Creating the project
 - Open SageMaker Studio and sign in to your user profile.
@@ -79,13 +78,6 @@ _Note: Ensure that the tag is added to the Product, not the Portfolio._
 - Switch to the Organization templates tab. The default view displays SageMaker templates.
 - The template you created will be displayed in the screen. (If you do not see it yet, make sure the execution role is added to the product and the sagemaker:studio-visibility tag is added exactly as described above).
 - Choose the template and click Select project template.
-![sagemaker-project-screen](assets/create-project.png)
-- Enter a name and optional description for the project. Add the UseRoleArn (launch constraint role created in Step 3) and the KMS ARN. Optionally, add tags and choose Create project.
-![sagemaker-project-template-parameters](assets/template-parameters.png)
+- Enter a name and optional description for the project. If additional parameters or tags are required, enter the appropriate values, and choose Create project.
 
-Your project is now created and loaded with sample seed code for training and deploying a model for the abalone dataset!
-
-## License
-
-This library is licensed under the MIT-0 License. See the LICENSE file. 
-
+You have now successfully created an MLOps template and a SageMaker Project using the custom template. Refer to `encrypted-buckets` for a sample implementation. 

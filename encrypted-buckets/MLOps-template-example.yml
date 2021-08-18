@@ -8,7 +8,7 @@ Parameters:
   SageMakerProjectName:
     Type: String
     Description: Name of the project
-    AllowedPattern: '^abc([a-zA-Z0-9])*-[a-z]*-v[0-9]*' # Sample pattern
+    AllowedPattern: '^sagemaker-([a-zA-Z0-9])*-[a-z]*-v[0-9]*' # Sample pattern
   SageMakerProjectId:
     Type: String
     Description: Service generated Id of the project.
