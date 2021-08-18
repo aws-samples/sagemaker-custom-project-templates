@@ -27,9 +27,6 @@ Resources:
       BlockPublicPolicy: True
       IgnorePublicAcls: True
       RestrictPublicBuckets: True
-      LoggingConfiguration:
-        DestinationBucketName: !Ref LoggingBucket
-        LogFilePrefix: testing-logs
       VersioningConfiguration:
         Status: Enabled
       BucketName: !Sub 'sagemaker-${SageMakerProjectName}-artifacts'
@@ -38,10 +35,6 @@ Resources:
         - ServerSideEncryptionByDefault:
             SSEAlgorithm: aws:kms
             KMSMasterKeyID: !Ref KmsArn
-  LoggingBucket:
-    Type: 'AWS::S3::Bucket'
-    Properties:
-      AccessControl: LogDeliveryWrite
   ModelBuildCodeCommitEventRule:
     Type: 'AWS::Events::Rule'
     Properties:
