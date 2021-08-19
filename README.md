@@ -1,6 +1,6 @@
 # Custom Project Templates in SageMaker
 
-This repository contains an example SageMaker Project template. Each folder in this repo contains a custom project template with details on how what that template achieves and how to set it up. The generic instructions are shown below.
+This repository contains an example SageMaker Project template. Each folder in this repo contains a custom project template with details on what that template achieves and how to set it up. The generic instructions are shown below.
 
 ## Adding the template to Studio
 ### 1. Create a Service Catalog Portfolio
