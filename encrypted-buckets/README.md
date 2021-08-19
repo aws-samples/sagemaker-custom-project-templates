@@ -2,17 +2,19 @@
 
 The sample template `MLOps-template-example.yml` was created using the first-party MLOps template for model building, training and deployment. The template is updated to have security best practices, i.e., encryption and versioning for S3 buckets. The template also requires the user to provide a customer managed key on KMS for bucket encryption, and uses custom roles as launch constraints for deploying the template with least-privilege permissions.
 
-Refer to the repo's `README` file for general instructions. A high-level list is shown below. 
+Follow the instructions in the repo's `README` file to create and provision the SageMaker project. Specific instructions for this template is provided below with the corresponding steps.
 
 ## Creating custom template
 1. Create a Service Catalog Portfolio
 2. Create a Service Catalog Product using the attached `MLOps-template-example.yml` file.
 3. Add Launch Constraint
 
-    The sample uses two roles - one for launching the product (set as Launch constraint), and the second for use by services Policy statements for the launch and product use roles are provided in the `policies` folder.
+    The sample uses two roles - one for launching the product (set as Launch constraint), and the second for use by services Policy statements for the launch and product use roles are provided in the `policies` folder. Follow the specific instructions below - 
     - Create a customer managed KMS key at https://console.aws.amazon.com/kms
     - Update the policy statements in `policies/` with the right ARNs before deploying (Line 7 in both policy statements).
-    - Create IAM policies and roles for both ServiceCatalogLaunch and ServiceCatalogUse roles.
+    - Create the IAM policies `custom-project-service-catalog-launch-policy` and `custom-project-service-catalog-use-policy` with the policy statements provided.
+    - Create IAM roles `custom-project-service-catalog-launch-role` and `custom-project-service-catalog-use-role` attaching the policies created in the step above.
+    
 
 4. Making the product available in SageMaker Studio by adding the role and tags.
 

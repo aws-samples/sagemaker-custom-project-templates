@@ -55,7 +55,7 @@
             "Action": [
                 "codepipeline:StartPipelineExecution"
             ],
-            "Resource": "arn:aws:codepipeline:*:*:sagemaker-custom-project-dev*",
+            "Resource": "arn:aws:codepipeline:*:*:sagemaker-custom-project*",
             "Effect": "Allow"
         },
         {
@@ -93,7 +93,7 @@
                 "ecr:UploadLayerPart"
             ],
             "Resource": [
-                "arn:aws:ecr:*:*:repository/sagemaker-custom-project-dev*"
+                "arn:aws:ecr:*:*:repository/sagemaker-custom-project*"
             ]
         },
         {
@@ -105,7 +105,7 @@
                 "events:RemoveTargets"
             ],
             "Resource": [
-                "arn:aws:events:*:*:rule/sagemaker-custom-project-dev*"
+                "arn:aws:events:*:*:rule/sagemaker-custom-project*"
             ],
             "Effect": "Allow"
         },
@@ -114,7 +114,7 @@
                 "iam:PassRole"
             ],
             "Resource": [
-                "arn:aws:iam::*:role/*custom-project-dev-use*"
+                "arn:aws:iam::*:role/*custom-project*"
             ],
             "Effect": "Allow"
         },
@@ -124,7 +124,7 @@
                 "lambda:InvokeFunction"
             ],
             "Resource": [
-                "arn:aws:lambda:*:*:function:sagemaker-custom-project-dev*"
+                "arn:aws:lambda:*:*:function:sagemaker-custom-project*"
             ]
         },
         {
@@ -192,7 +192,7 @@
                 "sagemaker:CreateModelPackageGroup"
             ],
             "Resource": [
-                "arn:aws:sagemaker:us-east-1:988346548731:*/*custom-project-dev*"
+                "arn:aws:sagemaker:us-east-1:988346548731:*/*custom-project*"
             ]
         },
         {
@@ -233,8 +233,8 @@
                 "states:*"
             ],
             "Resource": [
-                "arn:aws:states:*:*:stateMachine:sagemaker-custom-project-dev*",
-                "arn:aws:states:*:*:execution:sagemaker-custom-project-dev*:*"
+                "arn:aws:states:*:*:stateMachine:sagemaker-custom-project*",
+                "arn:aws:states:*:*:execution:sagemaker-custom-project*:*"
             ],
             "Effect": "Allow"
         },
