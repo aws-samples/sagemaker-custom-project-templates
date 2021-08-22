@@ -218,6 +218,6 @@ Resources:
             Statement:
               - Effect: Allow
                 Action:
-                  - 'lambda:Invoke'
-                Resource: !GetAtt ReleaseLambdaRole.Arn
+                  - 'lambda:InvokeFunction'
+                Resource: !GetAtt ReleaseLambda.Arn
       UserName: !Sub 'jenkins-model-${ModelName}'
