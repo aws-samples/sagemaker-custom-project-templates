@@ -14,9 +14,6 @@ def get_s3_object(bucket_name: str, key: str) -> str:
 
 
 def lambda_handler(event, context):
-    print(json.dumps(event))
-    print(json.dumps(dict(os.environ)))
-
     repository_name: str = event['detail']['repositoryName']
     branch_name: str = event['detail']['referenceName']
 

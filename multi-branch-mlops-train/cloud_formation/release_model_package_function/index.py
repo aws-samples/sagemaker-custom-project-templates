@@ -71,9 +71,6 @@ def lambda_handler_jenkins(event, context):
 
 
 def lambda_handler(event, context):
-    print(json.dumps(event))
-    print(json.dumps(dict(os.environ)))
-
     if 'CodePipeline.job' in event:
         return lambda_handler_code_pipeline(event, context)
     else:

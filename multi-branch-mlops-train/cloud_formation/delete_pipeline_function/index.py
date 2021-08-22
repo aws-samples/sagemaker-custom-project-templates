@@ -6,9 +6,6 @@ cloud_formation = boto3.client('cloudformation')
 
 
 def lambda_handler(event, context):
-    print(json.dumps(event))
-    print(json.dumps(dict(os.environ)))
-
     repository_name: str = event['detail']['repositoryName']
     branch_name: str = event['detail']['referenceName']
     branch_name_norm = branch_name.replace('/', '-')
