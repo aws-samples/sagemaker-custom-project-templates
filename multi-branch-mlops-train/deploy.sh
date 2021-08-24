@@ -6,10 +6,9 @@ then
     exit
 fi
 
-while getopts m:p:* flag
+while getopts p:* flag
 do
     case "${flag}" in
-        m) modelname=${OPTARG};;
         p) pipeline=${OPTARG};;
     esac
 done
@@ -26,27 +25,16 @@ then
   aws cloudformation package \
     --template-file cloud_formation/train-codepipeline-codecommit.yaml \
     --s3-bucket cloud-formation-"$account_id"-"$region" \
-    --output-template-file stack-packaged.yaml
+    --output-template-file cloud_formation/model_train.yaml
 
-  aws cloudformation deploy \
-    --stack-name "$modelname"-train \
-    --template-file stack-packaged.yaml \
-    --parameter-overrides ModelName="$modelname" \
-    --capabilities CAPABILITY_IAM CAPABILITY_AUTO_EXPAND CAPABILITY_NAMED_IAM
-
-  aws s3 cp cloud_formation/pipeline.yaml s3://model-pipeline-scripts-"$modelname"-"$region"-"$account_id"/pipeline.yaml
-
-  aws cloudformation describe-stacks --stack-name "$modelname"-train --query Stacks[].Outputs[*].[OutputKey,OutputValue] --output text
+  aws s3 cp cloud_formation/pipeline.yaml s3://cloud-formation-"$account_id"-"$region"/pipeline.yaml
+  aws s3 cp cloud_formation/model_train.yaml s3://cloud-formation-"$account_id"-"$region"/model_train.yaml
 elif [ "$pipeline" == "jenkins" ]
 then
   aws cloudformation package \
     --template-file cloud_formation/train-jenkins.yaml \
     --s3-bucket cloud-formation-"$account_id"-"$region" \
-    --output-template-file stack-packaged.yaml
+    --output-template-file cloud_formation/model_train.yaml
 
-  aws cloudformation deploy \
-    --stack-name "$modelname"-train \
-    --template-file stack-packaged.yaml \
-    --parameter-overrides ModelName="$modelname" \
-    --capabilities CAPABILITY_IAM CAPABILITY_AUTO_EXPAND CAPABILITY_NAMED_IAM
+  aws s3 cp cloud_formation/model_train.yaml s3://cloud-formation-"$account_id"-"$region"/model_train.yaml
 fi
