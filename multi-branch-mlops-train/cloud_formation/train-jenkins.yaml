@@ -1,12 +1,16 @@
 Transform: AWS::Serverless-2016-10-31
 Parameters:
-  ModelName:
+  SageMakerProjectName:
     Type: String
+    Description: Name of the project
+  SageMakerProjectId:
+    Type: String
+    Description: Service generated Id of the project.
 Resources:
   ModelTrainCodeBuildRole:
     Type: 'AWS::IAM::Role'
     Properties:
-      RoleName: !Sub 'ModelTrainCodeBuildRole-${ModelName}'
+      RoleName: !Sub 'ModelTrainCodeBuildRole-${SageMakerProjectName}'
       AssumeRolePolicyDocument:
         Version: '2012-10-17'
         Statement:
@@ -66,7 +70,7 @@ Resources:
   ModelCodeArtifactsBucket:
     Type: 'AWS::S3::Bucket'
     Properties:
-      BucketName: !Sub 'model-code-artifacts-${ModelName}-${AWS::Region}-${AWS::AccountId}'
+      BucketName: !Sub 'model-code-artifacts-${SageMakerProjectName}-${AWS::Region}-${AWS::AccountId}'
       BucketEncryption:
         ServerSideEncryptionConfiguration:
           - ServerSideEncryptionByDefault:
@@ -76,7 +80,7 @@ Resources:
   ModelTrainCodeBuildProject:
     Type: 'AWS::CodeBuild::Project'
     Properties:
-      Name: !Sub 'model-${ModelName}-train'
+      Name: !Sub 'model-${SageMakerProjectName}-train'
       Artifacts:
         Type: NO_ARTIFACTS
       Environment:
@@ -91,10 +95,10 @@ Resources:
             Value: !GetAtt SageMakerPipelineRole.Arn
           - Name: MODEL_NAME
             Type: PLAINTEXT
-            Value: !Ref ModelName
+            Value: !Ref SageMakerProjectName
           - Name: MODEL_PACKAGE_GROUP_NAME
             Type: PLAINTEXT
-            Value: !Sub 'model-${ModelName}'
+            Value: !Sub 'model-${SageMakerProjectName}'
           - Name: AWS_ACCOUNT_ID
             Type: PLAINTEXT
             Value: !Ref AWS::AccountId
@@ -109,7 +113,7 @@ Resources:
   SageMakerPipelineRole:
     Type: 'AWS::IAM::Role'
     Properties:
-      RoleName: !Sub 'SageMakerPipelineRole-${ModelName}'
+      RoleName: !Sub 'SageMakerPipelineRole-${SageMakerProjectName}'
       AssumeRolePolicyDocument:
         Version: '2012-10-17'
         Statement:
@@ -126,7 +130,7 @@ Resources:
   ReleaseLambdaRole:
     Type: 'AWS::IAM::Role'
     Properties:
-      RoleName: !Sub 'ReleaseLambdaRole-${ModelName}'
+      RoleName: !Sub 'ReleaseLambdaRole-${SageMakerProjectName}'
       AssumeRolePolicyDocument:
         Version: '2012-10-17'
         Statement:
@@ -166,11 +170,11 @@ Resources:
                       - 'sagemaker'
                       - !Ref AWS::Region
                       - !Ref AWS::AccountId
-                      - !Sub 'model-package/model-${ModelName}/*'
+                      - !Sub 'model-package/model-${SageMakerProjectName}/*'
   ReleaseLambda:
     Type: 'AWS::Serverless::Function'
     Properties:
-      FunctionName: !Sub 'release-model-package-${ModelName}'
+      FunctionName: !Sub 'release-model-package-${SageMakerProjectName}'
       CodeUri: cloud_formation/release_model_package_function/index.py
       Handler: index.lambda_handler
       Role: !GetAtt ReleaseLambdaRole.Arn
@@ -181,11 +185,11 @@ Resources:
         MaximumRetryAttempts: 0
       Environment:
         Variables:
-          MODEL_PACKAGE_GROUP_NAME: !Sub 'model-${ModelName}'
+          MODEL_PACKAGE_GROUP_NAME: !Sub 'model-${SageMakerProjectName}'
   ModelPackageGroup:
     Type: 'AWS::SageMaker::ModelPackageGroup'
     Properties:
-      ModelPackageGroupName: !Sub 'model-${ModelName}'
+      ModelPackageGroupName: !Sub 'model-${SageMakerProjectName}'
   JenkinsUser:
     Type: 'AWS::IAM::User'
     Properties:
@@ -220,4 +224,4 @@ Resources:
                 Action:
                   - 'lambda:InvokeFunction'
                 Resource: !GetAtt ReleaseLambda.Arn
-      UserName: !Sub 'jenkins-model-${ModelName}'
+      UserName: !Sub 'jenkins-model-${SageMakerProjectName}'

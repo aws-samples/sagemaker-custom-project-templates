@@ -1,7 +1,11 @@
 Transform: AWS::Serverless-2016-10-31
 Parameters:
-  ModelName:
+  SageMakerProjectName:
     Type: String
+    Description: Name of the project
+  SageMakerProjectId:
+    Type: String
+    Description: Service generated Id of the project.
 Outputs:
   CloneUrlHttp:
     Description: Repository Clone URL HTTP
@@ -14,11 +18,11 @@ Resources:
     Type: 'AWS::CodeCommit::Repository'
     Properties:
       RepositoryName:
-        !Sub 'model-${ModelName}-train'
+        !Sub 'model-${SageMakerProjectName}-train'
   ModelTrainCodePipelineRole:
     Type: 'AWS::IAM::Role'
     Properties:
-      RoleName: !Sub 'ModelTrainCodePipelineRole-${ModelName}'
+      RoleName: !Sub 'ModelTrainCodePipelineRole-${SageMakerProjectName}'
       AssumeRolePolicyDocument:
         Version: '2012-10-17'
         Statement:
@@ -42,7 +46,7 @@ Resources:
   CreatePipelineEventPipelineRole:
     Type: AWS::IAM::Role
     Properties:
-      RoleName: !Sub 'CreatePipelineEventPipelineRole-${ModelName}'
+      RoleName: !Sub 'CreatePipelineEventPipelineRole-${SageMakerProjectName}'
       AssumeRolePolicyDocument:
         Version: 2012-10-17
         Statement:
@@ -57,7 +61,7 @@ Resources:
   DeletePipelineEventPipelineRole:
     Type: AWS::IAM::Role
     Properties:
-      RoleName: !Sub 'DeletePipelineEventPipelineRole-${ModelName}'
+      RoleName: !Sub 'DeletePipelineEventPipelineRole-${SageMakerProjectName}'
       AssumeRolePolicyDocument:
         Version: 2012-10-17
         Statement:
@@ -72,7 +76,7 @@ Resources:
   StartPipelineTrainEventPipelineRole:
     Type: AWS::IAM::Role
     Properties:
-      RoleName: !Sub 'StartPipelineTrainEventPipelineRole-${ModelName}'
+      RoleName: !Sub 'StartPipelineTrainEventPipelineRole-${SageMakerProjectName}'
       AssumeRolePolicyDocument:
         Version: 2012-10-17
         Statement:
@@ -99,11 +103,11 @@ Resources:
                       - 'codepipeline'
                       - !Ref AWS::Region
                       - !Ref AWS::AccountId
-                      - !Sub 'model-${ModelName}-train*'
+                      - !Sub 'model-${SageMakerProjectName}-train*'
   StartPipelineReleaseEventPipelineRole:
     Type: AWS::IAM::Role
     Properties:
-      RoleName: !Sub 'StartPipelineReleaseEventPipelineRole-${ModelName}'
+      RoleName: !Sub 'StartPipelineReleaseEventPipelineRole-${SageMakerProjectName}'
       AssumeRolePolicyDocument:
         Version: 2012-10-17
         Statement:
@@ -130,11 +134,11 @@ Resources:
                       - 'codepipeline'
                       - !Ref AWS::Region
                       - !Ref AWS::AccountId
-                      - !Sub 'model-${ModelName}-release'
+                      - !Sub 'model-${SageMakerProjectName}-release'
   ModelTrainCodeBuildRole:
     Type: 'AWS::IAM::Role'
     Properties:
-      RoleName: !Sub 'ModelTrainCodeBuildRole-${ModelName}'
+      RoleName: !Sub 'ModelTrainCodeBuildRole-${SageMakerProjectName}'
       AssumeRolePolicyDocument:
         Version: '2012-10-17'
         Statement:
@@ -193,7 +197,7 @@ Resources:
   ModelCodeArtifactsBucket:
     Type: 'AWS::S3::Bucket'
     Properties:
-      BucketName: !Sub 'model-code-artifacts-${ModelName}-${AWS::Region}-${AWS::AccountId}'
+      BucketName: !Sub 'model-code-artifacts-${SageMakerProjectName}-${AWS::Region}-${AWS::AccountId}'
       BucketEncryption:
         ServerSideEncryptionConfiguration:
           - ServerSideEncryptionByDefault:
@@ -201,7 +205,7 @@ Resources:
   ModelTrainCodeBuildProject:
     Type: 'AWS::CodeBuild::Project'
     Properties:
-      Name: !Sub 'model-${ModelName}-train'
+      Name: !Sub 'model-${SageMakerProjectName}-train'
       Artifacts:
         Type: NO_ARTIFACTS
       Environment:
@@ -216,10 +220,10 @@ Resources:
             Value: !GetAtt SageMakerPipelineRole.Arn
           - Name: MODEL_NAME
             Type: PLAINTEXT
-            Value: !Ref ModelName
+            Value: !Ref SageMakerProjectName
           - Name: MODEL_PACKAGE_GROUP_NAME
             Type: PLAINTEXT
-            Value: !Sub 'model-${ModelName}'
+            Value: !Sub 'model-${SageMakerProjectName}'
           - Name: AWS_ACCOUNT_ID
             Type: PLAINTEXT
             Value: !Ref AWS::AccountId
@@ -231,7 +235,7 @@ Resources:
   TrainCodePipelineSourceActionRole:
     Type: 'AWS::IAM::Role'
     Properties:
-      RoleName: !Sub 'TrainCodePipelineSourceActionRole-${ModelName}'
+      RoleName: !Sub 'TrainCodePipelineSourceActionRole-${SageMakerProjectName}'
       AssumeRolePolicyDocument:
         Version: '2012-10-17'
         Statement:
@@ -264,7 +268,7 @@ Resources:
   ReleaseCodePipelineSourceActionRole:
     Type: 'AWS::IAM::Role'
     Properties:
-      RoleName: !Sub 'ReleaseCodePipelineSourceActionRole-${ModelName}'
+      RoleName: !Sub 'ReleaseCodePipelineSourceActionRole-${SageMakerProjectName}'
       AssumeRolePolicyDocument:
         Version: '2012-10-17'
         Statement:
@@ -297,7 +301,7 @@ Resources:
   TrainCodePipelineBuildActionRole:
     Type: 'AWS::IAM::Role'
     Properties:
-      RoleName: !Sub 'TrainCodePipelineBuildActionRole-${ModelName}'
+      RoleName: !Sub 'TrainCodePipelineBuildActionRole-${SageMakerProjectName}'
       AssumeRolePolicyDocument:
         Version: '2012-10-17'
         Statement:
@@ -320,7 +324,7 @@ Resources:
   ReleaseCodePipelineLambdaActionRole:
     Type: 'AWS::IAM::Role'
     Properties:
-      RoleName: !Sub 'ReleaseCodePipelineLambdaActionRole-${ModelName}'
+      RoleName: !Sub 'ReleaseCodePipelineLambdaActionRole-${SageMakerProjectName}'
       AssumeRolePolicyDocument:
         Version: '2012-10-17'
         Statement:
@@ -342,7 +346,7 @@ Resources:
   ModelReleaseCodePipelineRole:
     Type: 'AWS::IAM::Role'
     Properties:
-      RoleName: !Sub 'ModelReleaseCodePipelineRole-${ModelName}'
+      RoleName: !Sub 'ModelReleaseCodePipelineRole-${SageMakerProjectName}'
       AssumeRolePolicyDocument:
         Version: '2012-10-17'
         Statement:
@@ -366,7 +370,7 @@ Resources:
   ModelReleaseCodePipeline:
     Type: 'AWS::CodePipeline::Pipeline'
     Properties:
-      Name: !Sub 'model-${ModelName}-release'
+      Name: !Sub 'model-${SageMakerProjectName}-release'
       RoleArn: !GetAtt ModelReleaseCodePipelineRole.Arn
       ArtifactStore:
         Type: S3
@@ -404,7 +408,7 @@ Resources:
   LambdaCreatePipelineRole:
     Type: 'AWS::IAM::Role'
     Properties:
-      RoleName: !Sub 'LambdaCreatePipelineRole-${ModelName}'
+      RoleName: !Sub 'LambdaCreatePipelineRole-${SageMakerProjectName}'
       AssumeRolePolicyDocument:
         Version: '2012-10-17'
         Statement:
@@ -450,11 +454,11 @@ Resources:
                       - 'cloudformation'
                       - !Ref AWS::Region
                       - !Ref AWS::AccountId
-                      - !Sub 'stack/model-${ModelName}-train*'
+                      - !Sub 'stack/model-${SageMakerProjectName}-train*'
   LambdaDeletePipelineRole:
     Type: 'AWS::IAM::Role'
     Properties:
-      RoleName: !Sub 'LambdaDeletePipelineRole-${ModelName}'
+      RoleName: !Sub 'LambdaDeletePipelineRole-${SageMakerProjectName}'
       AssumeRolePolicyDocument:
         Version: '2012-10-17'
         Statement:
@@ -489,11 +493,11 @@ Resources:
                       - 'cloudformation'
                       - !Ref AWS::Region
                       - !Ref AWS::AccountId
-                      - !Sub 'stack/model-${ModelName}-train*'
+                      - !Sub 'stack/model-${SageMakerProjectName}-train*'
   SageMakerPipelineRole:
     Type: 'AWS::IAM::Role'
     Properties:
-      RoleName: !Sub 'SageMakerPipelineRole-${ModelName}'
+      RoleName: !Sub 'SageMakerPipelineRole-${SageMakerProjectName}'
       AssumeRolePolicyDocument:
         Version: '2012-10-17'
         Statement:
@@ -510,7 +514,7 @@ Resources:
   ReleaseLambdaRole:
     Type: 'AWS::IAM::Role'
     Properties:
-      RoleName: !Sub 'ReleaseLambdaRole-${ModelName}'
+      RoleName: !Sub 'ReleaseLambdaRole-${SageMakerProjectName}'
       AssumeRolePolicyDocument:
         Version: '2012-10-17'
         Statement:
@@ -550,11 +554,11 @@ Resources:
                       - 'sagemaker'
                       - !Ref AWS::Region
                       - !Ref AWS::AccountId
-                      - !Sub 'model-package/model-${ModelName}/*'
+                      - !Sub 'model-package/model-${SageMakerProjectName}/*'
   ReleaseLambda:
     Type: 'AWS::Serverless::Function'
     Properties:
-      FunctionName: !Sub 'release-model-package-${ModelName}'
+      FunctionName: !Sub 'release-model-package-${SageMakerProjectName}'
       CodeUri: cloud_formation/release_model_package_function/index.py
       Handler: index.lambda_handler
       Role: !GetAtt ReleaseLambdaRole.Arn
@@ -565,11 +569,11 @@ Resources:
         MaximumRetryAttempts: 0
       Environment:
         Variables:
-          MODEL_PACKAGE_GROUP_NAME: !Sub 'model-${ModelName}'
+          MODEL_PACKAGE_GROUP_NAME: !Sub 'model-${SageMakerProjectName}'
   CreatePipelineLambda:
     Type: 'AWS::Serverless::Function'
     Properties:
-      FunctionName: !Sub 'create-train-pipeline-${ModelName}'
+      FunctionName: !Sub 'create-train-pipeline-${SageMakerProjectName}'
       CodeUri: cloud_formation/create_pipeline_function/index.py
       Handler: index.lambda_handler
       Role: !GetAtt LambdaCreatePipelineRole.Arn
@@ -580,7 +584,7 @@ Resources:
         MaximumRetryAttempts: 0
       Environment:
         Variables:
-          MODEL_NAME: !Sub '${ModelName}'
+          MODEL_NAME: !Sub '${SageMakerProjectName}'
           PIPELINE_STACK_S3_BUCKET: !Sub 'cloud-formation-${AWS::AccountId}-${AWS::Region}'
           PIPELINE_STACK_S3_KEY: 'pipeline.yaml'
           CLOUD_FORMATION_ROLE_ARN: !GetAtt CloudFormationRole.Arn
@@ -619,7 +623,7 @@ Resources:
   DeletePipelineLambda:
     Type: 'AWS::Serverless::Function'
     Properties:
-      FunctionName: !Sub 'delete-train-pipeline-${ModelName}'
+      FunctionName: !Sub 'delete-train-pipeline-${SageMakerProjectName}'
       CodeUri: cloud_formation/delete_pipeline_function/index.py
       Handler: index.lambda_handler
       Role: !GetAtt LambdaDeletePipelineRole.Arn
@@ -686,7 +690,7 @@ Resources:
   CloudFormationRole:
     Type: 'AWS::IAM::Role'
     Properties:
-      RoleName: !Sub 'CloudFormationRole-${ModelName}'
+      RoleName: !Sub 'CloudFormationRole-${SageMakerProjectName}'
       AssumeRolePolicyDocument:
         Version: '2012-10-17'
         Statement:
@@ -724,7 +728,7 @@ Resources:
                       - 'codepipeline'
                       - !Ref AWS::Region
                       - !Ref AWS::AccountId
-                      - !Sub 'model-${ModelName}-train*'
+                      - !Sub 'model-${SageMakerProjectName}-train*'
         - PolicyName: ReadWriteEvents
           PolicyDocument:
             Version: "2012-10-17"
@@ -740,8 +744,8 @@ Resources:
                       - 'events'
                       - !Ref AWS::Region
                       - !Ref AWS::AccountId
-                      - !Sub 'rule/model-${ModelName}-train*'
+                      - !Sub 'rule/model-${SageMakerProjectName}-train*'
   ModelPackageGroup:
     Type: 'AWS::SageMaker::ModelPackageGroup'
     Properties:
-      ModelPackageGroupName: !Sub 'model-${ModelName}'
+      ModelPackageGroupName: !Sub 'model-${SageMakerProjectName}'
