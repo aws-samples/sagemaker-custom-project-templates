@@ -8,7 +8,7 @@ Parameters:
   SageMakerProjectName:
     Type: String
     Description: Name of the project
-    AllowedPattern: '^custom-project-([a-zA-Z0-9])*-[a-z]*-v[0-9]*' # Sample pattern
+    AllowedPattern: '^custom-project-[a-zA-Z0-9]*'
   SageMakerProjectId:
     Type: String
     Description: Service generated Id of the project.
@@ -23,12 +23,11 @@ Resources:
     Type: 'AWS::S3::Bucket'
     DeletionPolicy: Retain
     Properties:
-      BlockPublicAcls: True
-      BlockPublicPolicy: True
-      IgnorePublicAcls: True
-      RestrictPublicBuckets: True
-      VersioningConfiguration:
-        Status: Enabled
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: True
+        BlockPublicPolicy: True
+        IgnorePublicAcls: True
+        RestrictPublicBuckets: True
       BucketName: !Sub 'sagemaker-${SageMakerProjectName}-artifacts'
       BucketEncryption:
         ServerSideEncryptionConfiguration: 
