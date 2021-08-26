@@ -4,7 +4,7 @@
         {
             "Action": "kms:*",
             "Effect": "Allow",
-            "Resource": "<custom-key-arn>"
+            "Resource": "<custom-kms-arn>"
         },
         {
             "Action": [
@@ -18,7 +18,7 @@
                 "cloudformation:SetStackPolicy",
                 "cloudformation:UpdateStack"
             ],
-            "Resource": "arn:aws:cloudformation:*:*:stack/sagemaker-*",
+            "Resource": "arn:aws:cloudformation:*:*:stack/*custom-project*",
             "Effect": "Allow"
         },
         {
@@ -48,19 +48,18 @@
                 "codecommit:UploadArchive",
                 "codecommit:CreateRepository"
             ],
-            "Resource": "arn:aws:codecommit:*:*:sagemaker-*",
+            "Resource": "arn:aws:codecommit:*:*:*custom-project*",
             "Effect": "Allow"
         },
         {
             "Action": [
                 "codepipeline:StartPipelineExecution"
             ],
-            "Resource": "arn:aws:codepipeline:*:*:sagemaker-custom-project*",
+            "Resource": "arn:aws:codepipeline:*:*:*custom-project*",
             "Effect": "Allow"
         },
         {
             "Action": [
-                "ec2:DescribeRouteTables",
                 "ec2:Describe*",
                 "ec2:CreateNetworkInterface",
                 "ec2:CreateNetworkInterfacePermission",
@@ -93,7 +92,7 @@
                 "ecr:UploadLayerPart"
             ],
             "Resource": [
-                "arn:aws:ecr:*:*:repository/sagemaker-custom-project*"
+                "arn:aws:ecr:*:*:repository/*custom-project*"
             ]
         },
         {
@@ -105,7 +104,7 @@
                 "events:RemoveTargets"
             ],
             "Resource": [
-                "arn:aws:events:*:*:rule/sagemaker-custom-project*"
+                "arn:aws:events:*:*:rule/*custom-project*"
             ],
             "Effect": "Allow"
         },
@@ -124,7 +123,7 @@
                 "lambda:InvokeFunction"
             ],
             "Resource": [
-                "arn:aws:lambda:*:*:function:sagemaker-custom-project*"
+                "arn:aws:lambda:*:*:function:*custom-project*"
             ]
         },
         {
@@ -148,27 +147,17 @@
             "Effect": "Allow",
             "Action": [
                 "s3:CreateBucket",
-                "s3:DeleteBucket",
-                "s3:GetBucketAcl",
-                "s3:GetBucketCors",
-                "s3:GetBucketLocation",
                 "s3:ListAllMyBuckets",
-                "s3:ListBucket",
-                "s3:ListBucketMultipartUploads",
-                "s3:PutBucketCors"
+                "s3:ListBucket"
             ],
-            "Resource": "arn:aws:s3:::sagemaker*"
+            "Resource": "*"
         },
         {
             "Effect": "Allow",
             "Action": [
-                "s3:AbortMultipartUpload",
-                "s3:DeleteObject",
-                "s3:GetObject",
-                "s3:GetObjectVersion",
-                "s3:PutObject"
+                "s3:*"
             ],
-            "Resource": "arn:aws:s3:::sagemaker*"
+            "Resource": "arn:aws:s3:::*sagemaker-custom-project-*"
         },
         {
             "Effect": "Allow",
@@ -181,35 +170,6 @@
                 "arn:aws:sagemaker:*:*:app/*",
                 "arn:aws:sagemaker:*:*:flow-definition/*"
             ]
-        },
-        {
-            "Effect": "Allow",
-            "Action": [
-                "sagemaker:CreatePresignedDomainUrl",
-                "sagemaker:UpdateModelPackage",
-                "sagemaker:CreateModelPackage",
-                "sagemaker:CreateModel",
-                "sagemaker:CreateModelPackageGroup"
-            ],
-            "Resource": [
-                "arn:aws:sagemaker:us-east-1:988346548731:*/*custom-project*"
-            ]
-        },
-        {
-            "Sid": "EnforceVPCConfig",
-            "Effect": "Deny",
-            "Action": [
-                "sagemaker:CreateModel",
-                "sagemaker:CreateTrainingJob",
-                "sagemaker:CreateProcessingJob",
-                "sagemaker:CreateHyperParameterTuningJob"
-            ],
-            "Resource": "*",
-            "Condition": {
-                "Null": {
-                    "sagemaker:VpcSubnets": "true"
-                }
-            }
         },
         {
             "Sid": "EnforceTagging",
@@ -233,8 +193,8 @@
                 "states:*"
             ],
             "Resource": [
-                "arn:aws:states:*:*:stateMachine:sagemaker-custom-project*",
-                "arn:aws:states:*:*:execution:sagemaker-custom-project*:*"
+                "arn:aws:states:*:*:stateMachine:*custom-project*",
+                "arn:aws:states:*:*:execution:*custom-project*:*"
             ],
             "Effect": "Allow"
         },
