@@ -18,7 +18,8 @@ region=$(aws configure get region)
 
 aws cloudformation deploy \
   --stack-name train-baseline \
-  --template-file cloud_formation/baseline.yaml
+  --template-file cloud_formation/baseline.yaml \
+  --capabilities CAPABILITY_IAM CAPABILITY_NAMED_IAM
 
 if [ "$pipeline" = "code_pipeline+code_commit" ]
 then
