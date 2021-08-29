@@ -15,6 +15,7 @@ from sagemaker.workflow.parameters import (
     ParameterString,
 )
 from sagemaker.workflow.pipeline import Pipeline
+from sagemaker.workflow.pipeline_experiment_config import PipelineExperimentConfig
 from sagemaker.workflow.step_collections import RegisterModel
 from sagemaker.workflow.steps import (
     ProcessingStep,
@@ -158,5 +159,9 @@ def get_pipeline(
         ],
         steps=[step_process, step_train, step_register],
         sagemaker_session=sagemaker_session,
+        pipeline_experiment_config=PipelineExperimentConfig(
+            experiment_name=model_package_group_name,
+            trial_name=commit_id
+        )
     )
     return pipeline
