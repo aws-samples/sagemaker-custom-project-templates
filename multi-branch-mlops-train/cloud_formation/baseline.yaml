@@ -57,6 +57,7 @@ Resources:
                   - 's3:DeleteBucket'
                   - 's3:GetEncryptionConfiguration'
                   - 's3:PutEncryptionConfiguration'
+                  - 's3:PutBucketVersioning'
                 Resource:
                   - !Join
                     - ':'
@@ -81,6 +82,14 @@ Resources:
                   - 'iam:PutRolePolicy'
                   - 'iam:GetRolePolicy'
                   - 'iam:PassRole'
+                  - 'iam:GetUser'
+                  - 'iam:CreateUser'
+                  - 'iam:DeleteUser'
+                  - 'iam:DescribeUser'
+                  - 'iam:ListAccessKeys'
+                  - 'iam:GetUserPolicy'
+                  - 'iam:PutUserPolicy'
+                  - 'iam:DeleteUserPolicy'
                 Resource:
                   - !Join
                     - ':'
@@ -210,6 +219,14 @@ Resources:
                       - ''
                       - !Ref AWS::AccountId
                       - 'role/CloudFormationRole*'
+                  - !Join
+                    - ':'
+                    - - 'arn'
+                      - !Ref AWS::Partition
+                      - 'iam'
+                      - ''
+                      - !Ref AWS::AccountId
+                      - 'user/jenkins-model-*'
         - PolicyName: CodeCommitWrite
           PolicyDocument:
             Version: "2012-10-17"
