@@ -78,6 +78,8 @@ The role `MultiBranchTrainMLOpsLaunchRole` was created by the baseline stack.
 
 ### Step 1. Select the template in the example above and provide a name.
 
+Note that the name may have a maximum of 18 characters.
+
 ![img.png](images/create-project.png)
 
 ### Step 2. Wait for the project to be created.
