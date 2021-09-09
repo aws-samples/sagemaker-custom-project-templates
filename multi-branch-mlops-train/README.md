@@ -88,6 +88,8 @@ The role `MultiBranchTrainMLOpsLaunchRole` was created by the baseline stack.
 
 Continue from the previously used terminal.
 
+Note that the user or role that is being used must have permission to use CodeCommit, such as the [AWSCodeCommitPowerUser](https://docs.aws.amazon.com/codecommit/latest/userguide/security-iam-awsmanpol.html#managed-policies-poweruser).
+
 ```
 git init
 git stage .
