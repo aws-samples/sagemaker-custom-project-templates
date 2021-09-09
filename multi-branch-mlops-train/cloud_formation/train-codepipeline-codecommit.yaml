@@ -1,0 +1,755 @@
+Transform: AWS::Serverless-2016-10-31
+Parameters:
+  SageMakerProjectName:
+    Type: String
+    Description: Name of the project
+    MaxLength: 18
+  SageMakerProjectId:
+    Type: String
+    Description: Service generated Id of the project.
+Outputs:
+  CloneUrlHttp:
+    Description: Repository Clone URL HTTP
+    Value: !GetAtt ModelTrainRepository.CloneUrlHttp
+  CloneUrlSsh:
+    Description: Repository Clone URL SSH
+    Value: !GetAtt ModelTrainRepository.CloneUrlSsh
+Resources:
+  ModelTrainRepository:
+    Type: 'AWS::CodeCommit::Repository'
+    Properties:
+      RepositoryName:
+        !Sub 'model-${SageMakerProjectName}-train'
+  ModelTrainCodePipelineRole:
+    Type: 'AWS::IAM::Role'
+    Properties:
+      RoleName: !Sub 'ModelTrainCodePipelineRole-${SageMakerProjectName}'
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - codepipeline.amazonaws.com
+            Action:
+              - 'sts:AssumeRole'
+      Path: /
+      Policies:
+        - PolicyName: AssumeStagesRoles
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action: 'sts:AssumeRole'
+                Resource:
+                  - !GetAtt TrainCodePipelineSourceActionRole.Arn
+                  - !GetAtt TrainCodePipelineBuildActionRole.Arn
+  CreatePipelineEventPipelineRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub 'CreatePipelineEventPipelineRole-${SageMakerProjectName}'
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - events.amazonaws.com
+            Action: sts:AssumeRole
+      Path: /
+      ManagedPolicyArns:
+        - 'arn:aws:iam::aws:policy/CloudWatchLogsFullAccess'
+  DeletePipelineEventPipelineRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub 'DeletePipelineEventPipelineRole-${SageMakerProjectName}'
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - events.amazonaws.com
+            Action: sts:AssumeRole
+      Path: /
+      ManagedPolicyArns:
+        - 'arn:aws:iam::aws:policy/CloudWatchLogsFullAccess'
+  StartPipelineTrainEventPipelineRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub 'StartPipelineTrainEventPipelineRole-${SageMakerProjectName}'
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - events.amazonaws.com
+            Action: sts:AssumeRole
+      Path: /
+      ManagedPolicyArns:
+        - 'arn:aws:iam::aws:policy/CloudWatchLogsFullAccess'
+      Policies:
+        - PolicyName: WriteCodePipeline
+          PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+              - Effect: Allow
+                Action: 'codepipeline:StartPipelineExecution'
+                Resource:
+                  - !Join
+                    - ':'
+                    - - 'arn'
+                      - !Ref AWS::Partition
+                      - 'codepipeline'
+                      - !Ref AWS::Region
+                      - !Ref AWS::AccountId
+                      - !Sub 'model-${SageMakerProjectName}-train*'
+  StartPipelineReleaseEventPipelineRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub 'StartPipelineReleaseEventPipelineRole-${SageMakerProjectName}'
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - events.amazonaws.com
+            Action: sts:AssumeRole
+      Path: /
+      ManagedPolicyArns:
+        - 'arn:aws:iam::aws:policy/CloudWatchLogsFullAccess'
+      Policies:
+        - PolicyName: WriteCodePipeline
+          PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+              - Effect: Allow
+                Action: 'codepipeline:StartPipelineExecution'
+                Resource:
+                  - !Join
+                    - ':'
+                    - - 'arn'
+                      - !Ref AWS::Partition
+                      - 'codepipeline'
+                      - !Ref AWS::Region
+                      - !Ref AWS::AccountId
+                      - !Sub 'model-${SageMakerProjectName}-release'
+  ModelTrainCodeBuildRole:
+    Type: 'AWS::IAM::Role'
+    Properties:
+      RoleName: !Sub 'ModelTrainCodeBuildRole-${SageMakerProjectName}'
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - codebuild.amazonaws.com
+            Action:
+              - 'sts:AssumeRole'
+      Path: /
+      ManagedPolicyArns:
+        - 'arn:aws:iam::aws:policy/CloudWatchLogsFullAccess'
+        - 'arn:aws:iam::aws:policy/AmazonSageMakerFullAccess'
+      Policies:
+        - PolicyName: ReadBucket
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action:
+                  - 's3:GetObject'
+                Resource: !Sub '${ModelCodeArtifactsBucket.Arn}/*'
+        - PolicyName: WriteBucket
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action:
+                  - 's3:CreateBucket'
+                  - 's3:PutObject'
+                Resource:
+                  - !Join
+                    - ':'
+                    - - 'arn'
+                      - !Ref AWS::Partition
+                      - 's3'
+                      - ''
+                      - ''
+                      - !Sub 'sagemaker-${AWS::Region}-${AWS::AccountId}'
+                  - !Join
+                    - ':'
+                    - - 'arn'
+                      - !Ref AWS::Partition
+                      - 's3'
+                      - ''
+                      - ''
+                      - !Sub 'sagemaker-${AWS::Region}-${AWS::AccountId}/*'
+        - PolicyName: PassRoleSagemakerPipeline
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action:
+                  - 'iam:PassRole'
+                Resource: !GetAtt SageMakerPipelineRole.Arn
+  ModelCodeArtifactsBucket:
+    Type: 'AWS::S3::Bucket'
+    Properties:
+      BucketName: !Sub 'model-code-artifacts-${SageMakerProjectName}-${AWS::Region}-${AWS::AccountId}'
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault:
+              SSEAlgorithm: 'AES256'
+  ModelTrainCodeBuildProject:
+    Type: 'AWS::CodeBuild::Project'
+    Properties:
+      Name: !Sub 'model-${SageMakerProjectName}-train'
+      Artifacts:
+        Type: NO_ARTIFACTS
+      Environment:
+        ComputeType: BUILD_GENERAL1_SMALL
+        Image: aws/codebuild/standard:5.0
+        ImagePullCredentialsType: CODEBUILD
+        PrivilegedMode: true
+        Type: LINUX_CONTAINER
+        EnvironmentVariables:
+          - Name: SAGEMAKER_PIPELINE_ROLE_ARN
+            Type: PLAINTEXT
+            Value: !GetAtt SageMakerPipelineRole.Arn
+          - Name: MODEL_NAME
+            Type: PLAINTEXT
+            Value: !Ref SageMakerProjectName
+          - Name: PROJECT_ID
+            Type: PLAINTEXT
+            Value: !Ref SageMakerProjectId
+          - Name: MODEL_PACKAGE_GROUP_NAME
+            Type: PLAINTEXT
+            Value: !Sub 'model-${SageMakerProjectName}'
+          - Name: AWS_ACCOUNT_ID
+            Type: PLAINTEXT
+            Value: !Ref AWS::AccountId
+      ServiceRole: !GetAtt ModelTrainCodeBuildRole.Arn
+      Source:
+        Location: !GetAtt ModelTrainRepository.CloneUrlHttp
+        Type: CODECOMMIT
+        BuildSpec: 'buildspec_train.yml'
+  TrainCodePipelineSourceActionRole:
+    Type: 'AWS::IAM::Role'
+    Properties:
+      RoleName: !Sub 'TrainCodePipelineSourceActionRole-${SageMakerProjectName}'
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              AWS: !Sub '${AWS::AccountId}'
+            Action:
+              - 'sts:AssumeRole'
+      Path: /
+      Policies:
+        - PolicyName: ReadRepository
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action:
+                  - 'codecommit:GetBranch'
+                  - 'codecommit:GetCommit'
+                  - 'codecommit:UploadArchive'
+                  - 'codecommit:GetUploadArchiveStatus'
+                Resource: !GetAtt ModelTrainRepository.Arn
+        - PolicyName: WriteBucket
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action:
+                  - 's3:PutObject'
+                Resource: !Sub '${ModelCodeArtifactsBucket.Arn}/*'
+  ReleaseCodePipelineSourceActionRole:
+    Type: 'AWS::IAM::Role'
+    Properties:
+      RoleName: !Sub 'ReleaseCodePipelineSourceActionRole-${SageMakerProjectName}'
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              AWS: !Sub '${AWS::AccountId}'
+            Action:
+              - 'sts:AssumeRole'
+      Path: /
+      Policies:
+        - PolicyName: ReadRepository
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action:
+                  - 'codecommit:GetBranch'
+                  - 'codecommit:GetCommit'
+                  - 'codecommit:UploadArchive'
+                  - 'codecommit:GetUploadArchiveStatus'
+                Resource: !GetAtt ModelTrainRepository.Arn
+        - PolicyName: WriteBucket
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action:
+                  - 's3:PutObject'
+                Resource: !Sub '${ModelCodeArtifactsBucket.Arn}/*'
+  TrainCodePipelineBuildActionRole:
+    Type: 'AWS::IAM::Role'
+    Properties:
+      RoleName: !Sub 'TrainCodePipelineBuildActionRole-${SageMakerProjectName}'
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              AWS: !Sub '${AWS::AccountId}'
+            Action:
+              - 'sts:AssumeRole'
+      Path: /
+      Policies:
+        - PolicyName: ReadWriteBuild
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action:
+                  - 'codebuild:StartBuild'
+                  - 'codebuild:BatchGetBuilds'
+                Resource: !GetAtt ModelTrainCodeBuildProject.Arn
+  ReleaseCodePipelineLambdaActionRole:
+    Type: 'AWS::IAM::Role'
+    Properties:
+      RoleName: !Sub 'ReleaseCodePipelineLambdaActionRole-${SageMakerProjectName}'
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              AWS: !Sub '${AWS::AccountId}'
+            Action:
+              - 'sts:AssumeRole'
+      Path: /
+      Policies:
+        - PolicyName: InvokeLambda
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action:
+                  - 'lambda:InvokeFunction'
+                Resource: !GetAtt ReleaseLambda.Arn
+  ModelReleaseCodePipelineRole:
+    Type: 'AWS::IAM::Role'
+    Properties:
+      RoleName: !Sub 'ModelReleaseCodePipelineRole-${SageMakerProjectName}'
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - codepipeline.amazonaws.com
+            Action:
+              - 'sts:AssumeRole'
+      Path: /
+      Policies:
+        - PolicyName: AssumeStagesRoles
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action: 'sts:AssumeRole'
+                Resource:
+                  - !GetAtt ReleaseCodePipelineSourceActionRole.Arn
+                  - !GetAtt ReleaseCodePipelineLambdaActionRole.Arn
+  ModelReleaseCodePipeline:
+    Type: 'AWS::CodePipeline::Pipeline'
+    Properties:
+      Name: !Sub 'model-${SageMakerProjectName}-release'
+      RoleArn: !GetAtt ModelReleaseCodePipelineRole.Arn
+      ArtifactStore:
+        Type: S3
+        Location: !Ref ModelCodeArtifactsBucket
+      Stages:
+        - Name: Source
+          Actions:
+            - Name: SourceAction
+              ActionTypeId:
+                Category: Source
+                Owner: AWS
+                Version: 1
+                Provider: CodeCommit
+              OutputArtifacts:
+                - Name: SourceOutput
+              Configuration:
+                BranchName: 'main'
+                RepositoryName: !GetAtt ModelTrainRepository.Name
+                PollForSourceChanges: false
+              Namespace: 'SourceVariables'
+              RunOrder: 1
+              RoleArn: !GetAtt ReleaseCodePipelineSourceActionRole.Arn
+        - Name: Release
+          Actions:
+            - Name: ReleaseAction
+              ActionTypeId:
+                Category: Invoke
+                Owner: AWS
+                Version: 1
+                Provider: Lambda
+              Configuration:
+                FunctionName: !Ref ReleaseLambda
+                UserParameters: '{"commit_id": "#{SourceVariables.CommitId}"}'
+              RoleArn: !GetAtt ReleaseCodePipelineLambdaActionRole.Arn
+  LambdaCreatePipelineRole:
+    Type: 'AWS::IAM::Role'
+    Properties:
+      RoleName: !Sub 'LambdaCreatePipelineRole-${SageMakerProjectName}'
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - lambda.amazonaws.com
+            Action:
+              - 'sts:AssumeRole'
+      Path: /
+      ManagedPolicyArns:
+        - 'arn:aws:iam::aws:policy/CloudWatchLogsFullAccess'
+      Policies:
+        - PolicyName: ReadBucket
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action:
+                  - 's3:GetObject'
+                Resource:
+                  - !Sub 'arn:aws:s3:::cloud-formation-${AWS::AccountId}-${AWS::Region}/pipeline.yaml'
+        - PolicyName: PassRole
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action:
+                  - 'iam:PassRole'
+                Resource: !GetAtt CloudFormationRole.Arn
+        - PolicyName: WriteCloudFormation
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action:
+                  - 'cloudformation:CreateStack'
+                Resource:
+                  - !Join
+                    - ':'
+                    - - 'arn'
+                      - !Ref AWS::Partition
+                      - 'cloudformation'
+                      - !Ref AWS::Region
+                      - !Ref AWS::AccountId
+                      - !Sub 'stack/model-${SageMakerProjectName}-train*'
+  LambdaDeletePipelineRole:
+    Type: 'AWS::IAM::Role'
+    Properties:
+      RoleName: !Sub 'LambdaDeletePipelineRole-${SageMakerProjectName}'
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - lambda.amazonaws.com
+            Action:
+              - 'sts:AssumeRole'
+      Path: /
+      ManagedPolicyArns:
+        - 'arn:aws:iam::aws:policy/CloudWatchLogsFullAccess'
+      Policies:
+        - PolicyName: PassRole
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action: 'iam:PassRole'
+                Resource: !GetAtt CloudFormationRole.Arn
+        - PolicyName: WriteCloudFormation
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action: 'cloudformation:DeleteStack'
+                Resource:
+                  - !Join
+                    - ':'
+                    - - 'arn'
+                      - !Ref AWS::Partition
+                      - 'cloudformation'
+                      - !Ref AWS::Region
+                      - !Ref AWS::AccountId
+                      - !Sub 'stack/model-${SageMakerProjectName}-train*'
+  SageMakerPipelineRole:
+    Type: 'AWS::IAM::Role'
+    Properties:
+      RoleName: !Sub 'SageMakerPipelineRole-${SageMakerProjectName}'
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - sagemaker.amazonaws.com
+            Action:
+              - 'sts:AssumeRole'
+      Path: /
+      ManagedPolicyArns:
+        - 'arn:aws:iam::aws:policy/CloudWatchLogsFullAccess'
+        - 'arn:aws:iam::aws:policy/AmazonSageMakerFullAccess'
+  ReleaseLambdaRole:
+    Type: 'AWS::IAM::Role'
+    Properties:
+      RoleName: !Sub 'ReleaseLambdaRole-${SageMakerProjectName}'
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - lambda.amazonaws.com
+            Action:
+              - 'sts:AssumeRole'
+      Path: /
+      ManagedPolicyArns:
+        - 'arn:aws:iam::aws:policy/CloudWatchLogsFullAccess'
+      Policies:
+        - PolicyName: CodePipelineWrite
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action:
+                   - 'codepipeline:PutJobSuccessResult'
+                   - 'codepipeline:PutJobFailureResult'
+                Resource: '*'
+        - PolicyName: ReadWriteSagemakerModelRegistry
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action:
+                   - 'sagemaker:ListModelPackages'
+                   - 'sagemaker:DescribeModelPackage'
+                   - 'sagemaker:UpdateModelPackage'
+                Resource:
+                  - !Join
+                    - ':'
+                    - - 'arn'
+                      - !Ref AWS::Partition
+                      - 'sagemaker'
+                      - !Ref AWS::Region
+                      - !Ref AWS::AccountId
+                      - !Sub 'model-package/model-${SageMakerProjectName}/*'
+  ReleaseLambda:
+    Type: 'AWS::Serverless::Function'
+    Properties:
+      FunctionName: !Sub 'release-model-package-${SageMakerProjectName}'
+      CodeUri: cloud_formation/release_model_package_function/index.py
+      Handler: index.lambda_handler
+      Role: !GetAtt ReleaseLambdaRole.Arn
+      Runtime: python3.8
+      MemorySize: 128
+      Timeout: 60
+      EventInvokeConfig:
+        MaximumRetryAttempts: 0
+      Environment:
+        Variables:
+          MODEL_PACKAGE_GROUP_NAME: !Sub 'model-${SageMakerProjectName}'
+  CreatePipelineLambda:
+    Type: 'AWS::Serverless::Function'
+    Properties:
+      FunctionName: !Sub 'create-train-pipeline-${SageMakerProjectName}'
+      CodeUri: cloud_formation/create_pipeline_function/index.py
+      Handler: index.lambda_handler
+      Role: !GetAtt LambdaCreatePipelineRole.Arn
+      Runtime: python3.8
+      MemorySize: 128
+      Timeout: 10
+      EventInvokeConfig:
+        MaximumRetryAttempts: 0
+      Environment:
+        Variables:
+          MODEL_NAME: !Sub '${SageMakerProjectName}'
+          PIPELINE_STACK_S3_BUCKET: !Sub 'cloud-formation-${AWS::AccountId}-${AWS::Region}'
+          PIPELINE_STACK_S3_KEY: 'pipeline.yaml'
+          CLOUD_FORMATION_ROLE_ARN: !GetAtt CloudFormationRole.Arn
+          CODE_PIPELINE_ARTIFACT_BUCKET: !Ref ModelCodeArtifactsBucket
+          CODE_PIPELINE_ROLE_ARN: !GetAtt ModelTrainCodePipelineRole.Arn
+          CODE_PIPELINE_SOURCE_ACTION_ROLE_ARN: !GetAtt TrainCodePipelineSourceActionRole.Arn
+          CODE_PIPELINE_BUILD_ACTION_ROLE_ARN: !GetAtt TrainCodePipelineBuildActionRole.Arn
+          EVENT_START_PIPELINE_ROLE_ARN: !GetAtt StartPipelineTrainEventPipelineRole.Arn
+          CODE_BUILD_PROJECT_NAME: !Ref ModelTrainCodeBuildProject
+          SAGEMAKER_PIPELINE_ROLE_ARN: !GetAtt SageMakerPipelineRole.Arn
+  CreatePipelineLambdaEventPermission:
+    Type: 'AWS::Lambda::Permission'
+    Properties:
+      Action: 'lambda:InvokeFunction'
+      FunctionName: !Ref CreatePipelineLambda
+      Principal: 'events.amazonaws.com'
+      SourceArn: !GetAtt CreatePipelineRule.Arn
+  CreatePipelineRule:
+    Type: 'AWS::Events::Rule'
+    Properties:
+      EventPattern:
+        source:
+          - aws.codecommit
+        detail-type:
+          - 'CodeCommit Repository State Change'
+        detail:
+          event:
+              - referenceCreated
+          referenceType:
+            - branch
+      State: ENABLED
+      RoleArn: !GetAtt CreatePipelineEventPipelineRole.Arn
+      Targets:
+      - Arn: !GetAtt CreatePipelineLambda.Arn
+        Id: CreatePipelineLambda
+  DeletePipelineLambda:
+    Type: 'AWS::Serverless::Function'
+    Properties:
+      FunctionName: !Sub 'delete-train-pipeline-${SageMakerProjectName}'
+      CodeUri: cloud_formation/delete_pipeline_function/index.py
+      Handler: index.lambda_handler
+      Role: !GetAtt LambdaDeletePipelineRole.Arn
+      Runtime: python3.8
+      MemorySize: 128
+      Timeout: 10
+      EventInvokeConfig:
+        MaximumRetryAttempts: 0
+      Environment:
+        Variables:
+          CLOUD_FORMATION_ROLE_ARN: !GetAtt CloudFormationRole.Arn
+  DeletePipelineLambdaEventPermission:
+    Type: 'AWS::Lambda::Permission'
+    Properties:
+      Action: 'lambda:InvokeFunction'
+      FunctionName: !Ref DeletePipelineLambda
+      Principal: 'events.amazonaws.com'
+      SourceArn: !GetAtt DeletePipelineRule.Arn
+  DeletePipelineRule:
+    Type: 'AWS::Events::Rule'
+    Properties:
+      EventPattern:
+        source:
+          - aws.codecommit
+        detail-type:
+          - 'CodeCommit Repository State Change'
+        detail:
+          event:
+              - referenceDeleted
+          referenceType:
+            - branch
+      State: ENABLED
+      RoleArn: !GetAtt DeletePipelineEventPipelineRole.Arn
+      Targets:
+      - Arn: !GetAtt DeletePipelineLambda.Arn
+        Id: DeletePipelineLambda
+  StartPipelineRule:
+    Type: 'AWS::Events::Rule'
+    Properties:
+      EventPattern:
+        source:
+          - aws.codecommit
+        detail-type:
+          - 'CodeCommit Repository State Change'
+        resources:
+          - !GetAtt ModelTrainRepository.Arn
+        detail:
+          referenceName:
+            - 'main'
+          referenceType:
+            - branch
+      State: ENABLED
+      Targets:
+      - Arn: !Join
+          - ':'
+          - - 'arn'
+            - !Ref AWS::Partition
+            - 'codepipeline'
+            - !Ref AWS::Region
+            - !Ref AWS::AccountId
+            - !Ref ModelReleaseCodePipeline
+        Id: ModelTrainCodePipeline
+        RoleArn: !GetAtt StartPipelineReleaseEventPipelineRole.Arn
+  CloudFormationRole:
+    Type: 'AWS::IAM::Role'
+    Properties:
+      RoleName: !Sub 'CloudFormationRole-${SageMakerProjectName}'
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - cloudformation.amazonaws.com
+            Action:
+              - 'sts:AssumeRole'
+      Path: /
+      Policies:
+        - PolicyName: PassRoleCodePipeline
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action: 'iam:PassRole'
+                Resource:
+                 - !GetAtt ModelTrainCodePipelineRole.Arn
+                 - !GetAtt TrainCodePipelineSourceActionRole.Arn
+                 - !GetAtt TrainCodePipelineBuildActionRole.Arn
+                 - !GetAtt StartPipelineTrainEventPipelineRole.Arn
+                 - !GetAtt CreatePipelineEventPipelineRole.Arn
+        - PolicyName: ReadWriteCodePipeline
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action: 'codepipeline:*'
+                Resource:
+                  - !Join
+                    - ':'
+                    - - 'arn'
+                      - !Ref AWS::Partition
+                      - 'codepipeline'
+                      - !Ref AWS::Region
+                      - !Ref AWS::AccountId
+                      - !Sub 'model-${SageMakerProjectName}-train*'
+        - PolicyName: ReadWriteEvents
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action:
+                  - 'events:*'
+                Resource:
+                  - !Join
+                    - ':'
+                    - - 'arn'
+                      - !Ref AWS::Partition
+                      - 'events'
+                      - !Ref AWS::Region
+                      - !Ref AWS::AccountId
+                      - !Sub 'rule/model-${SageMakerProjectName}-train*'
+  ModelPackageGroup:
+    Type: 'AWS::SageMaker::ModelPackageGroup'
+    Properties:
+      ModelPackageGroupName: !Sub 'model-${SageMakerProjectName}'

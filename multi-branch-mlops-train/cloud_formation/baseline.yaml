@@ -1,0 +1,391 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Resources:
+  CloudFormationBucket:
+    Type: 'AWS::S3::Bucket'
+    Properties:
+      BucketName: !Sub 'cloud-formation-${AWS::AccountId}-${AWS::Region}'
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault:
+              SSEAlgorithm: 'AES256'
+  ServiceCatalogProductLaunchRole:
+    Type: 'AWS::IAM::Role'
+    Properties:
+      RoleName: 'MultiBranchTrainMLOpsLaunchRole'
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - servicecatalog.amazonaws.com
+            Action:
+              - 'sts:AssumeRole'
+      Path: /
+      Policies:
+        - PolicyName: ReadWriteCloudFormation
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action:
+                  - 'cloudformation:CreateStack'
+                  - 'cloudformation:DeleteStack'
+                  - 'cloudformation:DescribeStackEvents'
+                  - 'cloudformation:DescribeStacks'
+                  - 'cloudformation:GetTemplateSummary'
+                  - 'cloudformation:SetStackPolicy'
+                  - 'cloudformation:ValidateTemplate'
+                  - 'cloudformation:UpdateStack'
+                  - 'cloudformation:CreateChangeSet'
+                Resource: '*'
+        - PolicyName: ReadTemplate
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action:
+                  - 's3:GetObject'
+                Resource: '*'
+        - PolicyName: WriteS3
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action:
+                  - 's3:CreateBucket'
+                  - 's3:DeleteBucket'
+                  - 's3:GetEncryptionConfiguration'
+                  - 's3:PutEncryptionConfiguration'
+                  - 's3:PutBucketVersioning'
+                Resource:
+                  - !Join
+                    - ':'
+                    - - 'arn'
+                      - !Ref AWS::Partition
+                      - 's3'
+                      - ''
+                      - ''
+                      - !Sub 'model-code-artifacts-*-${AWS::Region}-${AWS::AccountId}'
+        - PolicyName: ReadWriteIAM
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action:
+                  - 'iam:GetRole'
+                  - 'iam:CreateRole'
+                  - 'iam:DeleteRole'
+                  - 'iam:DetachRolePolicy'
+                  - 'iam:DeleteRolePolicy'
+                  - 'iam:AttachRolePolicy'
+                  - 'iam:PutRolePolicy'
+                  - 'iam:GetRolePolicy'
+                  - 'iam:PassRole'
+                  - 'iam:GetUser'
+                  - 'iam:CreateUser'
+                  - 'iam:DeleteUser'
+                  - 'iam:DescribeUser'
+                  - 'iam:ListAccessKeys'
+                  - 'iam:GetUserPolicy'
+                  - 'iam:PutUserPolicy'
+                  - 'iam:DeleteUserPolicy'
+                  - 'iam:TagRole'
+                  - 'iam:UntagRole'
+                Resource:
+                  - !Join
+                    - ':'
+                    - - 'arn'
+                      - !Ref AWS::Partition
+                      - 'iam'
+                      - ''
+                      - !Ref AWS::AccountId
+                      - 'role/StartPipelineTrainEventPipelineRole*'
+                  - !Join
+                    - ':'
+                    - - 'arn'
+                      - !Ref AWS::Partition
+                      - 'iam'
+                      - ''
+                      - !Ref AWS::AccountId
+                      - 'role/ReleaseLambdaRole*'
+                  - !Join
+                    - ':'
+                    - - 'arn'
+                      - !Ref AWS::Partition
+                      - 'iam'
+                      - ''
+                      - !Ref AWS::AccountId
+                      - 'role/CreatePipelineEventPipelineRole*'
+                  - !Join
+                    - ':'
+                    - - 'arn'
+                      - !Ref AWS::Partition
+                      - 'iam'
+                      - ''
+                      - !Ref AWS::AccountId
+                      - 'role/DeletePipelineEventPipelineRole*'
+                  - !Join
+                    - ':'
+                    - - 'arn'
+                      - !Ref AWS::Partition
+                      - 'iam'
+                      - ''
+                      - !Ref AWS::AccountId
+                      - 'role/StartPipelineReleaseEventPipelineRole*'
+                  - !Join
+                    - ':'
+                    - - 'arn'
+                      - !Ref AWS::Partition
+                      - 'iam'
+                      - ''
+                      - !Ref AWS::AccountId
+                      - 'role/SageMakerPipelineRole*'
+                  - !Join
+                    - ':'
+                    - - 'arn'
+                      - !Ref AWS::Partition
+                      - 'iam'
+                      - ''
+                      - !Ref AWS::AccountId
+                      - 'role/ReleaseCodePipelineSourceActionRole*'
+                  - !Join
+                    - ':'
+                    - - 'arn'
+                      - !Ref AWS::Partition
+                      - 'iam'
+                      - ''
+                      - !Ref AWS::AccountId
+                      - 'role/ModelTrainCodeBuildRole*'
+                  - !Join
+                    - ':'
+                    - - 'arn'
+                      - !Ref AWS::Partition
+                      - 'iam'
+                      - ''
+                      - !Ref AWS::AccountId
+                      - 'role/TrainCodePipelineSourceActionRole*'
+                  - !Join
+                    - ':'
+                    - - 'arn'
+                      - !Ref AWS::Partition
+                      - 'iam'
+                      - ''
+                      - !Ref AWS::AccountId
+                      - 'role/ReleaseCodePipelineLambdaActionRole*'
+                  - !Join
+                    - ':'
+                    - - 'arn'
+                      - !Ref AWS::Partition
+                      - 'iam'
+                      - ''
+                      - !Ref AWS::AccountId
+                      - 'role/ModelTrainCodePipelineRole*'
+                  - !Join
+                    - ':'
+                    - - 'arn'
+                      - !Ref AWS::Partition
+                      - 'iam'
+                      - ''
+                      - !Ref AWS::AccountId
+                      - 'role/TrainCodePipelineBuildActionRole*'
+                  - !Join
+                    - ':'
+                    - - 'arn'
+                      - !Ref AWS::Partition
+                      - 'iam'
+                      - ''
+                      - !Ref AWS::AccountId
+                      - 'role/ModelReleaseCodePipelineRole*'
+                  - !Join
+                    - ':'
+                    - - 'arn'
+                      - !Ref AWS::Partition
+                      - 'iam'
+                      - ''
+                      - !Ref AWS::AccountId
+                      - 'role/LambdaCreatePipelineRole*'
+                  - !Join
+                    - ':'
+                    - - 'arn'
+                      - !Ref AWS::Partition
+                      - 'iam'
+                      - ''
+                      - !Ref AWS::AccountId
+                      - 'role/LambdaDeletePipelineRole*'
+                  - !Join
+                    - ':'
+                    - - 'arn'
+                      - !Ref AWS::Partition
+                      - 'iam'
+                      - ''
+                      - !Ref AWS::AccountId
+                      - 'role/CloudFormationRole*'
+                  - !Join
+                    - ':'
+                    - - 'arn'
+                      - !Ref AWS::Partition
+                      - 'iam'
+                      - ''
+                      - !Ref AWS::AccountId
+                      - 'user/jenkins-model-*'
+        - PolicyName: CodeCommitWrite
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action:
+                  - 'codecommit:CreateRepository'
+                  - 'codecommit:DeleteRepository'
+                  - 'codecommit:GetRepository'
+                  - 'codecommit:TagResource'
+                Resource:
+                  - !Join
+                    - ':'
+                    - - 'arn'
+                      - !Ref AWS::Partition
+                      - 'codecommit'
+                      - !Ref AWS::Region
+                      - !Ref AWS::AccountId
+                      - 'model-*-train'
+        - PolicyName: CodeCommitRead
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action:
+                  - 'codecommit:ListRepositories'
+                Resource: '*'
+        - PolicyName: SageMakerWrite
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action:
+                  - 'sagemaker:CreateModelPackageGroup'
+                  - 'sagemaker:DeleteModelPackageGroup'
+                  - 'sagemaker:DescribeModelPackageGroup'
+                  - 'sagemaker:GetModelPackageGroupPolicy'
+                  - 'sagemaker:ListTags'
+                Resource:
+                  - !Join
+                    - ':'
+                    - - 'arn'
+                      - !Ref AWS::Partition
+                      - 'sagemaker'
+                      - !Ref AWS::Region
+                      - !Ref AWS::AccountId
+                      - 'model-package-group/model-*'
+        - PolicyName: LambdaReadWrite
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action:
+                  - 'lambda:CreateFunction'
+                  - 'lambda:DeleteFunction'
+                  - 'lambda:GetFunction'
+                  - 'lambda:PutFunctionEventInvokeConfig'
+                  - 'lambda:DeleteFunctionEventInvokeConfig'
+                  - 'lambda:AddPermission'
+                  - 'lambda:RemovePermission'
+                Resource:
+                  - !Join
+                    - ':'
+                    - - 'arn'
+                      - !Ref AWS::Partition
+                      - 'lambda'
+                      - !Ref AWS::Region
+                      - !Ref AWS::AccountId
+                      - 'function:release-model-package*'
+                  - !Join
+                    - ':'
+                    - - 'arn'
+                      - !Ref AWS::Partition
+                      - 'lambda'
+                      - !Ref AWS::Region
+                      - !Ref AWS::AccountId
+                      - 'function:create-train-pipeline*'
+                  - !Join
+                    - ':'
+                    - - 'arn'
+                      - !Ref AWS::Partition
+                      - 'lambda'
+                      - !Ref AWS::Region
+                      - !Ref AWS::AccountId
+                      - 'function:delete-train-pipeline*'
+        - PolicyName: CodeBuildReadWrite
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action:
+                  - 'codebuild:CreateProject'
+                  - 'codebuild:DeleteProject'
+                  - 'codebuild:BatchGetProjects'
+                Resource:
+                  - !Join
+                    - ':'
+                    - - 'arn'
+                      - !Ref AWS::Partition
+                      - 'codebuild'
+                      - !Ref AWS::Region
+                      - !Ref AWS::AccountId
+                      - 'project/model*train'
+        - PolicyName: CodePipelineReadWrite
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action:
+                  - 'codepipeline:GetPipeline'
+                  - 'codepipeline:CreatePipeline'
+                  - 'codepipeline:DeletePipeline'
+                  - 'codepipeline:GetPipelineState'
+                Resource:
+                  - !Join
+                    - ':'
+                    - - 'arn'
+                      - !Ref AWS::Partition
+                      - 'codepipeline'
+                      - !Ref AWS::Region
+                      - !Ref AWS::AccountId
+                      - 'model-*-release*'
+        - PolicyName: EventsReadWrite
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action:
+                  - 'events:PutRule'
+                  - 'events:GetRule'
+                  - 'events:DeleteRule'
+                  - 'events:DescribeRule'
+                  - 'events:RemoveTargets'
+                  - 'events:PutTargets'
+                Resource:
+                  - !Join
+                    - ':'
+                    - - 'arn'
+                      - !Ref AWS::Partition
+                      - 'events'
+                      - !Ref AWS::Region
+                      - !Ref AWS::AccountId
+                      - '*StartPipelineRule*'
+                  - !Join
+                    - ':'
+                    - - 'arn'
+                      - !Ref AWS::Partition
+                      - 'events'
+                      - !Ref AWS::Region
+                      - !Ref AWS::AccountId
+                      - '*CreatePipelineRule*'
+                  - !Join
+                    - ':'
+                    - - 'arn'
+                      - !Ref AWS::Partition
+                      - 'events'
+                      - !Ref AWS::Region
+                      - !Ref AWS::AccountId
+                      - '*DeletePipelineRule*'
+

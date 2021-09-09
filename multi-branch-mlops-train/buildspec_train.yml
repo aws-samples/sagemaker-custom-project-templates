@@ -1,0 +1,18 @@
+version: 0.2
+
+env:
+  shell: bash
+
+phases:
+  install:
+    runtime-versions:
+      python: 3.8
+    commands:
+      - pip install --upgrade --force-reinstall awscli
+      - pip install -r requirements.txt
+  build:
+    commands:
+      - export PYTHONUNBUFFERED=TRUE
+      - export BRANCH_NAME_NORM=$(echo $BRANCH_NAME | sed 's/origin\///;s/\//-/')
+      - export COMMIT_HASH=${CODEBUILD_RESOLVED_SOURCE_VERSION:-${COMMIT_HASH:-}}
+      - python pipelines/run_pipeline.py --region $AWS_DEFAULT_REGION --experiment-name $BRANCH_NAME_NORM --model-package-group-name $MODEL_PACKAGE_GROUP_NAME --model-name $MODEL_NAME --project-id $PROJECT_ID --commit-id $COMMIT_HASH --role-arn $SAGEMAKER_PIPELINE_ROLE_ARN

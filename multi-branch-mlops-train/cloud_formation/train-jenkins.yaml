@@ -1,0 +1,231 @@
+Transform: AWS::Serverless-2016-10-31
+Parameters:
+  SageMakerProjectName:
+    Type: String
+    Description: Name of the project
+    MaxLength: 18
+  SageMakerProjectId:
+    Type: String
+    Description: Service generated Id of the project.
+Resources:
+  ModelTrainCodeBuildRole:
+    Type: 'AWS::IAM::Role'
+    Properties:
+      RoleName: !Sub 'ModelTrainCodeBuildRole-${SageMakerProjectName}'
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - codebuild.amazonaws.com
+            Action:
+              - 'sts:AssumeRole'
+      Path: /
+      ManagedPolicyArns:
+        - 'arn:aws:iam::aws:policy/CloudWatchLogsFullAccess'
+        - 'arn:aws:iam::aws:policy/AmazonSageMakerFullAccess'
+      Policies:
+        - PolicyName: ReadBucket
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action:
+                  - 's3:GetObject'
+                  - 's3:GetObjectVersion'
+                Resource: !Sub '${ModelCodeArtifactsBucket.Arn}/*'
+        - PolicyName: WriteBucket
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action:
+                  - 's3:CreateBucket'
+                  - 's3:PutObject'
+                Resource:
+                  - !Join
+                    - ':'
+                    - - 'arn'
+                      - !Ref AWS::Partition
+                      - 's3'
+                      - ''
+                      - ''
+                      - !Sub 'sagemaker-${AWS::Region}-${AWS::AccountId}'
+                  - !Join
+                    - ':'
+                    - - 'arn'
+                      - !Ref AWS::Partition
+                      - 's3'
+                      - ''
+                      - ''
+                      - !Sub 'sagemaker-${AWS::Region}-${AWS::AccountId}/*'
+        - PolicyName: PassRoleSagemakerPipeline
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action:
+                  - 'iam:PassRole'
+                Resource: !GetAtt SageMakerPipelineRole.Arn
+  ModelCodeArtifactsBucket:
+    Type: 'AWS::S3::Bucket'
+    Properties:
+      BucketName: !Sub 'model-code-artifacts-${SageMakerProjectName}-${AWS::Region}-${AWS::AccountId}'
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault:
+              SSEAlgorithm: 'AES256'
+      VersioningConfiguration:
+        Status: Enabled
+  ModelTrainCodeBuildProject:
+    Type: 'AWS::CodeBuild::Project'
+    Properties:
+      Name: !Sub 'model-${SageMakerProjectName}-train'
+      Artifacts:
+        Type: NO_ARTIFACTS
+      Environment:
+        ComputeType: BUILD_GENERAL1_SMALL
+        Image: aws/codebuild/standard:5.0
+        ImagePullCredentialsType: CODEBUILD
+        PrivilegedMode: true
+        Type: LINUX_CONTAINER
+        EnvironmentVariables:
+          - Name: SAGEMAKER_PIPELINE_ROLE_ARN
+            Type: PLAINTEXT
+            Value: !GetAtt SageMakerPipelineRole.Arn
+          - Name: MODEL_NAME
+            Type: PLAINTEXT
+            Value: !Ref SageMakerProjectName
+          - Name: PROJECT_ID
+            Type: PLAINTEXT
+            Value: !Ref SageMakerProjectId
+          - Name: MODEL_PACKAGE_GROUP_NAME
+            Type: PLAINTEXT
+            Value: !Sub 'model-${SageMakerProjectName}'
+          - Name: AWS_ACCOUNT_ID
+            Type: PLAINTEXT
+            Value: !Ref AWS::AccountId
+      ServiceRole: !GetAtt ModelTrainCodeBuildRole.Arn
+      Source:
+        Location: !Join
+          - '/'
+          - - !Ref ModelCodeArtifactsBucket
+            - 'code.zip'
+        Type: S3
+        BuildSpec: 'buildspec_train.yml'
+  SageMakerPipelineRole:
+    Type: 'AWS::IAM::Role'
+    Properties:
+      RoleName: !Sub 'SageMakerPipelineRole-${SageMakerProjectName}'
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - sagemaker.amazonaws.com
+            Action:
+              - 'sts:AssumeRole'
+      Path: /
+      ManagedPolicyArns:
+        - 'arn:aws:iam::aws:policy/CloudWatchLogsFullAccess'
+        - 'arn:aws:iam::aws:policy/AmazonSageMakerFullAccess'
+  ReleaseLambdaRole:
+    Type: 'AWS::IAM::Role'
+    Properties:
+      RoleName: !Sub 'ReleaseLambdaRole-${SageMakerProjectName}'
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - lambda.amazonaws.com
+            Action:
+              - 'sts:AssumeRole'
+      Path: /
+      ManagedPolicyArns:
+        - 'arn:aws:iam::aws:policy/CloudWatchLogsFullAccess'
+      Policies:
+        - PolicyName: CodePipelineWrite
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action:
+                   - 'codepipeline:PutJobSuccessResult'
+                   - 'codepipeline:PutJobFailureResult'
+                Resource: '*'
+        - PolicyName: ReadWriteSagemakerModelRegistry
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action:
+                   - 'sagemaker:ListModelPackages'
+                   - 'sagemaker:DescribeModelPackage'
+                   - 'sagemaker:UpdateModelPackage'
+                Resource:
+                  - !Join
+                    - ':'
+                    - - 'arn'
+                      - !Ref AWS::Partition
+                      - 'sagemaker'
+                      - !Ref AWS::Region
+                      - !Ref AWS::AccountId
+                      - !Sub 'model-package/model-${SageMakerProjectName}/*'
+  ReleaseLambda:
+    Type: 'AWS::Serverless::Function'
+    Properties:
+      FunctionName: !Sub 'release-model-package-${SageMakerProjectName}'
+      CodeUri: cloud_formation/release_model_package_function/index.py
+      Handler: index.lambda_handler
+      Role: !GetAtt ReleaseLambdaRole.Arn
+      Runtime: python3.8
+      MemorySize: 128
+      Timeout: 60
+      EventInvokeConfig:
+        MaximumRetryAttempts: 0
+      Environment:
+        Variables:
+          MODEL_PACKAGE_GROUP_NAME: !Sub 'model-${SageMakerProjectName}'
+  ModelPackageGroup:
+    Type: 'AWS::SageMaker::ModelPackageGroup'
+    Properties:
+      ModelPackageGroupName: !Sub 'model-${SageMakerProjectName}'
+  JenkinsUser:
+    Type: 'AWS::IAM::User'
+    Properties:
+      Policies:
+        - PolicyName: WriteCodeBuild
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action:
+                  - 'codebuild:StartBuild'
+                  - 'codebuild:BatchGetProjects'
+                  - 'codebuild:BatchGetBuilds'
+                Resource: !GetAtt ModelTrainCodeBuildProject.Arn
+        - PolicyName: WriteS3
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action:
+                  - 's3:PutObject'
+                  - 's3:GetObject'
+                  - 's3:GetBucketVersioning'
+                Resource:
+                  - !Sub '${ModelCodeArtifactsBucket.Arn}/*'
+                  - !Sub '${ModelCodeArtifactsBucket.Arn}'
+        - PolicyName: WriteLambda
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action:
+                  - 'lambda:InvokeFunction'
+                Resource: !GetAtt ReleaseLambda.Arn
+      UserName: !Sub 'jenkins-model-${SageMakerProjectName}'
