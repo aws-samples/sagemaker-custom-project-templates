@@ -13,6 +13,7 @@ def main():  # pragma: no cover
     parser.add_argument('-region', '--region', dest='region', type=str, required=True)
     parser.add_argument('-model-package-group-name', '--model-package-group-name', dest='model_package_group_name', type=str, required=True)
     parser.add_argument('-model-name', '--model-name', dest='model_name', type=str, required=True)
+    parser.add_argument('-project-id', '--project-id', dest='project_id', type=str, required=True)
     parser.add_argument('-experiment-name', '--experiment-name', dest='experiment_name', type=str, required=True)
     parser.add_argument('-commit-id', '--commit-id', dest='commit_id', type=str, required=True)
     parser.add_argument('-role-arn', '--role-arn', dest='role_arn', type=str, required=True)
@@ -33,7 +34,19 @@ def main():  # pragma: no cover
         parsed = json.loads(pipeline.definition())
         print(json.dumps(parsed, indent=2, sort_keys=True))
 
-        upsert_response = pipeline.upsert(role_arn=args.role_arn)
+        upsert_response = pipeline.upsert(
+            role_arn=args.role_arn,
+            tags=[
+                {
+                    'Key': 'sagemaker:project-name',
+                    'Value': args.model_name
+                },
+                {
+                    'Key': 'sagemaker:project-id',
+                    'Value': args.project_id
+                }
+            ]
+        )
         print("\n###### Created/Updated SageMaker Pipeline: Response received:")
         print(upsert_response)
 

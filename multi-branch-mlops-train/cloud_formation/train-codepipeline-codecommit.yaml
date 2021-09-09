@@ -222,6 +222,9 @@ Resources:
           - Name: MODEL_NAME
             Type: PLAINTEXT
             Value: !Ref SageMakerProjectName
+          - Name: PROJECT_ID
+            Type: PLAINTEXT
+            Value: !Ref SageMakerProjectId
           - Name: MODEL_PACKAGE_GROUP_NAME
             Type: PLAINTEXT
             Value: !Sub 'model-${SageMakerProjectName}'
