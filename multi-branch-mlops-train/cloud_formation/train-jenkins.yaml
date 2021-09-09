@@ -3,6 +3,7 @@ Parameters:
   SageMakerProjectName:
     Type: String
     Description: Name of the project
+    MaxLength: 18
   SageMakerProjectId:
     Type: String
     Description: Service generated Id of the project.
