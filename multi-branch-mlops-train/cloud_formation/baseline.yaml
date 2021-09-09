@@ -90,6 +90,8 @@ Resources:
                   - 'iam:GetUserPolicy'
                   - 'iam:PutUserPolicy'
                   - 'iam:DeleteUserPolicy'
+                  - 'iam:TagRole'
+                  - 'iam:UntagRole'
                 Resource:
                   - !Join
                     - ':'
