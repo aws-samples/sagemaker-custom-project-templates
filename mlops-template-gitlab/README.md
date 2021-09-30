@@ -11,8 +11,8 @@ The following steps need to be complete before creating a SageMaker Project.
     2. `zip_files/lambda-seedcode-checkin-gitlab.zip`
     3. `zip_files/mlops-gitlab-project-seedcode-model-build.zip`
     4. `zip_files/mlops-gitlab-project-seedcode-model-deploy.zip`
-5. Use `zip_util.sh` to zip these files and upload them to S3. Uplaod `zip_util.sh` with your S3 bucket name. 
-4. Modify lines 71, 80, and 104 in `project.yml` with the name of the bucket the zip files were uploaded to. 
+4. Use `zip_util.sh` to zip these files and upload them to S3. Uplaod `zip_util.sh` with your S3 bucket name. 
+5. **Replace `<AWS_BUCKET>` in `project.yml` with the name of the bucket the zip files were uploaded to.**
 
 ### Create an Amazon ServiceCatalog Product
 Using the project template defined in `project.yml`, a product in ServiceCatalog needs to be created. Follow the steps in the main repository readme file to create a custom project. 
@@ -21,9 +21,9 @@ Using the project template defined in `project.yml`, a product in ServiceCatalog
 
 Under `Organization Templates` in the SageMaker Project tab, click on the Project you created for GitLab. Enter the details required.
 
-![](project-page.png)
+![](img/project-page.png)
 
-Once the project has been created, navigate to your GitLab account and you will see 2 new repositories. Clone these repositories in SageMaker Studio. 
+Once the project has been created, navigate to your GitLab account and you will see 2 new repositories. Clone these repositories in SageMaker Studio. These repositories will have the SageMaker Project ID appended to the name provided while creating the template, this is to prevent project failure due to duplicate project creation attempts. 
 
 Each repository will have a GitLab CI Pipeline associated with it that will run as soon as the project is created. The first run of each pipeline will fail because GitLab does not have the AWS credentials. 
 

@@ -68,7 +68,7 @@ Resources:
       Timeout: 900
       Role: !Join [ ':', [ 'arn', !Ref 'AWS::Partition', 'iam:', !Ref 'AWS::AccountId', 'role/service-role/AmazonSageMakerServiceCatalogProductsUseRole'] ]
       Code:
-        S3Bucket: sagemaker-us-east-2-682101512330
+        S3Bucket: <AWS_BUCKET>
         S3Key: gitlab-project/lambda-seedcode-checkin-gitlab.zip
       Environment:
         Variables:
@@ -77,7 +77,7 @@ Resources:
           SageMakerProjectName: !Sub ${SageMakerProjectName}
           SageMakerProjectId: !Sub ${SageMakerProjectId}
           SecretName: !Sub ${SecretName}
-          SeedCodeBucket: sagemaker-us-east-2-682101512330
+          SeedCodeBucket: <AWS_BUCKET>
           ModelBuildSeedCode: gitlab-project/mlops-gitlab-project-seedcode-model-build.zip
           ModelDeploySeedCode: gitlab-project/mlops-gitlab-project-seedcode-model-deploy.zip
           Region: !Ref AWS::Region
@@ -101,7 +101,7 @@ Resources:
       Timeout: 900
       Role: !Join [ ':', [ 'arn', !Ref 'AWS::Partition', 'iam:', !Ref 'AWS::AccountId', 'role/service-role/AmazonSageMakerServiceCatalogProductsUseRole'] ]
       Code:
-        S3Bucket: sagemaker-us-east-2-682101512330
+        S3Bucket: <AWS_BUCKET>
         S3Key: gitlab-project/lambda-gitlab-pipeline-trigger.zip
       Environment:
         Variables:
