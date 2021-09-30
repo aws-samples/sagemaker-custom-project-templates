@@ -11,5 +11,5 @@
 
 cd zip_files
 for filename in *.zip; do
-    aws s3 cp $filename s3://sagemaker-us-east-2-682101512330/gitlab-project/$filename
+    aws s3 cp $filename s3://{AWS_BUCKET}/gitlab-project/$filename
 done
