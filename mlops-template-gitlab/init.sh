@@ -5,11 +5,11 @@ SECRET_NAME=$2
 SECRET_KEY=$3
 
 
-(cd seedcode ; zip -r ../zip_files/mlops-gitlab-project-seedcode-model-deploy.zip . -x ../mlops-gitlab-project-seedcode-model-deploy)
-(cd seedcode ; zip -r ../zip_files/mlops-gitlab-project-seedcode-model-build.zip . -x ../mlops-gitlab-project-seedcode-model-build)
+(cd seedcode/mlops-gitlab-project-seedcode-model-deploy ; zip -r ../../zip_files/mlops-gitlab-project-seedcode-model-deploy.zip . -x ../mlops-gitlab-project-seedcode-model-deploy)
+(cd seedcode/mlops-gitlab-project-seedcode-model-build ; zip -r ../../zip_files/mlops-gitlab-project-seedcode-model-build.zip . -x ../mlops-gitlab-project-seedcode-model-build)
 
-(cd lambda_functions ; zip -r ../zip_files/lambda-gitlab-pipeline-trigger.zip . -x ../lambda-gitlab-pipeline-trigger)
-(cd lambda_functions ; zip -r ../zip_files/lambda-seedcode-checkin-gitlab.zip . -x ../lambda-seedcode-checkin-gitlab)
+(cd lambda_functions/lambda-gitlab-pipeline-trigger ; zip -r ../../zip_files/lambda-gitlab-pipeline-trigger.zip . -x ../lambda-gitlab-pipeline-trigger)
+(cd lambda_functions/lambda-seedcode-checkin-gitlab ; zip -r ../../zip_files/lambda-seedcode-checkin-gitlab.zip . -x ../lambda-seedcode-checkin-gitlab)
 
 # Upload files to S3
 

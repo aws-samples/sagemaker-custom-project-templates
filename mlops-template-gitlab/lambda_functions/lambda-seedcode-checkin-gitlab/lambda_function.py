@@ -137,8 +137,7 @@ def lambda_handler(event, context):
                     deploy_data["actions"].append(deploy)
                 except:
                     pass
-    print("Project ID : ", os.environ['SageMakerProjectId'])
-    print("Project Name : ", gitlab_project_name_build)
+
     try:
         #Create the GitLab Project
         build_project = gl.projects.create({'name': gitlab_project_name_build})
