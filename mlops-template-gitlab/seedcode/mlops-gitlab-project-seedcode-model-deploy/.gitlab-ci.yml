@@ -1,0 +1,72 @@
+image: python:latest
+
+variables:
+  PIP_CACHE_DIR: "$CI_PROJECT_DIR/.cache/pip"
+  SAGEMAKER_PROJECT_NAME_ID: "$SAGEMAKER_PROJECT_NAME-$SAGEMAKER_PROJECT_ID"
+  EXPORT_TEMPLATE_NAME: "template-export.yml"
+  EXPORT_TEMPLATE_STAGING_CONFIG: "staging-config-export.json"
+  EXPORT_TEMPLATE_STAGING_PARAMS: "staging-params-export.json"
+  EXPORT_TEMPLATE_STAGING_TAGS: "staging-tags-export.json"
+  EXPORT_TEMPLATE_PROD_CONFIG: "prod-config-export.json"
+  EXPORT_TEMPLATE_PROD_PARAMS: "prod-params-export.json"
+  EXPORT_TEMPLATE_PROD_TAGS: "prod-tags-export.json"
+  EXPORT_TEST_RESULTS: "test-results.json"
+  STACK_NAME_DEPLOY_STAGING: "sagemaker-${SAGEMAKER_PROJECT_NAME}-${SAGEMAKER_PROJECT_ID}-deploy-staging"
+  STACK_NAME_DEPLOY_PROD: "sagemaker-${SAGEMAKER_PROJECT_NAME}-${SAGEMAKER_PROJECT_ID}-deploy-prod"
+
+cache:
+  paths:
+    - .cache/pip
+    - venv/
+
+before_script:
+  - python -V 
+  - pip install virtualenv
+  - virtualenv venv
+  - source venv/bin/activate
+  - pip install --upgrade --force-reinstall "botocore>1.21.30" "boto3>1.18.30" "awscli>1.20.30"
+
+stages:          
+  - build
+  - staging deploy
+  - test staging
+  - production deploy
+
+build_job:       
+  stage: build
+  script:
+    - python build.py --region "$AWS_REGION" --model-execution-role "$MODEL_EXECUTION_ROLE_ARN" --model-package-group-name "$SAGEMAKER_PROJECT_NAME_ID" --sagemaker-project-id "$SAGEMAKER_PROJECT_ID" --sagemaker-project-name "$SAGEMAKER_PROJECT_NAME" --export-staging-config $EXPORT_TEMPLATE_STAGING_CONFIG --export-prod-config $EXPORT_TEMPLATE_PROD_CONFIG --sagemaker-project-arn "$SAGEMAKER_PROJECT_ARN"
+    - export PATH="$HOME/.local/bin:$PATH" && aws cloudformation package --template endpoint-config-template.yml --s3-bucket $ARTIFACT_BUCKET --output-template $EXPORT_TEMPLATE_NAME
+    - cat $EXPORT_TEMPLATE_STAGING_CONFIG
+    - cat $EXPORT_TEMPLATE_PROD_CONFIG
+  artifacts:
+    paths:
+      - endpoint-config-template.yml
+      - $EXPORT_TEMPLATE_STAGING_CONFIG
+      - $EXPORT_TEMPLATE_STAGING_PARAMS
+      - $EXPORT_TEMPLATE_STAGING_TAGS
+      - $EXPORT_TEMPLATE_PROD_CONFIG
+      - $EXPORT_TEMPLATE_PROD_PARAMS
+      - $EXPORT_TEMPLATE_PROD_TAGS
+
+staging_deploy:  
+  stage: staging deploy 
+  dependencies: 
+    - build_job
+  script:
+    - python deploy-stack.py --region $AWS_REGION --stack-name Staging --param-file $EXPORT_TEMPLATE_STAGING_CONFIG
+
+test_staging:
+  stage: test staging
+  script:
+    - echo "Linting code... This will take about 10 seconds."
+    - echo "No lint issues found."
+
+production_deploy:      
+  stage: production deploy
+  dependencies: 
+    - build_job
+  script:
+    - echo "Deploying model to SageMaker Endpoint..."
+    - python deploy-stack.py --region $AWS_REGION --stack-name Production --param-file $EXPORT_TEMPLATE_PROD_CONFIG
+  when: manual

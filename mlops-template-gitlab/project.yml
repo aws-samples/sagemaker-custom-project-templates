@@ -1,0 +1,140 @@
+Description: Toolchain template which provides the resources needed to represent infrastructure as code. This template specifically creates a CI/CD pipeline using Jenkins to build a model using a SageMaker Pipeline and deploy theresulting trained ML Model from Model Registry to two stages in CD -- staging and production.
+
+Parameters:
+  SageMakerProjectName:
+    Type: String
+    Description: Name of the project
+    NoEcho: true
+    MinLength: 1
+    MaxLength: 32
+    AllowedPattern: ^[a-zA-Z](-*[a-zA-Z0-9])*
+
+  SageMakerProjectId:
+    Type: String
+    NoEcho: true
+    Description: Service generated Id of the project.
+
+  ModelBuildCodeRepositoryName:
+    Type: String
+    MaxLength: 1024
+    Description: Repository name of the Model Building and Training Code Repository
+
+  ModelDeployCodeRepositoryName:
+    Type: String
+    MaxLength: 1024
+    Description: Repository name of the Model Deplymen Code Repository
+
+  SecretName:
+    Type: String
+    Description: Token for GitLab
+
+Metadata:
+  AWS::CloudFormation::Interface:
+    ParameterGroups:
+      -
+        Label:
+          default: "Code Repository Info"
+        Parameters:
+          - ModelBuildCodeRepositoryName
+          - ModelDeployCodeRepositoryName
+      -
+        Label:
+          default: "GitLab Access"
+        Parameters:
+          - SecretName
+        
+    ParameterLabels:
+      ModelBuildCodeRepositoryName:
+        default: "Model Build Repository Name"
+      ModelDeployCodeRepositoryName:
+        default: "Model Deploy Repository Name"
+      SecretName:
+        default: "GitLab Secret Name (SecretsManager)"
+
+Resources:
+  MlOpsArtifactsBucket:
+    Type: AWS::S3::Bucket
+    DeletionPolicy: Retain
+    Properties:
+      BucketName: !Sub sagemaker-project-${SageMakerProjectId} # 58 chars max/ 64 allowed
+
+  GitSeedCodeCheckinLambda:
+    Type: 'AWS::Lambda::Function'
+    Properties:
+      Description: To trigger the codebuild project for the seedcode checkin
+      Handler: lambda_function.lambda_handler
+      Runtime: python3.8
+      FunctionName: !Sub sagemaker-${SageMakerProjectId}-git-seedcodecheckin # max: 10+15+19=44 out of 64 max
+      Timeout: 900
+      Role: !Join [ ':', [ 'arn', !Ref 'AWS::Partition', 'iam:', !Ref 'AWS::AccountId', 'role/service-role/AmazonSageMakerServiceCatalogProductsUseRole'] ]
+      Code:
+        S3Bucket: sagemaker-us-east-2-682101512330
+        S3Key: gitlab-project/lambda-seedcode-checkin-gitlab.zip
+      Environment:
+        Variables:
+          DeployProjectName: !Sub ${ModelDeployCodeRepositoryName}
+          BuildProjectName: !Sub ${ModelBuildCodeRepositoryName}
+          SageMakerProjectName: !Sub ${SageMakerProjectName}
+          SageMakerProjectId: !Sub ${SageMakerProjectId}
+          SecretName: !Sub ${SecretName}
+          SeedCodeBucket: sagemaker-us-east-2-682101512330
+          ModelBuildSeedCode: gitlab-project/mlops-gitlab-project-seedcode-model-build.zip
+          ModelDeploySeedCode: gitlab-project/mlops-gitlab-project-seedcode-model-deploy.zip
+          Region: !Ref AWS::Region
+          AccountId: !Ref AWS::AccountId
+          Role: !Join [ ':', [ 'arn', !Ref 'AWS::Partition', 'iam:', !Ref 'AWS::AccountId', 'role/service-role/AmazonSageMakerServiceCatalogProductsUseRole'] ]
+          
+  SageMakerModelBuildSeedCodeCheckinLambdaInvoker:
+    Type: 'AWS::CloudFormation::CustomResource'
+    DependsOn: GitSeedCodeCheckinLambda
+    Properties:
+      ServiceToken: !GetAtt GitSeedCodeCheckinLambda.Arn
+
+  ### Lambda function to start GitLab CI/CD Pipeline
+  GitLabPipelineTriggerLambda:
+    Type: 'AWS::Lambda::Function'
+    Properties:
+      Description: To trigger the GitLab Pipeline
+      Handler: lambda_function.lambda_handler
+      Runtime: python3.8
+      FunctionName: !Sub sagemaker-${SageMakerProjectId}-gitlab-trigger # max: 10+15+19=44 out of 64 max
+      Timeout: 900
+      Role: !Join [ ':', [ 'arn', !Ref 'AWS::Partition', 'iam:', !Ref 'AWS::AccountId', 'role/service-role/AmazonSageMakerServiceCatalogProductsUseRole'] ]
+      Code:
+        S3Bucket: sagemaker-us-east-2-682101512330
+        S3Key: gitlab-project/lambda-gitlab-pipeline-trigger.zip
+      Environment:
+        Variables:
+          DeployProjectName: !Sub ${ModelDeployCodeRepositoryName}
+          BuildProjectName: !Sub ${ModelBuildCodeRepositoryName}
+          SageMakerProjectName: !Sub ${SageMakerProjectName}
+          SageMakerProjectId: !Sub ${SageMakerProjectId}
+          SecretName: !Sub ${SecretName}
+
+  ModelDeploySageMakerEventRule:
+    Type: AWS::Events::Rule
+    Properties:
+      # Max length allowed: 64
+      Name: !Sub sagemaker-${SageMakerProjectName}-${SageMakerProjectId}-event-rule # max: 10+33+15+5=63 chars
+      Description: "Rule to trigger a deployment when SageMaker Model registry is updated with a new model package. For example, a new model package is registered with Registry"
+      EventPattern:
+        source:
+          - "aws.sagemaker"
+        detail-type:
+          - "SageMaker Model Package State Change"
+        detail:
+          ModelPackageGroupName:
+            - !Sub ${SageMakerProjectName}-${SageMakerProjectId}
+      State: "ENABLED"
+      Targets:
+        -
+          Arn: !GetAtt GitLabPipelineTriggerLambda.Arn
+          Id: !Sub sagemaker-${SageMakerProjectName}-trigger
+  
+  PermissionForEventsToInvokeLambda: 
+    Type: AWS::Lambda::Permission
+    Properties: 
+      FunctionName: !GetAtt GitLabPipelineTriggerLambda.Arn
+      Action: lambda:InvokeFunction
+      Principal: events.amazonaws.com
+      SourceArn: !GetAtt ModelDeploySageMakerEventRule.Arn
