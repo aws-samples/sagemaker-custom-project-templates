@@ -3,9 +3,9 @@
 This repository contains an example SageMaker Project template. Each folder in this repo contains a custom project template with details on what that template achieves and how to set it up. The generic instructions are shown below.
 
 ## Custom Projects
-* [MLOps template for model training and deployment with GitLab and GitLab Pipelines](mlops-tempalte-gitlab)
-* [MLOps template for model training and deployment using encrypted buckets](encrypted-buckets)
-* [MLOps template for model training and deployment using multiple repo branches](multi-branch-mlops-train)
+* [MLOps template for model training and deployment with GitLab and GitLab Pipelines](https://github.com/aws-samples/sagemaker-custom-project-templates/tree/main/mlops-template-gitlab)
+* [MLOps template for model training and deployment using encrypted buckets](https://github.com/aws-samples/sagemaker-custom-project-templates/tree/main/encrypted-buckets)
+* [MLOps template for model training and deployment using multiple repo branches](https://github.com/aws-samples/sagemaker-custom-project-templates/tree/main/multi-branch-mlops-train)
 
 ## Adding the template to Studio
 ### 1. Create a Service Catalog Portfolio
