@@ -1,4 +1,4 @@
-Description: Toolchain template which provides the resources needed to represent infrastructure as code. This template specifically creates a CI/CD pipeline using Jenkins to build a model using a SageMaker Pipeline and deploy theresulting trained ML Model from Model Registry to two stages in CD -- staging and production.
+Description: Toolchain template which provides the resources needed to represent infrastructure as code. The template creates 2 source control repositories in GitLab and creates a CI/CD pipeline using GitLab Pipeline to build a model using a SageMaker Pipeline and deploy the resulting trained ML Model from Model Registry to two stages in CD -- staging and production.
 
 Parameters:
   SageMakerProjectName:
@@ -22,7 +22,7 @@ Parameters:
   ModelDeployCodeRepositoryName:
     Type: String
     MaxLength: 1024
-    Description: Repository name of the Model Deplymen Code Repository
+    Description: Repository name of the Model Deplyment Code Repository
 
   SecretName:
     Type: String

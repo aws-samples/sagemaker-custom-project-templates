@@ -3,32 +3,69 @@ import os
 import boto3
 import zipfile
 import cfnresponse
+import base64
+from botocore.exceptions import ClientError
+import logging
+import uuid
+
+logger = logging.getLogger()
+logger.setLevel(logging.INFO)
+logger.addHandler(logging.StreamHandler())
 
 def get_secret():
     ''' '''
     secret_name = os.environ['SecretName']
     region_name = os.environ['Region']
     
-    print("Region: ", region_name)
+    logging.info("Region: ", region_name)
     session = boto3.session.Session()
     client = session.client(
         service_name='secretsmanager',
         region_name=region_name
     )
 
-    get_secret_value_response = client.get_secret_value(
-        SecretId=secret_name
-    )
-    secret_arn = get_secret_value_response['ARN']
-    secret = get_secret_value_response['SecretString']
-    
+    try:
+        get_secret_value_response = client.get_secret_value(
+            SecretId=secret_name
+        )
+    except ClientError as e:
+        if e.response['Error']['Code'] == 'DecryptionFailureException':
+            # Secrets Manager can't decrypt the protected secret text using the provided KMS key.
+            # Deal with the exception here, and/or rethrow at your discretion.
+            raise e
+        elif e.response['Error']['Code'] == 'InternalServiceErrorException':
+            # An error occurred on the server side.
+            # Deal with the exception here, and/or rethrow at your discretion.
+            raise e
+        elif e.response['Error']['Code'] == 'InvalidParameterException':
+            # You provided an invalid value for a parameter.
+            # Deal with the exception here, and/or rethrow at your discretion.
+            raise e
+        elif e.response['Error']['Code'] == 'InvalidRequestException':
+            # You provided a parameter value that is not valid for the current state of the resource.
+            # Deal with the exception here, and/or rethrow at your discretion.
+            raise e
+        elif e.response['Error']['Code'] == 'ResourceNotFoundException':
+            # We can't find the resource that you asked for.
+            # Deal with the exception here, and/or rethrow at your discretion.
+            raise e
+    else:
+        # Decrypts secret using the associated KMS CMK.
+        # Depending on whether the secret is a string or binary, one of these fields will be populated.
+        if 'SecretString' in get_secret_value_response:
+            secret = get_secret_value_response['SecretString']
+            secret_arn = get_secret_value_response['ARN']
+        else:
+            decoded_binary_secret = base64.b64decode(get_secret_value_response['SecretBinary'])
+            secret_arn = get_secret_value_response['ARN']
+
     return secret.split(':')[-1].strip('"}'), secret_arn
 
 def lambda_handler(event, context):
     ''' '''
     sm_seed_code_bucket = os.environ['SeedCodeBucket']
-    model_build_sm_seed_code_object_name = os.environ['ModelBuildSeedCode'] + '-' + os.environ['SageMakerProjectId']
-    model_deploy_sm_seed_code_object_name = os.environ['ModelDeploySeedCode'] + '-' + os.environ['SageMakerProjectId']
+    model_build_sm_seed_code_object_name = os.environ['ModelBuildSeedCode'] + '-' + os.environ['SageMakerProjectId'],
+    model_deploy_sm_seed_code_object_name = os.environ['ModelDeploySeedCode'] + '-' + os.environ['SageMakerProjectId'],
     region = os.environ['Region']
     
     gitlab_project_name_build = os.environ['BuildProjectName']
@@ -39,10 +76,10 @@ def lambda_handler(event, context):
     gl = gitlab.Gitlab('https://gitlab.com', private_token=gitlab_private_token)
     s3 = boto3.client('s3')
  
-    model_build_filename = '/tmp/model-build-seed-code.zip'
-    model_deploy_filename = '/tmp/model-deploy-seed-code.zip'
-    model_build_directory = '/tmp/model-build'
-    model_deploy_directory = '/tmp/model-deploy'
+    model_build_filename = f'/tmp/{str(uuid.uuid4())}-model-build-seed-code.zip'
+    model_deploy_filename = f'/tmp/{str(uuid.uuid4())}-model-deploy-seed-code.zip'
+    model_build_directory = f'/tmp/{str(uuid.uuid4())}-model-build'
+    model_deploy_directory = f'/tmp/{str(uuid.uuid4())}-model-deploy'
 
     # #Get Model Build Seed Code from S3 for Gitlab Repo
     with open(model_build_filename, 'wb') as f:
@@ -56,16 +93,16 @@ def lambda_handler(event, context):
     try:
         with zipfile.ZipFile(model_build_filename) as z:
             z.extractall(model_build_directory)
-            print("Extracted all")
+            logging.info("Extracted all")
     except:
-        print("Invalid file")
+        logging.error("Invalid file")
 
     try:
         with zipfile.ZipFile(model_deploy_filename) as z:
             z.extractall(model_deploy_directory)
-            print("Extracted all")
+            logging.info("Extracted all")
     except:
-        print("Invalid file")
+        logging.error("Invalid file")
  
     #Iterate through all of the files in the extracted folder to create commmit data
     build_data = {"branch": "main", "commit_message": "Initial Commit", "actions": []}
@@ -73,7 +110,6 @@ def lambda_handler(event, context):
  
     for path, _, files in os.walk(model_build_directory): 
         for name in files:
-            print(name)
             full_file_path = os.path.join(path, name)
             if name.endswith('.DS_Store'):
                 continue
@@ -89,7 +125,6 @@ def lambda_handler(event, context):
 
     for path, _, files in os.walk(model_deploy_directory): 
         for name in files:
-            print(name)
             full_file_path = os.path.join(path, name)
             if name.endswith('.DS_Store'):
                 continue
@@ -102,8 +137,6 @@ def lambda_handler(event, context):
                     deploy_data["actions"].append(deploy)
                 except:
                     pass
-
-    # Add better error handling
     try:
         #Create the GitLab Project
         build_project = gl.projects.create({'name': gitlab_project_name_build})
@@ -167,5 +200,7 @@ def lambda_handler(event, context):
             ]
         )
         cfnresponse.send(event, context, cfnresponse.SUCCESS, {})
-    except:
+    except Exception as e:
+        logging.debug("The Project could not be created using the GitLab API..")
+        logging.debug(e)
         cfnresponse.send(event, context, cfnresponse.FAILED, {})
