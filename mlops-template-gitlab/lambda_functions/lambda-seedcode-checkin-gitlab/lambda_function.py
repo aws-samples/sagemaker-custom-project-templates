@@ -27,8 +27,8 @@ def get_secret():
 def lambda_handler(event, context):
     ''' '''
     sm_seed_code_bucket = os.environ['SeedCodeBucket']
-    model_build_sm_seed_code_object_name = os.environ['ModelBuildSeedCode']
-    model_deploy_sm_seed_code_object_name = os.environ['ModelDeploySeedCode']
+    model_build_sm_seed_code_object_name = os.environ['ModelBuildSeedCode'] + '-' + os.environ['SageMakerProjectId']
+    model_deploy_sm_seed_code_object_name = os.environ['ModelDeploySeedCode'] + '-' + os.environ['SageMakerProjectId']
     region = os.environ['Region']
     
     gitlab_project_name_build = os.environ['BuildProjectName']
