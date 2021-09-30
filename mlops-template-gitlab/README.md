@@ -2,6 +2,8 @@
 
 The MLOps template in this repo can be used to setup a SageMaker Project for model training and deployment using GitLab for SVC and GitLab Pipelines for CI/CD. 
 
+![](img/SageMakerGitLabProject.png)
+
 ### Prerequisites
 The following steps need to be complete before creating a SageMaker Project. 
 1. Create a token in GitLab that will be used by the Lambda function defined in `lambda_functions/lambda-seedcode-checkin-gitlab` to create 2 repositories in GitLab populated with seed code for model building and model deployment. 
