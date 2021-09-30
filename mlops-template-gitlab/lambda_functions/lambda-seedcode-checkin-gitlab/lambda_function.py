@@ -64,12 +64,12 @@ def get_secret():
 def lambda_handler(event, context):
     ''' '''
     sm_seed_code_bucket = os.environ['SeedCodeBucket']
-    model_build_sm_seed_code_object_name = os.environ['ModelBuildSeedCode'] + '-' + os.environ['SageMakerProjectId'],
-    model_deploy_sm_seed_code_object_name = os.environ['ModelDeploySeedCode'] + '-' + os.environ['SageMakerProjectId'],
+    model_build_sm_seed_code_object_name = os.environ['ModelBuildSeedCode'] 
+    model_deploy_sm_seed_code_object_name = os.environ['ModelDeploySeedCode'] 
     region = os.environ['Region']
     
-    gitlab_project_name_build = os.environ['BuildProjectName']
-    gitlab_project_name_deploy = os.environ['DeployProjectName']
+    gitlab_project_name_build = os.environ['BuildProjectName'] + '-' + os.environ['SageMakerProjectId']
+    gitlab_project_name_deploy = os.environ['DeployProjectName'] + '-' + os.environ['SageMakerProjectId']
     gitlab_private_token, secret_arn = get_secret() 
  
     #Configure SDKs for GitLab and S3
