@@ -14,7 +14,8 @@ The following steps need to be complete before creating a SageMaker Project.
     3. `zip_files/mlops-gitlab-project-seedcode-model-build.zip`
     4. `zip_files/mlops-gitlab-project-seedcode-model-deploy.zip`
 4. Use `init.sh` to zip these files and upload them to S3. Pass command line arguments for the S3 bucket name, secret name, and secret token for GitLab so that the Secrets Manager key can be created. 
-5. **Replace `<AWS_BUCKET>` in `project.yml` with the name of the bucket the zip files were uploaded to.**
+5. Create an IAM role for GitLab. This role will be assumed by GitLab Pipelines when interacting with SageMaker APIs. Take note of the AWS Access Key and Secret Key. This will be used in subsequent steps. 
+6. **Replace `<AWS_BUCKET>` in `project.yml` with the name of the bucket the zip files were uploaded to.**
 
 ### Create an Amazon ServiceCatalog Product
 Using the project template defined in `project.yml`, a product in ServiceCatalog needs to be created. Follow the steps in the main repository readme file to create a custom project. 
@@ -30,7 +31,7 @@ Once the project has been created, navigate to your GitLab account and you will 
 Each repository will have a GitLab CI Pipeline associated with it that will run as soon as the project is created. The first run of each pipeline will fail because GitLab does not have the AWS credentials. 
 
 For each repository, navigate to Settings -> CI/CD -> Variables.
-Create 2 new variables - `AWS_ACCESS_KEY_ID` and `AWS_SECRET_ACCESS_KEY` with the associated information for your AWS account. 
+Create 2 new variables - `AWS_ACCESS_KEY_ID` and `AWS_SECRET_ACCESS_KEY` with the associated information for your GitLab role.
 
 Trigger the pipeline in the model build repository to start a SageMaker Pipeline execution to train your model. 
 
