@@ -62,7 +62,6 @@ Metadata:
 Resources:
   MlOpsArtifactsBucket:
     Type: AWS::S3::Bucket
-    DeletionPolicy: Retain
     Properties:
       BucketName: !Sub sagemaker-project-${SageMakerProjectId} # 58 chars max/ 64 allowed
 
@@ -159,7 +158,7 @@ Resources:
         - Key: "sagemaker:project-id"
           Value: ${SageMakerProjectId}
         - Key: "sagemaker:project-name"
-          Value: ${SageMakerProjectName}
+          Value: !Sub ${SageMakerProjectName}
 
   ModelBuildSagemakerCodeRepository:
     Type: 'AWS::SageMaker::CodeRepository'
@@ -173,4 +172,4 @@ Resources:
         - Key: "sagemaker:project-id"
           Value: ${SageMakerProjectId}
         - Key: "sagemaker:project-name"
-          Value: ${SageMakerProjectName}
+          Value: !Sub ${SageMakerProjectName}
