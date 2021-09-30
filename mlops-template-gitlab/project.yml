@@ -12,7 +12,12 @@ Parameters:
   SageMakerProjectId:
     Type: String
     NoEcho: true
-    Description: Service generated Id of the project.
+    Description: Service generated ID of the project.
+
+  RepositoryBaseUrl:
+    Type: String
+    MaxLength: 1024
+    Description: The base path to the GitLab account to create the repository within. e.g. https://gitlab.com/<username>
 
   ModelBuildCodeRepositoryName:
     Type: String
@@ -35,6 +40,7 @@ Metadata:
         Label:
           default: "Code Repository Info"
         Parameters:
+          - RepositoryBaseUrl
           - ModelBuildCodeRepositoryName
           - ModelDeployCodeRepositoryName
       -
@@ -44,12 +50,14 @@ Metadata:
           - SecretName
         
     ParameterLabels:
+      RepositoryBaseUrl:
+        default: "Base URL for your GitLab Repositories. e.g. https://gitlab.com/<username>"
       ModelBuildCodeRepositoryName:
         default: "Model Build Repository Name"
       ModelDeployCodeRepositoryName:
         default: "Model Deploy Repository Name"
       SecretName:
-        default: "GitLab Secret Name (SecretsManager)"
+        default: "GitLab Secret Name (Secrets Manager)"
 
 Resources:
   MlOpsArtifactsBucket:
@@ -138,3 +146,31 @@ Resources:
       Action: lambda:InvokeFunction
       Principal: events.amazonaws.com
       SourceArn: !GetAtt ModelDeploySageMakerEventRule.Arn
+
+  ModelDeploySagemakerCodeRepository:
+    Type: 'AWS::SageMaker::CodeRepository'
+    DependsOn: SageMakerModelBuildSeedCodeCheckinLambdaInvoker
+    Properties:
+      CodeRepositoryName: !Sub ${ModelDeployCodeRepositoryName}-${SageMakerProjectId}
+      GitConfig:
+        Branch: main
+        RepositoryUrl: !Sub ${RepositoryBaseUrl}/${ModelDeployCodeRepositoryName}-${SageMakerProjectId}
+      Tags:
+        - Key: sagemaker:project-id
+          Value: ${SageMakerProjectId}
+        - Key: sagemaker:project-name
+          Value: ${SageMakerProjectName}
+
+  ModelBuildSagemakerCodeRepository:
+    Type: 'AWS::SageMaker::CodeRepository'
+    DependsOn: SageMakerModelBuildSeedCodeCheckinLambdaInvoker
+    Properties:
+      CodeRepositoryName: !Sub ${ModelBuildCodeRepositoryName}-${SageMakerProjectId}
+      GitConfig:
+        Branch: main
+        RepositoryUrl: !Sub ${RepositoryBaseUrl}/${ModelBuildCodeRepositoryName}-${SageMakerProjectId}
+      Tags:
+        - Key: sagemaker:project-id
+          Value: ${SageMakerProjectId}
+        - Key: sagemaker:project-name
+          Value: ${SageMakerProjectName}

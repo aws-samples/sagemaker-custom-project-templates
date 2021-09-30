@@ -160,45 +160,6 @@ def lambda_handler(event, context):
         deploy_project.variables.create({'key':'SAGEMAKER_PROJECT_ARN', 'value':'arn:aws:sagemaker:' + region + ':' + os.environ['AccountId'] + ':project/' + os.environ['SageMakerProjectName']})
         deploy_project.variables.create({'key':'MODEL_EXECUTION_ROLE_ARN', 'value' : os.environ['Role']})
 
-        ## Create SageMaker Repositories
-        client = boto3.client('sagemaker')
-        response = client.create_code_repository(
-            CodeRepositoryName=os.environ['BuildProjectName'] + '-' + os.environ['SageMakerProjectId'],
-            GitConfig={
-                'RepositoryUrl': build_project.http_url_to_repo,
-                'Branch': build_project.default_branch,
-                'SecretArn': secret_arn
-            },
-            Tags=[
-                {
-                    'Key': 'sagemaker:project-id',
-                    'Value': os.environ['SageMakerProjectId']
-                },
-                {
-                    'Key': 'sagemaker:project-name',
-                    'Value': os.environ['SageMakerProjectName']
-                },
-            ]
-        )
-
-        response = client.create_code_repository(
-            CodeRepositoryName=os.environ['DeployProjectName'] + '-' + os.environ['SageMakerProjectId'],
-            GitConfig={
-                'RepositoryUrl': deploy_project.http_url_to_repo,
-                'Branch': deploy_project.default_branch,
-                'SecretArn': secret_arn
-            },
-            Tags=[
-                {
-                    'Key': 'sagemaker:project-id',
-                    'Value': os.environ['SageMakerProjectId']
-                },
-                {
-                    'Key': 'sagemaker:project-name',
-                    'Value': os.environ['SageMakerProjectName']
-                },
-            ]
-        )
         cfnresponse.send(event, context, cfnresponse.SUCCESS, {})
     except Exception as e:
         logging.debug("The Project could not be created using the GitLab API..")
