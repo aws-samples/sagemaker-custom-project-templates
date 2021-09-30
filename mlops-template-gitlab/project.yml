@@ -92,7 +92,7 @@ Resources:
           AccountId: !Ref AWS::AccountId
           Role: !Join [ ':', [ 'arn', !Ref 'AWS::Partition', 'iam:', !Ref 'AWS::AccountId', 'role/service-role/AmazonSageMakerServiceCatalogProductsUseRole'] ]
           
-  SageMakerModelBuildSeedCodeCheckinLambdaInvoker:
+  SageMakerSeedCodeCheckinLambdaInvoker:
     Type: 'AWS::CloudFormation::CustomResource'
     DependsOn: GitSeedCodeCheckinLambda
     Properties:
@@ -149,28 +149,28 @@ Resources:
 
   ModelDeploySagemakerCodeRepository:
     Type: 'AWS::SageMaker::CodeRepository'
-    DependsOn: SageMakerModelBuildSeedCodeCheckinLambdaInvoker
+    DependsOn: SageMakerSeedCodeCheckinLambdaInvoker
     Properties:
       CodeRepositoryName: !Sub ${ModelDeployCodeRepositoryName}-${SageMakerProjectId}
       GitConfig:
         Branch: main
         RepositoryUrl: !Sub ${RepositoryBaseUrl}/${ModelDeployCodeRepositoryName}-${SageMakerProjectId}
       Tags:
-        - Key: sagemaker:project-id
+        - Key: "sagemaker:project-id"
           Value: ${SageMakerProjectId}
-        - Key: sagemaker:project-name
+        - Key: "sagemaker:project-name"
           Value: ${SageMakerProjectName}
 
   ModelBuildSagemakerCodeRepository:
     Type: 'AWS::SageMaker::CodeRepository'
-    DependsOn: SageMakerModelBuildSeedCodeCheckinLambdaInvoker
+    DependsOn: SageMakerSeedCodeCheckinLambdaInvoker
     Properties:
       CodeRepositoryName: !Sub ${ModelBuildCodeRepositoryName}-${SageMakerProjectId}
       GitConfig:
         Branch: main
         RepositoryUrl: !Sub ${RepositoryBaseUrl}/${ModelBuildCodeRepositoryName}-${SageMakerProjectId}
       Tags:
-        - Key: sagemaker:project-id
+        - Key: "sagemaker:project-id"
           Value: ${SageMakerProjectId}
-        - Key: sagemaker:project-name
+        - Key: "sagemaker:project-name"
           Value: ${SageMakerProjectName}
