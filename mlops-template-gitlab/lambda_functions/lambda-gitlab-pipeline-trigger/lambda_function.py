@@ -4,12 +4,18 @@ import boto3
 import base64
 from botocore.exceptions import ClientError
 
+import logging
+import uuid
+
+logger = logging.getLogger()
+logger.setLevel(logging.INFO)
+logger.addHandler(logging.StreamHandler())
+
 def get_secret():
     ''' '''
     secret_name = os.environ['SecretName']
     region_name = os.environ['Region']
-    
-    print("Region: ", region_name)
+
     session = boto3.session.Session()
     client = session.client(
         service_name='secretsmanager',
@@ -46,13 +52,11 @@ def get_secret():
         # Depending on whether the secret is a string or binary, one of these fields will be populated.
         if 'SecretString' in get_secret_value_response:
             secret = get_secret_value_response['SecretString']
-            secret_arn = get_secret_value_response['ARN']
         else:
             decoded_binary_secret = base64.b64decode(get_secret_value_response['SecretBinary'])
-            secret_arn = get_secret_value_response['ARN']
-            return decoded_binary_secret.split(':')[-1].strip('"}'), secret_arn
+            return decoded_binary_secret.split(':')[-1].strip('"}')
 
-    return secret.split(':')[-1].strip('"}'), secret_arn
+    return secret.split(':')[-1].strip('"}')
 
 def lambda_handler(event, context):
     ''' '''
@@ -70,4 +74,4 @@ def lambda_handler(event, context):
         project.trigger_pipeline('main', token)
         trigger.delete()
     except:
-        print("Failed to trigger pipeline..")
+        logging.debug("Failed to trigger pipeline..")
