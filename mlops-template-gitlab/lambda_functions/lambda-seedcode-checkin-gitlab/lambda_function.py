@@ -61,6 +61,11 @@ def get_secret():
 
 def lambda_handler(event, context):
     ''' '''
+    response_data = {}
+    if not (event['RequestType'] == 'Create'):
+        cfnresponse.send(event, context, cfnresponse.SUCCESS, response_data)
+        return
+
     sm_seed_code_bucket = os.environ['SeedCodeBucket']
     model_build_sm_seed_code_object_name = os.environ['ModelBuildSeedCode'] 
     model_deploy_sm_seed_code_object_name = os.environ['ModelDeploySeedCode'] 
@@ -159,8 +164,8 @@ def lambda_handler(event, context):
         deploy_project.variables.create({'key':'SAGEMAKER_PROJECT_ARN', 'value':'arn:aws:sagemaker:' + region + ':' + os.environ['AccountId'] + ':project/' + os.environ['SageMakerProjectName']})
         deploy_project.variables.create({'key':'MODEL_EXECUTION_ROLE_ARN', 'value' : os.environ['Role']})
 
-        cfnresponse.send(event, context, cfnresponse.SUCCESS, {})
+        cfnresponse.send(event, context, cfnresponse.SUCCESS, response_data)
     except Exception as e:
         logging.debug("The Project could not be created using the GitLab API..")
         logging.debug(e)
-        cfnresponse.send(event, context, cfnresponse.FAILED, {})
+        cfnresponse.send(event, context, cfnresponse.FAILED, response_data)
