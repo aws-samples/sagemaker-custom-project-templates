@@ -68,7 +68,7 @@ def lambda_handler(event, context):
     
     gitlab_project_name_build = os.environ['BuildProjectName'] + '-' + os.environ['SageMakerProjectId']
     gitlab_project_name_deploy = os.environ['DeployProjectName'] + '-' + os.environ['SageMakerProjectId']
-    gitlab_private_token, secret_arn = get_secret() 
+    gitlab_private_token = get_secret() 
  
     #Configure SDKs for GitLab and S3
     gl = gitlab.Gitlab('https://gitlab.com', private_token=gitlab_private_token)

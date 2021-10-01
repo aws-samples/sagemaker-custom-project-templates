@@ -61,7 +61,7 @@ def get_secret():
 def lambda_handler(event, context):
     ''' '''
     gitlab_project_name = os.environ['DeployProjectName']
-    gitlab_private_token = get_secret() #DO NOT HARDCODE THIS - PULL FROM SECRETS MANAGER/SECURE VAULT
+    gitlab_private_token = get_secret() 
  
     #Configure SDKs for GitLab and S3
     gl = gitlab.Gitlab('https://gitlab.com', private_token=gitlab_private_token)
