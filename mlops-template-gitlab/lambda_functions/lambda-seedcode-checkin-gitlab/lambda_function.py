@@ -67,6 +67,7 @@ def lambda_handler(event, context):
         return
 
     sm_seed_code_bucket = os.environ['SeedCodeBucket']
+    gitlab_server_uri = os.environ['GitLabServer']
     model_build_sm_seed_code_object_name = os.environ['ModelBuildSeedCode'] 
     model_deploy_sm_seed_code_object_name = os.environ['ModelDeploySeedCode'] 
     region = os.environ['Region']
@@ -76,7 +77,7 @@ def lambda_handler(event, context):
     gitlab_private_token = get_secret() 
  
     #Configure SDKs for GitLab and S3
-    gl = gitlab.Gitlab('https://gitlab.com', private_token=gitlab_private_token)
+    gl = gitlab.Gitlab(gitlab_server_uri, private_token=gitlab_private_token)
     s3 = boto3.client('s3')
  
     model_build_filename = f'/tmp/{str(uuid.uuid4())}-model-build-seed-code.zip'

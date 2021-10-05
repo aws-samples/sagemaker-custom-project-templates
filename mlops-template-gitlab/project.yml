@@ -14,7 +14,12 @@ Parameters:
     NoEcho: true
     Description: Service generated ID of the project.
 
-  RepositoryBaseUrl:
+  GitLabServer:
+    Type: String
+    MaxLength: 1024
+    Description: The path to the GitLab Server, e.g. https://gitlab.com, https://test.gitlab.com, http://10.0.0.1
+  
+    RepositoryBaseUrl:
     Type: String
     MaxLength: 1024
     Description: The base path to the GitLab account to create the repository within. e.g. https://gitlab.com/<username>
@@ -40,6 +45,7 @@ Metadata:
         Label:
           default: "Code Repository Info"
         Parameters:
+          - GitLabServer
           - RepositoryBaseUrl
           - ModelBuildCodeRepositoryName
           - ModelDeployCodeRepositoryName
@@ -50,6 +56,8 @@ Metadata:
           - SecretName
         
     ParameterLabels:
+      GitLabServer:
+        default: "GitLab Server URI. e.g. https://gitlab.com"
       RepositoryBaseUrl:
         default: "Base URL for your GitLab Repositories. e.g. https://gitlab.com/<username>"
       ModelBuildCodeRepositoryName:
@@ -79,6 +87,7 @@ Resources:
         S3Key: gitlab-project/lambda-seedcode-checkin-gitlab.zip
       Environment:
         Variables:
+          GitLabServer: !Sub ${GitLabServer}
           DeployProjectName: !Sub ${ModelDeployCodeRepositoryName}
           BuildProjectName: !Sub ${ModelBuildCodeRepositoryName}
           SageMakerProjectName: !Sub ${SageMakerProjectName}
