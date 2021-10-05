@@ -19,7 +19,7 @@ Parameters:
     MaxLength: 1024
     Description: The path to the GitLab Server, e.g. https://gitlab.com, https://test.gitlab.com, http://10.0.0.1
   
-    RepositoryBaseUrl:
+  RepositoryBaseUrl:
     Type: String
     MaxLength: 1024
     Description: The base path to the GitLab account to create the repository within. e.g. https://gitlab.com/<username>
