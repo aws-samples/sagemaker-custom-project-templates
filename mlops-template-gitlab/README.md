@@ -14,7 +14,7 @@ The following steps need to be complete before creating a SageMaker Project.
     3. `zip_files/mlops-gitlab-project-seedcode-model-build.zip`
     4. `zip_files/mlops-gitlab-project-seedcode-model-deploy.zip`
 4. Use `init.sh` to zip these files and upload them to S3. Pass command line arguments for the S3 bucket name, secret name, and secret token for GitLab so that the Secrets Manager key can be created. 
-5. Create an IAM role for GitLab. This role will be assumed by GitLab Pipelines when interacting with SageMaker APIs. Take note of the AWS Access Key and Secret Key. This will be used in subsequent steps. 
+5. Create an IAM user for GitLab. This user will be used by GitLab Pipelines when interacting with SageMaker APIs. Take note of the AWS Access Key and Secret Key. This will be used in subsequent steps. 
 6. **Replace `<AWS_BUCKET>` in `project.yml` with the name of the bucket the zip files were uploaded to.**
 
 ### Create an Amazon ServiceCatalog Product
