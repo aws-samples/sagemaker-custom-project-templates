@@ -29,35 +29,31 @@ def get_secret():
         )
     except ClientError as e:
         if e.response['Error']['Code'] == 'DecryptionFailureException':
-            # Secrets Manager can't decrypt the protected secret text using the provided KMS key.
-            # Deal with the exception here, and/or rethrow at your discretion.
+            logging.error(e)
             raise e
         elif e.response['Error']['Code'] == 'InternalServiceErrorException':
-            # An error occurred on the server side.
-            # Deal with the exception here, and/or rethrow at your discretion.
+            logging.error(e)
             raise e
         elif e.response['Error']['Code'] == 'InvalidParameterException':
-            # You provided an invalid value for a parameter.
-            # Deal with the exception here, and/or rethrow at your discretion.
+            logging.error(e)
             raise e
         elif e.response['Error']['Code'] == 'InvalidRequestException':
-            # You provided a parameter value that is not valid for the current state of the resource.
-            # Deal with the exception here, and/or rethrow at your discretion.
+            logging.error(e)
             raise e
         elif e.response['Error']['Code'] == 'ResourceNotFoundException':
-            # We can't find the resource that you asked for.
-            # Deal with the exception here, and/or rethrow at your discretion.
+            logging.error(e)
             raise e
     else:
         # Decrypts secret using the associated KMS CMK.
         # Depending on whether the secret is a string or binary, one of these fields will be populated.
         if 'SecretString' in get_secret_value_response:
             secret = get_secret_value_response['SecretString']
+            return secret.split(':')[-1].strip('"}')
         else:
             decoded_binary_secret = base64.b64decode(get_secret_value_response['SecretBinary'])
             return decoded_binary_secret
             
-    return secret.split(':')[-1].strip('"}')
+    return None
 
 def lambda_handler(event, context):
     ''' '''
@@ -75,8 +71,11 @@ def lambda_handler(event, context):
     gitlab_project_name_build = os.environ['BuildProjectName'] + '-' + os.environ['SageMakerProjectId']
     gitlab_project_name_deploy = os.environ['DeployProjectName'] + '-' + os.environ['SageMakerProjectId']
     gitlab_private_token = get_secret() 
+
+    if gitlab_private_token is None:
+        raise Exception("GitLab token was not retrieved from Secrets Manager")
  
-    #Configure SDKs for GitLab and S3
+    # Configure SDKs for GitLab and S3
     gl = gitlab.Gitlab(gitlab_server_uri, private_token=gitlab_private_token)
     s3 = boto3.client('s3')
  
@@ -85,15 +84,15 @@ def lambda_handler(event, context):
     model_build_directory = f'/tmp/{str(uuid.uuid4())}-model-build'
     model_deploy_directory = f'/tmp/{str(uuid.uuid4())}-model-deploy'
 
-    # #Get Model Build Seed Code from S3 for Gitlab Repo
+    # Get Model Build Seed Code from S3 for Gitlab Repo
     with open(model_build_filename, 'wb') as f:
         s3.download_fileobj(sm_seed_code_bucket, model_build_sm_seed_code_object_name, f)
 
-    # #Get Model Deploy Seed Code from S3 for Gitlab Repo
+    # Get Model Deploy Seed Code from S3 for Gitlab Repo
     with open(model_deploy_filename, 'wb') as f:
         s3.download_fileobj(sm_seed_code_bucket, model_deploy_sm_seed_code_object_name, f)
  
-    #Extract Zip file of seed code to local dir
+    # Extract Zip file of seed code to local dir
     try:
         with zipfile.ZipFile(model_build_filename) as z:
             z.extractall(model_build_directory)
@@ -108,7 +107,7 @@ def lambda_handler(event, context):
     except:
         logging.error("Invalid file")
  
-    #Iterate through all of the files in the extracted folder to create commmit data
+    # Iterate through all of the files in the extracted folder to create commmit data
     build_data = {"branch": "main", "commit_message": "Initial Commit", "actions": []}
     deploy_data = {"branch": "main", "commit_message": "Initial Commit", "actions": []}
  
@@ -142,31 +141,82 @@ def lambda_handler(event, context):
                 except:
                     pass
 
+    # Create the GitLab Project
     try:
-        #Create the GitLab Project
         build_project = gl.projects.create({'name': gitlab_project_name_build})
+    except Exception as e:
+        logging.error("The Project could not be created using the GitLab API..")
+        logging.error(e)
+        cfnresponse.send(event, context, cfnresponse.FAILED, response_data)
+        return { 
+            'message' : "GitLab seedcode checkin failed."
+        }
+    
+    try:
         deploy_project = gl.projects.create({'name': gitlab_project_name_deploy})
+    except Exception as e:
+        logging.error("The Project could not be created using the GitLab API..")
+        logging.error(e)
+        cfnresponse.send(event, context, cfnresponse.FAILED, response_data)
+        return { 
+            'message' : "GitLab seedcode checkin failed."
+        }
 
-        #Commit to the above created Repo all the files that were in the seed code Zip
+    # Commit to the above created Repo all the files that were in the seed code Zip
+    try:
         build_project.commits.create(build_data)
+    except Exception as e:
+        logging.error("Code could not be pushed to the model build repo.")
+        logging.error(e)
+        cfnresponse.send(event, context, cfnresponse.FAILED, response_data)
+        return { 
+            'message' : "GitLab seedcode checkin failed."
+        }
+
+    try:
         deploy_project.commits.create(deploy_data)
-        
+    except Exception as e:
+        logging.error("Code could not be pushed to the model deploy repo.")
+        logging.error(e)
+        cfnresponse.send(event, context, cfnresponse.FAILED, response_data)
+        return { 
+            'message' : "GitLab seedcode checkin failed."
+        }
+
+    # Create project variables in model build and deploy repos
+    try:
         build_project.variables.create({'key':'SAGEMAKER_PROJECT_NAME', 'value' : os.environ['SageMakerProjectName']})
         build_project.variables.create({'key':'SAGEMAKER_PROJECT_ID', 'value' : os.environ['SageMakerProjectId']})
         build_project.variables.create({'key':'AWS_REGION', 'value' : region})
         build_project.variables.create({'key':'ARTIFACT_BUCKET', 'value' : 'sagemaker-project-' + os.environ['SageMakerProjectId']})
         build_project.variables.create({'key':'SAGEMAKER_PROJECT_ARN', 'value':'arn:aws:sagemaker:' + region + ':' + os.environ['AccountId'] + ':project/' + os.environ['SageMakerProjectName']})
         build_project.variables.create({'key':'SAGEMAKER_PIPELINE_ROLE_ARN', 'value' : os.environ['Role']})
+    except Exception as e:
+        logging.error("Project variables could not be created for model build")
+        logging.error(e)
+        cfnresponse.send(event, context, cfnresponse.FAILED, response_data)
+        return { 
+            'message' : "GitLab seedcode checkin failed."
+        }
 
+    try:
         deploy_project.variables.create({'key':'SAGEMAKER_PROJECT_NAME', 'value' : os.environ['SageMakerProjectName']})
         deploy_project.variables.create({'key':'SAGEMAKER_PROJECT_ID', 'value' : os.environ['SageMakerProjectId']})
         deploy_project.variables.create({'key':'AWS_REGION', 'value' : region})
         deploy_project.variables.create({'key':'ARTIFACT_BUCKET', 'value' : 'sagemaker-project-' + os.environ['SageMakerProjectId']})
         deploy_project.variables.create({'key':'SAGEMAKER_PROJECT_ARN', 'value':'arn:aws:sagemaker:' + region + ':' + os.environ['AccountId'] + ':project/' + os.environ['SageMakerProjectName']})
         deploy_project.variables.create({'key':'MODEL_EXECUTION_ROLE_ARN', 'value' : os.environ['Role']})
-
-        cfnresponse.send(event, context, cfnresponse.SUCCESS, response_data)
     except Exception as e:
-        logging.debug("The Project could not be created using the GitLab API..")
-        logging.debug(e)
+        logging.error("Project variables could not be created for model deploy")
+        logging.error(e)
         cfnresponse.send(event, context, cfnresponse.FAILED, response_data)
+        return { 
+            'message' : "GitLab seedcode checkin failed."
+        }
+
+    logger.info("Successfully checked in seed code to GitLab..")
+    cfnresponse.send(event, context, cfnresponse.SUCCESS, response_data)
+    
+    return { 
+        'message' : "GitLab seedcode checkin successfully completed"
+    }

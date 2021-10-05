@@ -121,6 +121,7 @@ Resources:
         S3Key: gitlab-project/lambda-gitlab-pipeline-trigger.zip
       Environment:
         Variables:
+          GitLabServer: !Sub ${GitLabServer}
           DeployProjectName: !Sub ${ModelDeployCodeRepositoryName}
           BuildProjectName: !Sub ${ModelBuildCodeRepositoryName}
           SageMakerProjectName: !Sub ${SageMakerProjectName}
