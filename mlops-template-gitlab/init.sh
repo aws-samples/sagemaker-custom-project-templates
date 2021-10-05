@@ -5,6 +5,7 @@ SECRET_NAME=$2
 SECRET_KEY=$3
 
 
+mkdir -p zip_files
 (cd seedcode/mlops-gitlab-project-seedcode-model-deploy ; zip -r ../../zip_files/mlops-gitlab-project-seedcode-model-deploy.zip . -x ../mlops-gitlab-project-seedcode-model-deploy)
 (cd seedcode/mlops-gitlab-project-seedcode-model-build ; zip -r ../../zip_files/mlops-gitlab-project-seedcode-model-build.zip . -x ../mlops-gitlab-project-seedcode-model-build)
 
