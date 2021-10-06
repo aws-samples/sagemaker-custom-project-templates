@@ -42,13 +42,14 @@ def main():
     parser.add_argument("--stack-name")
     parser.add_argument("--region")
     parser.add_argument("--param-file")
+    parser.add_argument("--project-id")
     args, _ = parser.parse_known_args()
 
     cfn_client = boto3.client('cloudformation', region_name = args.region)
     parameters, tags = read_parameters(args.param_file)
 
     cfn_client.create_stack(
-        StackName = args.stack_name,
+        StackName = args.stack_name + '-' + args.project_id,
         TemplateBody = open('endpoint-config-template.yml').read(),
         Parameters = parameters,
         Tags = tags 
