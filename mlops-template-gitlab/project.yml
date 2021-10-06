@@ -127,6 +127,7 @@ Resources:
           SageMakerProjectName: !Sub ${SageMakerProjectName}
           SageMakerProjectId: !Sub ${SageMakerProjectId}
           SecretName: !Sub ${SecretName}
+          Region: !Ref AWS::Region
 
   ModelDeploySageMakerEventRule:
     Type: AWS::Events::Rule
