@@ -142,7 +142,7 @@ def lambda_handler(event, context):
                 except:
                     pass
 
-    group_name = os.environ["GroupName"]
+    group_name = os.environ["GroupId"]
     if group_name in ['None', 'none']:
         group_id = None
     else:
