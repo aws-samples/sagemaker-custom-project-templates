@@ -33,6 +33,11 @@ Parameters:
     Type: String
     MaxLength: 1024
     Description: Repository name of the Model Deplyment Code Repository
+  
+  GitLabGroupName:
+    Type: String
+    MaxLength: 1024
+    Description: The name of the group in GitLab to create the repositories in. Enter "None" if using the root group.
 
   SecretName:
     Type: String
@@ -49,6 +54,7 @@ Metadata:
           - RepositoryBaseUrl
           - ModelBuildCodeRepositoryName
           - ModelDeployCodeRepositoryName
+          - GitLabGroupName
       -
         Label:
           default: "GitLab Access"
@@ -66,6 +72,8 @@ Metadata:
         default: "Model Deploy Repository Name"
       SecretName:
         default: "GitLab Secret Name (Secrets Manager)"
+      GitLabGroupName:
+        default: "GitLab Group Name. 'None' if using root group"
 
 Resources:
   MlOpsArtifactsBucket:
@@ -99,7 +107,8 @@ Resources:
           Region: !Ref AWS::Region
           AccountId: !Ref AWS::AccountId
           Role: !Join [ ':', [ 'arn', !Ref 'AWS::Partition', 'iam:', !Ref 'AWS::AccountId', 'role/service-role/AmazonSageMakerServiceCatalogProductsUseRole'] ]
-          
+          GroupName: !Sub GitLabGroupName
+
   SageMakerSeedCodeCheckinLambdaInvoker:
     Type: 'AWS::CloudFormation::CustomResource'
     DependsOn: GitSeedCodeCheckinLambda
@@ -128,6 +137,7 @@ Resources:
           SageMakerProjectId: !Sub ${SageMakerProjectId}
           SecretName: !Sub ${SecretName}
           Region: !Ref AWS::Region
+          GroupName: !Sub GitLabGroupName
 
   ModelDeploySageMakerEventRule:
     Type: AWS::Events::Rule

@@ -58,9 +58,10 @@ def get_secret():
 def lambda_handler(event, context):
     ''' '''
     response_data = {}
-    if not (event['RequestType'] == 'Create'):
-        cfnresponse.send(event, context, cfnresponse.SUCCESS, response_data)
-        return
+    if 'RequestType' in event:
+        if not (event['RequestType'] == 'Create'):
+            cfnresponse.send(event, context, cfnresponse.SUCCESS, response_data)
+            return
 
     sm_seed_code_bucket = os.environ['SeedCodeBucket']
     gitlab_server_uri = os.environ['GitLabServer']
@@ -141,9 +142,18 @@ def lambda_handler(event, context):
                 except:
                     pass
 
+    group_name = os.environ["GroupName"]
+    if group_name in ['None', 'none']:
+        group_id = None
+    else:
+        group_id = gl.groups.list(search='my-group')[0].id
+
     # Create the GitLab Project
     try:
-        build_project = gl.projects.create({'name': gitlab_project_name_build})
+        if group_id is None:
+            build_project = gl.projects.create({'name': gitlab_project_name_build})
+        else:
+            build_project = gl.projects.create({'name': gitlab_project_name_build, 'namespace_id': group_id})
     except Exception as e:
         logging.error("The Project could not be created using the GitLab API..")
         logging.error(e)
@@ -153,7 +163,10 @@ def lambda_handler(event, context):
         }
     
     try:
-        deploy_project = gl.projects.create({'name': gitlab_project_name_deploy})
+        if group_id is None:
+            build_project = gl.projects.create({'name': gitlab_project_name_deploy})
+        else:
+            build_project = gl.projects.create({'name': gitlab_project_name_deploy, 'namespace_id': group_id})
     except Exception as e:
         logging.error("The Project could not be created using the GitLab API..")
         logging.error(e)
