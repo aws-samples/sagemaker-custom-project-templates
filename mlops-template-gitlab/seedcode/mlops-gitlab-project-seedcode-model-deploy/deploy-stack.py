@@ -6,11 +6,14 @@ import os
 import boto3
 from botocore.exceptions import ClientError
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger()
+logger.setLevel(logging.INFO)
+logger.addHandler(logging.StreamHandler())
 
 def read_parameters(param_file):
     '''  '''
-    print("Reading param_file : ", param_file)
+    logging.info("Reading param_file")
+    logging.info(param_file)
     with open(param_file) as f:
         params = json.load(f)
 
@@ -48,12 +51,21 @@ def main():
     cfn_client = boto3.client('cloudformation', region_name = args.region)
     parameters, tags = read_parameters(args.param_file)
 
-    cfn_client.create_stack(
-        StackName = args.stack_name + '-' + args.project_id,
-        TemplateBody = open('endpoint-config-template.yml').read(),
-        Parameters = parameters,
-        Tags = tags 
-    )
+    try:
+        cfn_client.create_stack(
+            StackName = args.stack_name + '-' + args.project_id,
+            TemplateBody = open('endpoint-config-template.yml').read(),
+            Parameters = parameters,
+            Tags = tags 
+        )
+    except cfn_client.exceptions.AlreadyExistsException:
+        logging.info("Updating existing stack..")
+        cfn_client.update_stack(
+            StackName = args.stack_name + '-' + args.project_id,
+            TemplateBody = open('endpoint-config-template.yml').read(),
+            Parameters = parameters,
+            Tags = tags 
+        )
 
 if __name__ == '__main__':
     main()
