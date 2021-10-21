@@ -107,7 +107,7 @@ Resources:
           Region: !Ref AWS::Region
           AccountId: !Ref AWS::AccountId
           Role: !Join [ ':', [ 'arn', !Ref 'AWS::Partition', 'iam:', !Ref 'AWS::AccountId', 'role/service-role/AmazonSageMakerServiceCatalogProductsUseRole'] ]
-          GroupId: !Sub GitLabGroupID
+          GroupId: !Sub ${GitLabGroupID}
 
   SageMakerSeedCodeCheckinLambdaInvoker:
     Type: 'AWS::CloudFormation::CustomResource'
@@ -137,7 +137,7 @@ Resources:
           SageMakerProjectId: !Sub ${SageMakerProjectId}
           SecretName: !Sub ${SecretName}
           Region: !Ref AWS::Region
-          GroupId: !Sub GitLabGroupID
+          GroupId: !Sub ${GitLabGroupID}
 
   ModelDeploySageMakerEventRule:
     Type: AWS::Events::Rule

@@ -142,8 +142,8 @@ def lambda_handler(event, context):
                 except:
                     pass
 
-    group_name = os.environ["GroupId"]
-    if group_name in ['None', 'none']:
+    group_id = os.environ["GroupId"]
+    if group_id in ['None', 'none']:
         group_id = None
     else:
         group_id = gl.groups.list(search=group_name)[0].id
@@ -153,7 +153,7 @@ def lambda_handler(event, context):
         if group_id is None:
             build_project = gl.projects.create({'name': gitlab_project_name_build})
         else:
-            build_project = gl.projects.create({'name': gitlab_project_name_build, 'namespace_id': group_id})
+            build_project = gl.projects.create({'name': gitlab_project_name_build, 'namespace_id': int(group_id)})
     except Exception as e:
         logging.error("The Project could not be created using the GitLab API..")
         logging.error(e)
@@ -164,9 +164,9 @@ def lambda_handler(event, context):
     
     try:
         if group_id is None:
-            build_project = gl.projects.create({'name': gitlab_project_name_deploy})
+            deploy_project = gl.projects.create({'name': gitlab_project_name_deploy})
         else:
-            build_project = gl.projects.create({'name': gitlab_project_name_deploy, 'namespace_id': group_id})
+            deploy_project = gl.projects.create({'name': gitlab_project_name_deploy, 'namespace_id': int(group_id)})
     except Exception as e:
         logging.error("The Project could not be created using the GitLab API..")
         logging.error(e)
