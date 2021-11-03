@@ -58,16 +58,21 @@ def lambda_handler(event, context):
     gitlab_project_name = os.environ['DeployProjectName']
     gitlab_server_uri = os.environ['GitLabServer']
     gitlab_private_token = get_secret()  
+    project_id = os.environ['SageMakerProjectId']
 
     if gitlab_private_token is None:
         raise Exception("Failed to retrieve secret from Secrets Manager")
 
     # Configure SDKs for GitLab and S3
     gl = gitlab.Gitlab(gitlab_server_uri, private_token=gitlab_private_token)
-    
+    print(gitlab_server_uri)
+
     # Create the GitLab Project
     try:
-        project = gl.projects.list(search = gitlab_project_name)[0]
+        project = gl.projects.list(search = gitlab_project_name + '-' + project_id)[0]
+        logging.info("Project")
+        logging.info(project)
+        
     except Exception as e:
         logger.error("Unable to find the project for model deploy in GitLab..")
         logger.error(e)
