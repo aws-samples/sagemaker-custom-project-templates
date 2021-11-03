@@ -146,7 +146,7 @@ def lambda_handler(event, context):
     if group_id in ['None', 'none']:
         group_id = None
     else:
-        group_id = gl.groups.list(search=group_name)[0].id
+        group_id = gl.groups.list(search=group_id)[0].id
 
     # Create the GitLab Project
     try:
