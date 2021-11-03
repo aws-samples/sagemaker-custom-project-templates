@@ -142,11 +142,11 @@ def lambda_handler(event, context):
                 except:
                     pass
 
-    group_id = os.environ["GroupId"]
-    if group_id in ['None', 'none']:
-        group_id = None
+    group_name = os.environ["GroupId"]
+    if group_name in ['None', 'none']:
+        group_name = None
     else:
-        group_id = gl.groups.list(search=group_id)[0].id
+        group_id = gl.groups.list(search=group_name)[0].id
 
     # Create the GitLab Project
     try:
