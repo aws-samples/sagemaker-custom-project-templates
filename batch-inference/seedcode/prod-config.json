@@ -1,0 +1,9 @@
+{
+  "Parameters": {
+    "StageName": "prod",
+    "BatchInstanceType": "ml.m5.xlarge",
+    "BatchInstanceCount": 1,
+    "InputPath": "",
+    "OutputPath": ""
+  }
+}

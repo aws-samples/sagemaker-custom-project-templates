@@ -1,0 +1,104 @@
+Description:
+  This template is built and deployed by the infrastructure pipeline in various stages (staging/production) as required.
+  It specifies the resources that need to be created, like the SageMaker Endpoint. It can be extended to include resources like
+  AutoScalingPolicy, API Gateway, etc,. as required.
+Parameters:
+  SageMakerProjectName:
+    Type: String
+    Description: Name of the project
+    MinLength: 1
+    MaxLength: 32
+    AllowedPattern: ^[a-zA-Z](-*[a-zA-Z0-9])*
+  SageMakerProjectId:
+    Type: String
+    Description: Id of the project
+    MinLength: 1
+  ModelExecutionRoleArn:
+    Type: String
+    Description: Execution role used for deploying the model.
+  ModelPackageName:
+    Type: String
+    Description: The trained Model Package Name
+  StageName:
+    Type: String
+    Description:
+      The name for a project pipeline stage, such as Staging or Prod, for
+      which resources are provisioned and deployed.
+  EndpointInstanceCount:
+    Type: Number
+    Description: Number of instances to launch for the endpoint.
+    MinValue: 1
+  EndpointInstanceType:
+    Type: String
+    Description: The ML compute instance type for the endpoint.
+  S3OutputPath:
+    Type: String
+    Description:
+      The output path in S3 for async inference
+  TestInputPath:
+    Type: String
+    Description:
+      The S3 path to the file used in the test
+
+Resources:
+  # SNS Topics
+  SNSTopicError:
+    Type: AWS::SNS::Topic
+  SNSTopicSuccess:
+    Type: AWS::SNS::Topic
+  # SageMaker Model
+  Model:
+    Type: AWS::SageMaker::Model
+    Properties:
+      Containers:
+         - ModelPackageName: !Ref ModelPackageName
+      ExecutionRoleArn: !Ref ModelExecutionRoleArn
+  # SageMaker Endpoint Configuration
+  EndpointConfig:
+    Type: AWS::SageMaker::EndpointConfig
+    Properties:
+      AsyncInferenceConfig:
+        OutputConfig:
+          NotificationConfig:
+            ErrorTopic: !Ref SNSTopicError
+            SuccessTopic: !Ref SNSTopicError
+          S3OutputPath:  !Ref S3OutputPath
+      ProductionVariants:
+        - InitialInstanceCount: !Ref EndpointInstanceCount
+          InitialVariantWeight: 1.0
+          InstanceType: !Ref EndpointInstanceType
+          ModelName: !GetAtt Model.ModelName
+          VariantName: AllTraffic
+      Tags:
+        - Key: sagemaker:project-name
+          Value: !Ref SageMakerProjectName
+        - Key: sagemaker:project-id
+          Value: !Ref SageMakerProjectId
+        - Key: sagemaker:deployment-stage
+          Value: !Ref StageName
+  # SageMaker Endpoint
+  Endpoint:
+    Type: AWS::SageMaker::Endpoint
+    Properties:
+      EndpointName: !Sub ${SageMakerProjectName}-${StageName}
+      EndpointConfigName: !GetAtt EndpointConfig.EndpointConfigName
+      Tags:
+        - Key: sagemaker:project-name
+          Value: !Ref SageMakerProjectName
+        - Key: sagemaker:project-id
+          Value: !Ref SageMakerProjectId
+        - Key: sagemaker:deployment-stage
+          Value: !Ref StageName
+Outputs:
+  ModelName:
+    Description: Name of the SageMaker Model
+    Value: !GetAtt Model.ModelName
+  EndpointName:
+    Description: Name of the Endpoint created
+    Value: !GetAtt Endpoint.EndpointName
+  SNSTopicSuccessName:
+    Description: The name of the SNS topic for Success
+    Value: !GetAtt SNSTopicSuccess.TopicName
+  SNSTopicErrorName:
+    Description: The name of the SNS topic for Errors
+    Value: !GetAtt SNSTopicError.TopicName
