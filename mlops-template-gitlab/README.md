@@ -9,12 +9,12 @@ The following steps need to be complete before creating a SageMaker Project.
 1. Create a token in GitLab that will be used by the Lambda function defined in `lambda_functions/lambda-seedcode-checkin-gitlab` to create 2 repositories in GitLab populated with seed code for model building and model deployment. 
 2. Create a secret in AWS SecretsManager with that token, the secret name will be passed to the project template from SageMaker Studio when it is created.  
 3. Run `init.sh` to create zip files for the seedcode and Lambda functions and upload them to S3. Pass command line arguments for the S3 bucket name, secret name, and secret token for GitLab so that the Secrets Manager key can be created. The zip files created are:
-    1. `zip_files/lambda-seedcode-checkin-gitlab.zip`
+    1. `zip_files/lambda-gitlab-pipeline-trigger.zip`
     2. `zip_files/lambda-seedcode-checkin-gitlab.zip`
     3. `zip_files/mlops-gitlab-project-seedcode-model-build.zip`
     4. `zip_files/mlops-gitlab-project-seedcode-model-deploy.zip`
 4. Create an IAM user for GitLab. This user will be used by GitLab Pipelines when interacting with SageMaker APIs. Take note of the AWS Access Key and Secret Key. This will be used in subsequent steps. 
-5. **Replace `<AWS_BUCKET>` in `project.yml` with the name of the bucket the zip files were uploaded to.**
+5. **Replace `<AWS BUCKET>` in `project.yml` with the name of the bucket the zip files were uploaded to.**
 6. The template uses the Amazon managed policy `AmazonSageMakerServiceCatalogProductsUseRole`. This role needs an additional policy for read access to Secrets Manager. Navigate to the role in IAM, add an inline policy, select Secrets Manager as the service and select list and read actions. 
 
 ### Create an Amazon ServiceCatalog Product
