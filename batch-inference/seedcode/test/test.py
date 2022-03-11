@@ -46,7 +46,7 @@ if __name__ == "__main__":
         config = json.load(f)
 
     # Create helper variables
-    pipeline_name = f"{config['Parameters']['SageMakerProjectName']}-{config['Parameters']['SageMakerProjectId']}-BatchInference"
+    pipeline_name = f"{config['Parameters']['SageMakerProjectName']}-{config['Parameters']['StageName']}-BatchPipeline"
     input_path = config['Parameters']['InputPath']
     output_path = config['Parameters']['OutputPath']
     batch_instance_type = config['Parameters']['BatchInstanceType']

@@ -95,14 +95,16 @@ def get_pipeline(
         instance_count=1,
         instance_type='ml.m5.xlarge',
         output_path=output_path,
-        base_transform_job_name=f"{base_job_prefix}/sklearn-abalone-batch"
+        base_transform_job_name=f"{base_job_prefix}/batch-transform-job",
+        max_payload=10,
+        accept='text/csv'
     )
 
     #### STEPS
     transform_step = TransformStep(
         name='BatchInferenceStep',
         transformer=transform,
-        inputs=TransformInput(data=input_path)
+        inputs=TransformInput(data=input_path, content_type='text/csv')
     )
 
     #### PIPELINE
