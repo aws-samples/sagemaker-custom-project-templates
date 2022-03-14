@@ -142,11 +142,9 @@ def lambda_handler(event, context):
                 except:
                     pass
 
-    group_name = os.environ["GroupId"]
-    if group_name in ['None', 'none']:
-        group_name = None
-    else:
-        group_id = gl.groups.list(search=group_name)[0].id
+    group_id = os.environ["GroupId"]
+    if group_id in ['None', 'none']:
+        group_id = None
 
     # Create the GitLab Project
     try:
@@ -160,6 +158,7 @@ def lambda_handler(event, context):
         cfnresponse.send(event, context, cfnresponse.FAILED, response_data)
         return { 
             'message' : "GitLab seedcode checkin failed."
+         
         }
     
     try:
