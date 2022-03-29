@@ -2,3 +2,4 @@
 *.zip
 outputs
 ipynb_checkpoints
+sm-pr.code-workspace

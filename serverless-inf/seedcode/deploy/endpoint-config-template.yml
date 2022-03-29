@@ -1,0 +1,104 @@
+Description:
+  This template is built and deployed by the infrastructure pipeline in various stages (staging/production) as required.
+  It specifies the resources that need to be created, like the SageMaker Endpoint. It can be extended to include resources like
+  AutoScalingPolicy, API Gateway, etc,. as required.
+Parameters:
+  SageMakerProjectName:
+    Type: String
+    Description: Name of the project
+    MinLength: 1
+    MaxLength: 32
+    AllowedPattern: ^[a-zA-Z](-*[a-zA-Z0-9])*
+  ModelExecutionRoleArn:
+    Type: String
+    Description: Execution role used for deploying the model.
+  ModelPackageName:
+    Type: String
+    Description: The trained Model Package Name
+  StageName:
+    Type: String
+    Description:
+      The name for a project pipeline stage, such as Staging or Prod, for
+      which resources are provisioned and deployed.
+  EndpointInstanceCount:
+    Type: Number
+    Description: Number of instances to launch for the endpoint.
+    MinValue: 1
+    Default: 1
+  EndpointInstanceType:
+    Type: String
+    Description: The ML compute instance type for the endpoint.
+    Default: ml.m5.large
+  DataCaptureUploadPath:
+    Type: String
+    Description: The s3 path to which the captured data is uploaded.
+    Default: ""
+  SamplingPercentage:
+    Type: Number
+    Description: The sampling percentage
+    MinValue: 0
+    MaxValue: 100
+    Default: 10
+  EnableDataCapture:
+    Description: Enable Data capture.
+    Default: true
+    Type: String
+    AllowedValues: [true, false]   
+  MemorySizeInMB:
+    Type: Number
+    Description: The endpoint memory allocation in MB.  Allowed values are 1024 MB, 2048 MB, 3072 MB, 4096 MB, 5120 MB, or 6144 MB.
+    Default: 2048
+    AllowedValues: [1024,2048,3072,4096,5120,6144]   
+  MaxConcurrency:
+    Type: Number
+    Description: The maximum number of concurrent endpoint invocations
+    MinValue: 1
+    MaxValue: 50
+    Default: 20
+
+Conditions:
+  IsProdEnv: !Equals 
+    - !Ref StageName
+    - prod
+
+Resources:
+  Model:
+    Type: AWS::SageMaker::Model
+    Properties:
+      Containers:
+         - ModelPackageName: !Ref ModelPackageName
+      ExecutionRoleArn: !Ref ModelExecutionRoleArn
+
+  EndpointConfig:
+    Type: AWS::SageMaker::EndpointConfig
+    Properties:
+      ProductionVariants:
+        - InitialVariantWeight: 1.0
+          ModelName: !GetAtt Model.ModelName
+          VariantName: AllTraffic
+          InstanceType: !If [IsProdEnv, !Ref EndpointInstanceType, !Ref "AWS::NoValue"]
+          InitialInstanceCount: !If [IsProdEnv, !Ref EndpointInstanceCount, !Ref "AWS::NoValue"]
+          ServerlessConfig:
+            !If 
+              - IsProdEnv
+              - 
+                MaxConcurrency: !Ref MaxConcurrency
+                MemorySizeInMB: !Ref MemorySizeInMB
+              - !Ref "AWS::NoValue"
+      DataCaptureConfig:
+        !If 
+          - IsProdEnv
+          - 
+            EnableCapture: !Ref EnableDataCapture 
+            InitialSamplingPercentage: !Ref SamplingPercentage
+            DestinationS3Uri: !Ref DataCaptureUploadPath
+            CaptureOptions:
+              - CaptureMode: Input
+              - CaptureMode: Output
+          - !Ref "AWS::NoValue"
+
+  Endpoint:
+    Type: AWS::SageMaker::Endpoint
+    Properties:
+      EndpointName: !Sub ${SageMakerProjectName}-${StageName}
+      EndpointConfigName: !GetAtt EndpointConfig.EndpointConfigName
