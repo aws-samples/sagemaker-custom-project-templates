@@ -81,10 +81,10 @@ Resources:
           ServerlessConfig:
             !If 
               - IsProdEnv
+              - !Ref "AWS::NoValue"
               - 
                 MaxConcurrency: !Ref MaxConcurrency
                 MemorySizeInMB: !Ref MemorySizeInMB
-              - !Ref "AWS::NoValue"
       DataCaptureConfig:
         !If 
           - IsProdEnv
