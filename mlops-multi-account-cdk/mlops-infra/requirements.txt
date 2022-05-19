@@ -1,0 +1,4 @@
+aws-cdk-lib>=2.12.0
+aws_cdk.aws_lambda_python_alpha
+constructs>=10.0.0,<11.0.0
+yamldataclassconfig
