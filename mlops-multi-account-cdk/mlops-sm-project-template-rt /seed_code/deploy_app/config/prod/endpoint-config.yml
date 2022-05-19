@@ -1,0 +1,4 @@
+initial_instance_count: 1
+initial_variant_weight: 1
+instance_type: "ml.m5.large"
+variant_name: "AllTraffic"
