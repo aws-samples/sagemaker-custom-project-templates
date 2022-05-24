@@ -58,6 +58,7 @@ class CoreStage(Stage):
                 self,
                 "sagemaker-studio",
                 vpc=networking_stack.primary_vpc,
+                subnets=networking_stack.primary_vpc.private_subnets,
                 **kwargs,
             )
 

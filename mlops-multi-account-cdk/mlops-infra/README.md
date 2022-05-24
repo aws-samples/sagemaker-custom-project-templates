@@ -2,12 +2,13 @@
 
 This repository contains the resources that are required to deploy the MLOps Foundation infrastructure. It contains the definition of a secure networking with Amazon VPC, Subnets, Security Group and Amazon VPC Endpoints to be used with Amazon SageMaker Studio. It also defines the setup for Amazon SageMaker Studio Domain and creates SageMaker Studio User Profiles for Data Scientists and Lead Data Scientists.
 
+**NOTE** To effictively use this repository you would need to have a good understanding around AWS networking services, AWS CloudFormation and AWS CDK.
+
 ## Solution Architecture
 
 ![mlops foundation infrastruction](diagrams/MLOPs%20Foundation%20Architecture-mlops%20infrastructure%20architecture.jpg)
 ### Networking Stack
 
-*This is an optional stack for the scenario that the account does not have an existing VPC configured. Switch to* *`release/no-vpc`* *for this repository setup with an existing VPC. You must ensure that the existing VPC contains most of the components that are created in this stack.*
 ![networking stack](diagrams/MLOPs%20Foundation%20Architecture-mlops%20secure%20networking.jpg)
 
 The networking stack deploys all required resources to create a secure environment to run machine learning workloads in AWS. The following resources are deployed:
@@ -21,6 +22,13 @@ The networking stack deploys all required resources to create a secure environme
 |STS	|CodeArtifact API	|CodeArtifact Repositories	|	|	|	|
 
 3. SSM parameters are used to store information about the VPC and its related components in each deployment account (DEV/PREPROD/PROD)
+
+**NOTE** This is an optional stack for the scenario that the account does not have an existing VPC configured. If you want to use an existing VPC you will need to comment out line 54 and lines 60-61 from `pipeline_stack.py`. Uncomment lines 93-98 from `sagemaker_studio_stack.py`. The uncommented code would load the networking information from the config file for each stage in the pipeline (**DEV/PREPROD/PROD**). In `mlops_infra/config/dev`, there is an example `constants.py` for how the vpc and subnets infromation should be provided. You can use this constant file to add any additional resources such as an exisiting security group that you want to use or an IAM role. Note that this is specific to each account so you would need to provide this information for every account you want to deploy this solution to it; networking infromation for each **DEV**, **PREPROD** and **PROD** account. 
+
+
+
+
+You must ensure that the existing VPC contains most of the components that are created in this stack.
 
 ### SageMaker Studio Stack
 
@@ -130,35 +138,12 @@ aws_session_token = YOUR_SESSION_TOKEN
 ...
 ```
 
-(Optionally) Alternatevely, If you use isengardcli to manage access to your aws accounts, you can add aws profiles to your `.aws/config` by running the following command `isengardcli add-profile`. You can then supply the name of the profile to run the setup script in Solution Deployment section. Expect the following to be added to `.aws/config`:
-
-```
-[profile <email>-<role>]
-    output = json
-    region = us-west-2
-    credential_process = isengardcli credentials --awscli <email>@amazon.com —role <role>
-```
-
-### Deployment Options
-
+### Bootstrap AWS Accounts
 ***Warning:** It is best you setup a python environment to handle all installs for this project and manage python packages. Use your preferred terminal and editor to run the following commands.*
 
-There are two deployment options for the infrastructure to the accounts:
+Before you start with the deployment of the solution make sure to bootstrap your accounts. follow the steps below to achieve that:
 
-1. **[CI/CD Deployment](#1-cicd-deployment)** - deploy by using a governance account setup and a CICD pipeline linked to this repository
-
-2. **[Manual Deployment](#2-manual-deployment)** - deploy without a governance account setup and directly to the targeted accounts (1 or more) using CDK commands
-
-
-For both options, the first step is to bootstrap the AWS accounts.
-
-### Bootstrap AWS Accounts
-
-1. Clone this repository in your work environment (e.g. your laptop), make sure to run `mwinit` as this is an internal gitlab instance that uses your own yubikey credentials to authenticate
-
-```
-git clone git@ssh.gitlab.aws.dev:mlops-foundation/mlops-infra.git
-```
+1. Clone this repository in your work environment (e.g. your laptop)
 
 2. Change directory to `mlops-infra` root
 
@@ -200,8 +185,16 @@ The following is an example of the cloud formation execution policy:
 
 for more information read the [AWS CDK documentation on Bootstrapping](https://docs.aws.amazon.com/cdk/v2/guide/bootstrapping.html#bootstrapping-howto)
 
+### Deployment Options
 
-### 1. CI/CD Deployment
+There are two deployment options for the infrastructure to the accounts:
+
+- **[CI/CD Deployment](#1-cicd-deployment)** - deploy by using a governance account setup and a CICD pipeline linked to this folder of repository
+
+- **[Manual Deployment](#2-manual-deployment)** - deploy without a governance account setup and directly to the targeted accounts (1 or more) using CDK commands
+
+### CI/CD Deployment
+For this deployment you must ensure that you have a repository already created and setup with the code from this folder. The setup of this CI/CD deployment is described in [Pipeline Stack](#pipeline-stack).
 
 1. Deploy the deployment CI/CD pipeline in your governance account (one time operation). This is the CI/CD pipeline that would deploy your required infrastructure to setup your networking in the accounts and SageMaker Studio Domain in the Dev Account:
 
@@ -216,7 +209,7 @@ cdk deploy
 
 ### 2. Manual Deployment
 
-It is possible to deploy a specific stage (in `pipeline_stack.py`  refer to classes inheriting `Stage` class from `aws_cdk`). The same is possible to a singular stack (follow the same deployment steps as the pipeline stack).
+It is possible to deploy a specific stage (in `pipeline_stack.py` refer to classes inheriting `Stage` class from `aws_cdk`). The same is possible to a singular stack (follow the same deployment steps as the pipeline stack).  `CoreStage` is a stage defined in `pipeline_stack.py` which contains both the `NetworkingStack` and the `SagemakerStudioStack` and is what the CI/CD pipeline deploys at every deployment stage to the target account of the stage. You can deploy this stage manually by following these steps:
 
 
 1. Add a custom id to the target stage in `app.py`
@@ -277,3 +270,10 @@ One of the following would solve the problem:
 * **[Error at /ml-deploy-pipeline/****<****env****>****/networking] Need to perform AWS calls for account X, but no credentials have been configured**
 
 You can resolve this error by adding availability zone information to `cdk.context.json`. This error happens as CDK tries to do a lookup on the account to check which Availability Zones does the region of the target account have available and if it can be deployed across the targeted 3 AZs.
+```
+"availability-zones:account=<account_id>:region=eu-west-1": [
+    "eu-west-1a",
+    "eu-west-1b",
+    "eu-west-1c"
+]
+```
