@@ -102,11 +102,11 @@ There are 2 way to trigger the deployment CI/CD Pipeline:
 
 ### Pipeline Stack
 
-*This stack is only needed if you want to handle deployments of this repository to be managed through a CICD pipeline. The pipeline is configured to deploy to 1 account: DEV*
+*This stack is only needed if you want to handle deployments of this folder of repository to be managed through a CICD pipeline. The pipeline is configured to deploy to 1 account: DEV and will deploy the service catalog stack to the target account*
 
-The CICD pipelines in this repository are setup to monitor an AWS CodeCommit repository and must be setup beforehand; the name of the repository is defined in `mlops_infra/config/constants.py` so change the value of this variable `CODE_COMMIT_REPO_NAME`.
+The CICD pipeline in this folder of the repository is setup to monitor an AWS CodeCommit repository and must be setup beforehand; the name of the repository is defined in `mlops_sm_project_template_rt/config/constants.py` so change the value of this variable `CODE_COMMIT_REPO_NAME`.
 
-If you are using other sources like github or bitbucket for your repository, you will need to modify the connection to the appropriate repository as defined in `mlops_offering/pipeline_stack.py`. This can be done using AWS CodeStar but must be setup on the account.
+If you are using other sources like github or bitbucket for your repository, you will need to modify the connection to the appropriate repository as defined in `mlops_sm_project_template_rt/pipeline_stack.py`. This can be done using AWS CodeStar but must be setup on the account.
 
 Make sure the pipelines also point to your targeted branch; by default the pipeline is linked to `main` branch events, this is defined in the `constants.py` file under `PIPELINE_BRANCH` variable.
 
@@ -190,37 +190,13 @@ aws_session_token = YOUR_SESSION_TOKEN
 [mlops-prod]
 ...
 ```
-
-(Optionally) Alternatively, If you use isengardcli to manage access to your aws accounts, you can add aws profiles to your `.aws/config` by running the following command `isengardcli add-profile`. You can then supply the name of the profile to run the setup script in Solution Deployment section. Expect the following to be added to `.aws/config`:
-
-```
-[profile <email>-<role>]
-    output = json
-    region = us-west-2
-    credential_process = isengardcli credentials --awscli <email>@amazon.com —role <role>
-```
-
-### Deployment Options
-
+### Bootstrap AWS Accounts
 ***Warning:** It is best you setup a python environment to handle all installs for this project and manage python packages. Use your preferred terminal and editor to run the following commands.*
 
-There are two deployment options for the SageMaker Project Template to the accounts:
+Before you start with the deployment of the solution make sure to bootstrap your accounts. Ensure you add the account details in `mlops_sm_project_template_rt/config/constants.py` mainly the target deployment accounts: **DEV**, **PREPROD** and **PROD**. follow the steps below to achieve that:
 
-1. **[CI/CD Deployment](#1-cicd-deployment)** - deploy by using a governance account setup and a CICD pipeline linked to this repository
-
-2. **[Manual Deployment](#2-manual-deployment)** - deploy without a governance account setup and directly to the targeted accounts (1 or more) using CDK commands
-
-
-For both options, the first step is to bootstrap the AWS accounts.
-
-### Bootstrap AWS Accounts
-
-1. Clone this repository in your work environment (e.g. your laptop), make sure to run `mwinit` as this is an internal gitlab instance that uses your own yubikey credentials to authenticate
-
-```
-git clone git@ssh.gitlab.aws.dev:mlops-foundation/mlops-sm-project-template-rt.git
-```
-
+1. Clone this repository in your work environment (e.g. your laptop)
+   
 2. Change directory to `mlops-sm-project-template-rt` root
 
 ```
@@ -239,7 +215,6 @@ cd mlops-sm-project-template-rt
 
 The script will request the 4 accounts, i.e. governance, dev, preprod and prod, and the corresponding AWS profiles as inputs. If you want to only deploy to 1 account you can use the same id for all account variables or pass the same values in the script.
 
-<add screenshot here of sccript execution>
 
 5. (Option 2) If you want to bootstrap the account manually, then run the following command for each account:
 
@@ -261,10 +236,21 @@ The following is an example of the cloud formation execution policy:
 
 for more information read the [AWS CDK documentation on Bootstrapping](https://docs.aws.amazon.com/cdk/v2/guide/bootstrapping.html#bootstrapping-howto)
 
+### Deployment Options
 
-### 1. CI/CD Deployment
+***Warning:** It is best you setup a python environment to handle all installs for this project and manage python packages. Use your preferred terminal and editor to run the following commands.*
 
-6. Deploy the deployment CI/CD pipeline in your governance account (one time operation). This is the CI/CD pipeline that would deploy your project template to Service Catalog in your dev account for the data science team to use:
+There are two deployment options for the SageMaker Project Template to the Service Catalog in the target account:
+
+- **[CI/CD Deployment of Service Catalog Stack](#cicd-deployment-of-service-catalog-stack)** - deploy by using a governance account setup and a CICD pipeline linked to this folder of the repository
+
+- **[Manual Deployment of Service Catalog Stack](#manual-deployment-of-service-catalog-stack)** - deploy without a governance account setup and directly to the targeted accounts (1 or more) using CDK commands
+
+
+#### CI/CD Deployment of Service Catalog Stack
+For this deployment you must ensure that you have a repository already created and setup with the code from this folder. The setup of this CI/CD deployment is described in [Pipeline Stack](#pipeline-stack).
+
+1. Deploy the deployment CI/CD pipeline in your governance account (one time operation). This is the CI/CD pipeline that would deploy your project template to Service Catalog in your dev account for the data science team to use:
 
 ```
 # builds the pipeline stack and install all assets
@@ -273,14 +259,13 @@ cdk synth
 cdk deploy
 ```
 
-7. the deployment CI/CD pipeline will now handle all deployments for the other stacks based on the updates to the main branch
+2. the deployment CI/CD pipeline will now handle all deployments for the other stacks based on the updates to the main branch
 
-### 2. Manual Deployment
+#### Manual Deployment of Service Catalog Stack
 
-It is possible to deploy a specific stage (in `pipeline_stack.py`  refer to classes inheriting `Stage` class from `aws_cdk`). The same is possible to a singular stack (follow the same deployment steps as the pipeline stack).
+It is possible to deploy a specific stage (in `pipeline_stack.py` refer to classes inheriting `Stage` class from `aws_cdk`). The same is possible to a singular stack (follow the same deployment steps as the pipeline stack).  `CoreStage` is a stage defined in `pipeline_stack.py` which contains the `ServiceCatalogStack` and is what the CI/CD pipeline deploys at every deployment stage to the target account of the stage. You can deploy this stage manually by following these steps:
 
-
-6. Add a custom id to the target stage in `app.py`
+1. Add a custom id to the target stage in `app.py`
 
 ```
 # Personal Stacks for testing locally, comment out when committing to repository
@@ -291,7 +276,7 @@ CoreStage(
 )
 ```
 
-7. Deploy the stage
+2. Deploy the stage
 
 ```
 cdk --app ./cdk.out/assembly-Personal deploy —all

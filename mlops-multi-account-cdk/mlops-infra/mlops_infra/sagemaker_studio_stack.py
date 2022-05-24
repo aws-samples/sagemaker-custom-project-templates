@@ -18,6 +18,7 @@
 from aws_cdk import (
     Stack,
     CfnParameter,
+    Stage,
     aws_iam as iam,
     aws_lambda as lambda_,
     aws_sagemaker as sagemaker,
@@ -37,6 +38,7 @@ from dataclasses_json import DataClassJsonMixin
 from mlops_infra.config.config_mux import StageYamlDataClassConfig
 from mlops_infra.config.constants import APP_PREFIX
 from mlops_infra.constructs.sm_roles import SMRoles
+from mlops_infra.constructs.networking import Networking
 
 from typing import List
 
@@ -51,7 +53,9 @@ class SMUserProfile(DataClassJsonMixin):
             f"{prefix}-{self.user_profile_name}",
             domain_id=studio_domain_id,
             user_profile_name=self.user_profile_name,
-            user_settings=sagemaker.CfnUserProfile.UserSettingsProperty(execution_role=role_arn),
+            user_settings=sagemaker.CfnUserProfile.UserSettingsProperty(
+                execution_role=role_arn
+            ),
         )
 
         return profile
@@ -67,14 +71,31 @@ class SMUserProfiles(StageYamlDataClassConfig):
         users = []
 
         for user in self.users:
-            users.append(user.get_user(constructor, self.prefix, studio_domain_id, role_arn))
+            users.append(
+                user.get_user(constructor, self.prefix, studio_domain_id, role_arn)
+            )
 
         return users
 
 
 class SagemakerStudioStack(Stack):
-    def __init__(self, scope: Construct, construct_id: str, vpc: ec2.IVpc, **kwargs) -> None:
+    def __init__(
+        self,
+        scope: Construct,
+        construct_id: str,
+        vpc: ec2.IVpc = None,
+        subnets: List[ec2.Subnet] = [],
+        **kwargs,
+    ) -> None:
         super().__init__(scope, construct_id, **kwargs)
+
+        ## uncomment this block of code when you want to use your own AWS networking setup
+        # stage_name = Stage.of(self).stage_name.lower()
+
+        # networking = Networking(self, "Networking", stage_name)
+
+        # vpc = networking.vpc
+        # subnets = networking.subnets
 
         domain_name = CfnParameter(
             self,
@@ -111,7 +132,7 @@ class SagemakerStudioStack(Stack):
             sm_roles.sagemaker_studio_role,
             vpc_id=vpc.vpc_id,
             security_group_ids=[sagemaker_sg.security_group_id],
-            subnet_ids=[subnet.subnet_id for subnet in vpc.private_subnets],
+            subnet_ids=[subnet.subnet_id for subnet in subnets],
         )
 
         self.enable_sagemaker_projects(
@@ -126,12 +147,16 @@ class SagemakerStudioStack(Stack):
 
         # data scientist profiles
         self.sagemaker_studio_profiles(
-            self.studio_domain.attr_domain_id, sm_roles.data_scientist_role.role_arn, "data_scientists.yml"
+            self.studio_domain.attr_domain_id,
+            sm_roles.data_scientist_role.role_arn,
+            "data_scientists.yml",
         )
 
         # lead data scientist profiles
         self.sagemaker_studio_profiles(
-            self.studio_domain.attr_domain_id, sm_roles.lead_data_scientist_role.role_arn, "lead_data_scientists.yml"
+            self.studio_domain.attr_domain_id,
+            sm_roles.lead_data_scientist_role.role_arn,
+            "lead_data_scientists.yml",
         )
 
     """
@@ -164,7 +189,9 @@ class SagemakerStudioStack(Stack):
             ),
         )
 
-        provider = Provider(self, "sg-project-lead-provider", on_event_handler=event_handler)
+        provider = Provider(
+            self, "sg-project-lead-provider", on_event_handler=event_handler
+        )
 
         core.CustomResource(
             self,
