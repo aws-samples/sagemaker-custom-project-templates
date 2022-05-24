@@ -49,11 +49,11 @@ This stack handles the deployment of the following resources:
 
 ### Pipeline Stack
 
-*This stack is only needed if you want to handle deployments of this repository to be managed through a CICD pipeline. The pipeline is configured to deploy to 3 accounts, DEV, PREPROD and PROD*
+*This stack is only needed if you want to handle deployments of this folder of the repository to be managed through a CICD pipeline. The pipeline is configured to deploy to 3 accounts, DEV, PREPROD and PROD*
 
 The CICD pipelines in this repository are setup to monitor an AWS CodeCommit repository and must be setup beforehand; the name of the repository is defined in `mlops_infra/config/constants.py` so change the value of this variable `CODE_COMMIT_REPO_NAME`.
 
-If you are using other sources like github or bitbucket for your repository, you will need to modify the connection to the appropriate repository as defined in `mlops_offering/pipeline_stack.py`. This can be done using AWS CodeStar but must be setup on the account.
+If you are using other sources like github or bitbucket for your repository, you will need to modify the connection to the appropriate repository as defined in `mlops_infra/pipeline_stack.py`. This can be done using AWS CodeStar but must be setup on the account.
 
 Make sure the pipelines also point to your targeted branch; by default the pipeline is linked to `main` branch events, this is defined in the `constants.py` file under `PIPELINE_BRANCH` variable.
 
@@ -141,7 +141,7 @@ aws_session_token = YOUR_SESSION_TOKEN
 ### Bootstrap AWS Accounts
 ***Warning:** It is best you setup a python environment to handle all installs for this project and manage python packages. Use your preferred terminal and editor to run the following commands.*
 
-Before you start with the deployment of the solution make sure to bootstrap your accounts. follow the steps below to achieve that:
+Before you start with the deployment of the solution make sure to bootstrap your accounts. Ensure you add the account details in `mlops_infra/config/constants.py` mainly the target deployment accounts: **DEV**, **PREPROD** and **PROD**. follow the steps below to achieve that:
 
 1. Clone this repository in your work environment (e.g. your laptop)
 
@@ -189,7 +189,7 @@ for more information read the [AWS CDK documentation on Bootstrapping](https://d
 
 There are two deployment options for the infrastructure to the accounts:
 
-- **[CI/CD Deployment](#1-cicd-deployment)** - deploy by using a governance account setup and a CICD pipeline linked to this folder of repository
+- **[CI/CD Deployment](#1-cicd-deployment)** - deploy by using a governance account setup and a CICD pipeline linked to this folder of the repository
 
 - **[Manual Deployment](#2-manual-deployment)** - deploy without a governance account setup and directly to the targeted accounts (1 or more) using CDK commands
 
@@ -207,7 +207,7 @@ cdk deploy
 
 2. the deployment CI/CD pipeline will now handle all deployments for the other stacks based on the updates to the main branch
 
-### 2. Manual Deployment
+### Manual Deployment
 
 It is possible to deploy a specific stage (in `pipeline_stack.py` refer to classes inheriting `Stage` class from `aws_cdk`). The same is possible to a singular stack (follow the same deployment steps as the pipeline stack).  `CoreStage` is a stage defined in `pipeline_stack.py` which contains both the `NetworkingStack` and the `SagemakerStudioStack` and is what the CI/CD pipeline deploys at every deployment stage to the target account of the stage. You can deploy this stage manually by following these steps:
 
