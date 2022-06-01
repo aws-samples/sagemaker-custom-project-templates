@@ -26,7 +26,7 @@ app = cdk.App()
 pipeline_env = cdk.Environment(account=PIPELINE_ACCOUNT, region=DEFAULT_DEPLOYMENT_REGION)
 deployment_env = cdk.Environment(account=DEV_ACCOUNT, region=DEFAULT_DEPLOYMENT_REGION)
 
-PipelineStack(app, "ml-deploy-pipeline", env=pipeline_env)
+PipelineStack(app, "ml-sg-deploy-pipeline", env=pipeline_env)
 
 # Personal Stacks for testing locally, comment out when committing to repository
 if not os.getenv("CODEBUILD_BUILD_ARN"):

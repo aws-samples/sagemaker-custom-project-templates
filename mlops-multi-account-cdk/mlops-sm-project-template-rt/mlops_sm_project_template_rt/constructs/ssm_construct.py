@@ -44,18 +44,18 @@ class SSMConstruct(Construct):
             string_value=DEV_ACCOUNT,
         )
 
-        # STAGING parameters
+        # PREPROD parameters
         PREPROD_ACCOUNT_id_param = ssm.StringParameter(
             self,
-            "StagingAccountIDParameter",
-            parameter_name="/mlops/staging/account_id",
+            "PreProdAccountIDParameter",
+            parameter_name="/mlops/preprod/account_id",
             string_value=PREPROD_ACCOUNT,
         )
 
         PREPROD_REGION_param = ssm.StringParameter(
             self,
-            "StagingRegionParameter",
-            parameter_name="/mlops/staging/region",
+            "PreProdRegionParameter",
+            parameter_name="/mlops/preprod/region",
             string_value=PREPROD_REGION,
         )
 

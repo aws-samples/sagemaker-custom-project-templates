@@ -29,13 +29,11 @@ from constructs import Construct
 from mlops_infra.config.constants import (
     APP_PREFIX,
     CODE_COMMIT_REPO_NAME,
-    DEV_REGION,
     DEV_ACCOUNT,
     PIPELINE_BRANCH,
     PREPROD_ACCOUNT,
-    PREPROD_REGION,
     PROD_ACCOUNT,
-    PROD_REGION,
+    DEFAULT_DEPLOYMENT_REGION
 )
 
 from mlops_infra.networking_stack import NetworkingStack
@@ -158,7 +156,7 @@ class PipelineStack(Stack):
             CoreStage(
                 self,
                 "dev",
-                env=Environment(account=DEV_ACCOUNT, region=DEV_REGION),
+                env=Environment(account=DEV_ACCOUNT, region=DEFAULT_DEPLOYMENT_REGION),
             )
         )
         # add preprod stage for resources that we want to deploy in this account and potentially in other accounts as well
@@ -167,7 +165,7 @@ class PipelineStack(Stack):
                 self,
                 "preprod",
                 deploy_sm_domain=False,
-                env=Environment(account=PREPROD_ACCOUNT, region=PREPROD_REGION),
+                env=Environment(account=PREPROD_ACCOUNT, region=DEFAULT_DEPLOYMENT_REGION),
             )
         )
         # add prod stage for resources that we want to deploy in this account and potentially in other accounts as well
@@ -176,6 +174,6 @@ class PipelineStack(Stack):
                 self,
                 "prod",
                 deploy_sm_domain=False,
-                env=Environment(account=PROD_ACCOUNT, region=PROD_REGION),
+                env=Environment(account=PROD_ACCOUNT, region=DEFAULT_DEPLOYMENT_REGION),
             )
         )

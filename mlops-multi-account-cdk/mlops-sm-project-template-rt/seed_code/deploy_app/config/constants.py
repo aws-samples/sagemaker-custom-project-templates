@@ -15,20 +15,21 @@
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
 # SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
-CODE_COMMIT_REPO_NAME = "mlops-sm-project-template-rt"
-PIPELINE_BRANCH = "main"
-
-PIPELINE_ACCOUNT = ""
-
-DEV_ACCOUNT = ""
-DEV_REGION = "eu-west-1"
-
-PREPROD_ACCOUNT = ""
-PREPROD_REGION = "eu-west-1"
-
-PROD_ACCOUNT = ""
-PROD_REGION = "eu-west-1"
-
+import boto3
+import os
 
 DEFAULT_DEPLOYMENT_REGION = "eu-west-1"
-APP_PREFIX = "mlops-cdk"
+
+ssm_client = boto3.client("ssm", region_name=DEFAULT_DEPLOYMENT_REGION)
+
+DEV_ACCOUNT = ssm_client.get_parameter(Name="/mlops/dev/account_id")["Parameter"]["Value"]
+
+PREPROD_ACCOUNT = ssm_client.get_parameter(Name="/mlops/preprod/account_id")["Parameter"]["Value"]
+PREPROD_REGION = ssm_client.get_parameter(Name="/mlops/preprod/region")["Parameter"]["Value"]
+
+PROD_ACCOUNT = ssm_client.get_parameter(Name="/mlops/prod/account_id")["Parameter"]["Value"]
+PROD_REGION = ssm_client.get_parameter(Name="/mlops/prod/region")["Parameter"]["Value"]
+
+PROJECT_NAME = os.getenv("PROJECT_NAME", "")
+PROJECT_ID = os.getenv("PROJECT_ID", "")
+MODEL_PACKAGE_GROUP_NAME = os.getenv("MODEL_PACKAGE_GROUP_NAME", "")

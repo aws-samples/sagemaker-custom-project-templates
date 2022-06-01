@@ -15,21 +15,25 @@
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
 # SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
-import boto3
-import os
+from deploy_endpoint.deploy_endpoint_stack import DeployEndpointStack
+from config.constants import (
+    DEFAULT_DEPLOYMENT_REGION,
+    DEV_ACCOUNT,
+    PREPROD_ACCOUNT,
+    PREPROD_REGION,
+    PROD_ACCOUNT,
+    PROD_REGION,
+)
+import aws_cdk as cdk
 
-DEFAULT_DEPLOYMENT_REGION = "eu-west-1"
+app = cdk.App()
 
-ssm_client = boto3.client("ssm", region_name=DEFAULT_DEPLOYMENT_REGION)
+dev_env = cdk.Environment(account=DEV_ACCOUNT, region=DEFAULT_DEPLOYMENT_REGION)
+preprod_env = cdk.Environment(account=PREPROD_ACCOUNT, region=PREPROD_REGION)
+prod_env = cdk.Environment(account=PROD_ACCOUNT, region=PROD_REGION)
 
-DEV_ACCOUNT = ssm_client.get_parameter(Name="/mlops/dev/account_id")["Parameter"]["Value"]
+DeployEndpointStack(app, "dev", env=dev_env)
+DeployEndpointStack(app, "preprod", env=preprod_env)
+DeployEndpointStack(app, "prod", env=prod_env)
 
-PREPROD_ACCOUNT = ssm_client.get_parameter(Name="/mlops/staging/account_id")["Parameter"]["Value"]
-PREPROD_REGION = ssm_client.get_parameter(Name="/mlops/staging/region")["Parameter"]["Value"]
-
-PROD_ACCOUNT = ssm_client.get_parameter(Name="/mlops/prod/account_id")["Parameter"]["Value"]
-PROD_REGION = ssm_client.get_parameter(Name="/mlops/prod/region")["Parameter"]["Value"]
-
-PROJECT_NAME = os.getenv("PROJECT_NAME", "")
-PROJECT_ID = os.getenv("PROJECT_ID", "")
-MODEL_PACKAGE_GROUP_NAME = os.getenv("MODEL_PACKAGE_GROUP_NAME", "")
+app.synth()

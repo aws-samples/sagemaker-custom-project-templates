@@ -29,13 +29,6 @@ from aws_cdk import (
 )
 import aws_cdk
 from constructs import Construct
-from mlops_sm_project_template_rt.config.constants import (
-    PROD_ACCOUNT,
-    PROD_REGION,
-    PREPROD_ACCOUNT,
-    PREPROD_REGION,
-)
-
 
 class DeployPipelineConstruct(Construct):
     def __init__(
@@ -48,6 +41,9 @@ class DeployPipelineConstruct(Construct):
         model_package_group_name: str,
         repo_s3_bucket_name: str,
         repo_s3_object_key: str,
+        preprod_account: int,
+        prod_account: int,
+        deployment_region: str,
         **kwargs,
     ) -> None:
         super().__init__(scope, construct_id, **kwargs)
@@ -267,32 +263,32 @@ class DeployPipelineConstruct(Construct):
                     ],
                 ),
                 codepipeline_actions.ManualApprovalAction(
-                    action_name="Approve_Staging",
+                    action_name="Approve_PreProd",
                     run_order=2,
-                    additional_information="Approving deployment for staging",
+                    additional_information="Approving deployment for preprod",
                 ),
             ],
         )
 
         deploy_code_pipeline.add_stage(
-            stage_name="DeployStaging",
+            stage_name="DeployPreProd",
             actions=[
                 codepipeline_actions.CloudFormationCreateUpdateStackAction(
-                    action_name="Deploy_CFN_Staging",
+                    action_name="Deploy_CFN_PreProd",
                     run_order=1,
-                    template_path=cdk_synth_artifact.at_path("staging.template.json"),
-                    stack_name=f"{project_name}-{construct_id}-staging",
+                    template_path=cdk_synth_artifact.at_path("preprod.template.json"),
+                    stack_name=f"{project_name}-{construct_id}-preprod",
                     admin_permissions=False,
                     replace_on_failure=True,
                     role=iam.Role.from_role_arn(
                         self,
-                        "StagingActionRole",
-                        f"arn:{Aws.PARTITION}:iam::{PREPROD_ACCOUNT}:role/cdk-hnb659fds-deploy-role-{PREPROD_ACCOUNT}-{PREPROD_REGION}",
+                        "PreProdActionRole",
+                        f"arn:{Aws.PARTITION}:iam::{preprod_account}:role/cdk-hnb659fds-deploy-role-{preprod_account}-{deployment_region}",
                     ),
                     deployment_role=iam.Role.from_role_arn(
                         self,
-                        "StagingDeploymentRole",
-                        f"arn:{Aws.PARTITION}:iam::{PREPROD_ACCOUNT}:role/cdk-hnb659fds-cfn-exec-role-{PREPROD_ACCOUNT}-{PREPROD_REGION}",
+                        "PreProdDeploymentRole",
+                        f"arn:{Aws.PARTITION}:iam::{preprod_account}:role/cdk-hnb659fds-cfn-exec-role-{preprod_account}-{deployment_region}",
                     ),
                     cfn_capabilities=[
                         CfnCapabilities.AUTO_EXPAND,
@@ -320,12 +316,12 @@ class DeployPipelineConstruct(Construct):
                     role=iam.Role.from_role_arn(
                         self,
                         "ProdActionRole",
-                        f"arn:{Aws.PARTITION}:iam::{PROD_ACCOUNT}:role/cdk-hnb659fds-deploy-role-{PROD_ACCOUNT}-{PROD_REGION}",
+                        f"arn:{Aws.PARTITION}:iam::{prod_account}:role/cdk-hnb659fds-deploy-role-{prod_account}-{deployment_region}",
                     ),
                     deployment_role=iam.Role.from_role_arn(
                         self,
                         "ProdDeploymentRole",
-                        f"arn:{Aws.PARTITION}:iam::{PROD_ACCOUNT}:role/cdk-hnb659fds-cfn-exec-role-{PROD_ACCOUNT}-{PROD_REGION}",
+                        f"arn:{Aws.PARTITION}:iam::{prod_account}:role/cdk-hnb659fds-cfn-exec-role-{prod_account}-{deployment_region}",
                     ),
                     cfn_capabilities=[
                         CfnCapabilities.AUTO_EXPAND,

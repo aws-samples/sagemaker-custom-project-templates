@@ -154,7 +154,7 @@ def get_pipeline(
             region=region,
             version="1.0-1",
             py_version="py3",
-            instance_type=processing_instance_type,
+            instance_type="ml.m5.xlarge",
         )
     script_processor = ScriptProcessor(
         image_uri=processing_image_uri,
@@ -191,7 +191,7 @@ def get_pipeline(
             region=region,
             version="1.0-1",
             py_version="py3",
-            instance_type=training_instance_type,
+            instance_type="ml.m5.xlarge",
         )
 
     xgb_train = Estimator(
@@ -285,7 +285,7 @@ def get_pipeline(
             region=region,
             version="1.0-1",
             py_version="py3",
-            instance_type=inference_instance_type,
+            instance_type="ml.m5.xlarge",
         )
     step_register = RegisterModel(
         name="RegisterAbaloneModel",
