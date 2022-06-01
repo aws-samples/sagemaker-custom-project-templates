@@ -29,8 +29,8 @@ from constructs import Construct
 from mlops_sm_project_template_rt.config.constants import (
     APP_PREFIX,
     CODE_COMMIT_REPO_NAME,
-    DEV_REGION,
     DEV_ACCOUNT,
+    DEFAULT_DEPLOYMENT_REGION,
     PIPELINE_BRANCH,
 )
 
@@ -146,6 +146,6 @@ class PipelineStack(Stack):
             CoreStage(
                 self,
                 "DEV",
-                env=Environment(account=DEV_ACCOUNT, region=DEV_REGION),
+                env=Environment(account=DEV_ACCOUNT, region=DEFAULT_DEPLOYMENT_REGION),
             )
         )

@@ -18,17 +18,13 @@
 CODE_COMMIT_REPO_NAME = "mlops-infra"
 PIPELINE_BRANCH = "main"
 
-PIPELINE_ACCOUNT = ""
+PIPELINE_ACCOUNT = ""     # account to host the pipeline handling updates of this repository
 
-DEV_ACCOUNT = ""
-DEV_REGION = "eu-west-1"
+DEV_ACCOUNT = ""          # account to setup sagemaker studio and networking stack
 
-PREPROD_ACCOUNT = ""
-PREPROD_REGION = "eu-west-1"
+PREPROD_ACCOUNT = ""      # account to setup networking stack
 
-PROD_ACCOUNT = ""
-PROD_REGION = "eu-west-1"
-
+PROD_ACCOUNT = ""         # account to setup networking stack
 
 DEFAULT_DEPLOYMENT_REGION = "eu-west-1"
 APP_PREFIX = "mlops"

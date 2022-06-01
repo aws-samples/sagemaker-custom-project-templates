@@ -15,6 +15,9 @@
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
 # SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
+import json
+import logging
+import os
 from aws_cdk import (
     Aws,
     BundlingOptions,
@@ -26,8 +29,6 @@ from aws_cdk import (
     Tags,
     aws_iam as iam,
     aws_s3_assets as s3_assets,
-    aws_s3 as s3,
-    aws_kms as kms,
     aws_servicecatalog_alpha as servicecatalog_alpha,
     aws_servicecatalog as servicecatalog,
     aws_ssm as ssm,
@@ -36,10 +37,15 @@ import aws_cdk
 
 from constructs import Construct
 
-from mlops_sm_project_template_rt.sm_project_stack import MLOpsStack
+from mlops_sm_project_template_rt.basic_project_stack import MLOpsStack
 from mlops_sm_project_template_rt.constructs.ssm_construct import SSMConstruct
 
-from mlops_sm_project_template_rt.config.constants import PREPROD_ACCOUNT, PROD_ACCOUNT
+# Get environment variables
+LOG_LEVEL = os.getenv("LOG_LEVEL", "INFO").upper()
+
+# Configure logging
+logger = logging.getLogger()
+logger.setLevel(LOG_LEVEL)
 
 # Create a Portfolio and Product
 # see: https://docs.aws.amazon.com/cdk/api/latest/python/aws_cdk.aws_servicecatalog.html
@@ -137,8 +143,9 @@ class ServiceCatalogStack(Stack):
                 actions=["iam:PassRole"],
                 effect=iam.Effect.ALLOW,
                 resources=[
-                    f"arn:aws:iam::{PREPROD_ACCOUNT}:role/*",
-                    f"arn:aws:iam::{PROD_ACCOUNT}:role/*",
+                    # f"arn:aws:iam::{PREPROD_ACCOUNT}:role/*",
+                    # f"arn:aws:iam::{PROD_ACCOUNT}:role/*",
+                    "*"
                 ],
             ),
         )
@@ -195,7 +202,7 @@ class ServiceCatalogStack(Stack):
                     product_version_name=product_version.value_as_string,
                 )
             ],
-            description="This template includes a model building pipeline that includes a workflow to pre-process, train, evaluate and register a model.   The deploy pipeline creates a staging and production endpoint.",
+            description="This template includes a model building pipeline that includes a workflow to pre-process, train, evaluate and register a model.   The deploy pipeline creates a preprod and production endpoint.",
         )
 
         # Create portfolio associate that depends on products
@@ -320,4 +327,38 @@ class ServiceCatalogStack(Stack):
         stack = stack(stage, stack_name, synthesizer=aws_cdk.BootstraplessSynthesizer(), **kwargs)
         assembly = stage.synth()
         template_full_path = assembly.stacks[0].template_full_path
+
+        self.remove_policy(template_full_path, template_full_path)
+
         return template_full_path
+
+    def remove_policy(self, input_path: str, output_path: str):
+        """
+        Remove policy that CDK adds when part of the role_arn is provided from a cloudformation parameter
+        """
+        with open(input_path, "r") as f:
+            t = json.load(f)
+
+        # Remove policies
+        policy_list = [
+            k for k in t["Resources"] if t["Resources"][k]["Type"] == "AWS::IAM::Policy" and ("deployPreProdActionRolePolicy" in k or "deployProdActionRolePolicy" in k)
+        ]
+        
+        for p in policy_list:
+            logger.debug(f"Removing Policy {p}")
+            del t["Resources"][p]
+
+        # Remove policy dependencies
+        depends_on = [k for k in t["Resources"] if "DependsOn" in t["Resources"][k]]
+        for d in depends_on:
+            for p in policy_list:
+                if p in t["Resources"][d]["DependsOn"]:
+                    logger.debug(f"Removing DependsOn {p}")
+                    t["Resources"][d]["DependsOn"].remove(p)
+            if len(t["Resources"][d]["DependsOn"]) == 0:
+                del t["Resources"][d]["DependsOn"]
+
+        # Save file back
+        logger.info(f"Writing template to: {output_path}")
+        with open(output_path, "w") as f:
+            json.dump(t, f, indent=2)

@@ -15,25 +15,16 @@
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
 # SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
-from deploy_endpoint.deploy_endpoint_stack import DeployEndpointStack
-from config.constants import (
-    DEFAULT_DEPLOYMENT_REGION,
-    DEV_ACCOUNT,
-    PREPROD_ACCOUNT,
-    PREPROD_REGION,
-    PROD_ACCOUNT,
-    PROD_REGION,
-)
-import aws_cdk as cdk
+CODE_COMMIT_REPO_NAME = "mlops-sm-project-template-rt"
+PIPELINE_BRANCH = "main"
 
-app = cdk.App()
+PIPELINE_ACCOUNT = ""     # account used to host the pipeline handling updates of this repository
 
-dev_env = cdk.Environment(account=DEV_ACCOUNT, region=DEFAULT_DEPLOYMENT_REGION)
-staging_env = cdk.Environment(account=PREPROD_ACCOUNT, region=PREPROD_REGION)
-prod_env = cdk.Environment(account=PROD_ACCOUNT, region=PROD_REGION)
+DEV_ACCOUNT = ""          # account to host the service catalog template
 
-DeployEndpointStack(app, "dev", env=dev_env)
-DeployEndpointStack(app, "staging", env=staging_env)
-DeployEndpointStack(app, "prod", env=prod_env)
+PREPROD_ACCOUNT = ""      # account used to deploy the endpoint
 
-app.synth()
+PROD_ACCOUNT = ""         # account used to deploy the endpoint
+
+DEFAULT_DEPLOYMENT_REGION = "eu-west-1"
+APP_PREFIX = "mlops-cdk"

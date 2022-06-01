@@ -149,7 +149,8 @@ This is an AWS CDK project written in Python 3.8. Here's what you need to have o
 │   │   └── ssm_construct.py                  <--- construct to deploy ssm parameter for the project template to use
 │   ├── pipeline_stack.py                     <--- stack for CICD with code pipeline setup for the repo
 │   ├── service_catalog_stack.py              <--- stack for service catalog setup and template deployment
-│   └── sm_project_stack.py                   <--- stack for sagemaker project template setup
+│   ├── basic_project_stack.py                <--- stack for basic sagemaker project template setup - DEV/PREPROD/PROD Accounts provided in constants.py
+│   └── dynamic_accounts_project_stack.py     <--- stack for sagemaker project template setup - DEV/PREPROD/PROD Accounts provided as parameters during project creation
 ├── requirements-dev.txt
 ├── requirements.txt                          <--- cdk packages used in the stacks (must be installed)
 ├── scripts                                   <--- shell scripts to automate part of the deployments
@@ -193,7 +194,18 @@ aws_session_token = YOUR_SESSION_TOKEN
 ### Bootstrap AWS Accounts
 ***Warning:** It is best you setup a python environment to handle all installs for this project and manage python packages. Use your preferred terminal and editor to run the following commands.*
 
-Before you start with the deployment of the solution make sure to bootstrap your accounts. Ensure you add the account details in `mlops_sm_project_template_rt/config/constants.py` mainly the target deployment accounts: **DEV**, **PREPROD** and **PROD**. follow the steps below to achieve that:
+Before you start with the deployment of the solution make sure to bootstrap your accounts. Ensure you add the account details in `mlops_sm_project_template_rt/config/constants.py` mainly the target deployment accounts: **DEV**, **PREPROD** and **PROD**. 
+```
+PIPELINE_ACCOUNT = ""     # account to host the pipeline handling updates of this repository
+
+DEV_ACCOUNT = ""          # account to host the service catalog template and then build sagemaker project
+
+PREPROD_ACCOUNT = ""      # account to deploy the sagemaker endpoint
+
+PROD_ACCOUNT = ""         # account to deploy the sagemaker endpoint
+```
+
+follow the steps below to achieve that:
 
 1. Clone this repository in your work environment (e.g. your laptop)
    
@@ -284,12 +296,22 @@ cdk --app ./cdk.out/assembly-Personal deploy —all
 
 as a stage could include a combination of stacks `--all` flag is included with the `deploy` command
 
-once you are done with testing the new feature that was deployed locally, run the following to clean-up the environment:
 
+### Clean-up
+
+In case you used the local deployment, once you are done with testing the new feature that was deployed locally, run the following to clean-up the environment:
 ```
 # destroy stage to target account (make it match your stack name)
 cdk --app ./cdk.out/assembly-Personal destroy —all
 ```
+This would only delete the service catalog stack deployed in the target account and not the deployed projects.
+
+Similarly if you used the CI/CD deployment:
+```
+# destroy deployed stack in target account (make it match your stack name)
+cdk destroy
+```
+This would only delete the pipeline stack and nothing else deployed from the pipeline i.e. stacks deployed to the target accounts and the deployed projects.
 
 This command could fail in the following cases:
 

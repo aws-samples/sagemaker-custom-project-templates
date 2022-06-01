@@ -141,7 +141,18 @@ aws_session_token = YOUR_SESSION_TOKEN
 ### Bootstrap AWS Accounts
 ***Warning:** It is best you setup a python environment to handle all installs for this project and manage python packages. Use your preferred terminal and editor to run the following commands.*
 
-Before you start with the deployment of the solution make sure to bootstrap your accounts. Ensure you add the account details in `mlops_infra/config/constants.py` mainly the target deployment accounts: **DEV**, **PREPROD** and **PROD**. follow the steps below to achieve that:
+Before you start with the deployment of the solution make sure to bootstrap your accounts. Ensure you add the account details in `mlops_infra/config/constants.py` mainly the target deployment accounts: **DEV**, **PREPROD** and **PROD**. 
+```
+PIPELINE_ACCOUNT = ""     # account to host the pipeline handling updates of this repository
+
+DEV_ACCOUNT = ""          # account to setup sagemaker studio and networking stack
+
+PREPROD_ACCOUNT = ""      # account to setup networking stack
+
+PROD_ACCOUNT = ""         # account to setup networking stack
+```
+
+follow the steps below to achieve that:
 
 1. Clone this repository in your work environment (e.g. your laptop)
 
@@ -235,12 +246,24 @@ cdk synth
 
 as a stage could include a combination of stacks `--all` flag is included with the `deploy` command
 
-once you are done with testing the new feature that was deployed locally, run the following to clean-up the environment:
+### Clean-up
+
+In case you used the local deployment, once you are done with testing the new feature that was deployed locally, run the following to clean-up the environment:
 
 ```
-cdk --app ./cdk.out/assembly-Personal destroy —all
 # destroy stage to target account (make it match your stack name)
+cdk --app ./cdk.out/assembly-Personal destroy —all
 ```
+This would only delete the service catalog stack deployed in the target account and not the deployed projects.
+
+Similarly if you used the CI/CD deployment:
+```
+# destroy deployed stack in target account (make it match your stack name)
+cdk destroy
+```
+This would only delete the pipeline stack and nothing else deployed from the pipeline i.e. stacks deployed to the target accounts and the deployed projects.
+
+**NOTE** deployed stack from the pipeline won't be deleted to delete those you have to manually delete them through CloudFormation Delete stack command.
 
 This command could fail in the following cases:
 
