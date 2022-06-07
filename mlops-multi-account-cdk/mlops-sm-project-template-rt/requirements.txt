@@ -1,8 +1,8 @@
 aws-cdk-lib
-aws_cdk.aws_servicecatalog_alpha
 boto3
 constructs
 
 jupyter
 pre-commit
 yamldataclassconfig
+awscli

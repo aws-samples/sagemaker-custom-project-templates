@@ -29,7 +29,6 @@ from aws_cdk import (
     Tags,
     aws_iam as iam,
     aws_s3_assets as s3_assets,
-    aws_servicecatalog_alpha as servicecatalog_alpha,
     aws_servicecatalog as servicecatalog,
     aws_ssm as ssm,
 )
@@ -181,7 +180,7 @@ class ServiceCatalogStack(Stack):
             ),
         )
 
-        portfolio = servicecatalog_alpha.Portfolio(
+        portfolio = servicecatalog.Portfolio(
             self,
             "Portfolio",
             display_name=portfolio_name.value_as_string,
@@ -189,14 +188,14 @@ class ServiceCatalogStack(Stack):
             description="Organization templates for drift detection pipelines",
         )
 
-        deploy_product = servicecatalog_alpha.CloudFormationProduct(
+        deploy_product = servicecatalog.CloudFormationProduct(
             self,
             "DeployProduct",
             owner=portfolio_owner.value_as_string,
             product_name="MLOps template for real-time deployment",
             product_versions=[
-                servicecatalog_alpha.CloudFormationProductVersion(
-                    cloud_formation_template=servicecatalog_alpha.CloudFormationTemplate.from_asset(
+                servicecatalog.CloudFormationProductVersion(
+                    cloud_formation_template=servicecatalog.CloudFormationTemplate.from_asset(
                         self.generate_template(MLOpsStack, f"MLOpsApp-{stage_name}", **kwargs)
                     ),
                     product_version_name=product_version.value_as_string,
