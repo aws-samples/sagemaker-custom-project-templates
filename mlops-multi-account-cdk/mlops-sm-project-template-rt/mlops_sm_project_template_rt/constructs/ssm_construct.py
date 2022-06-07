@@ -24,9 +24,8 @@ from constructs import Construct
 from mlops_sm_project_template_rt.config.constants import (
     DEV_ACCOUNT,
     PREPROD_ACCOUNT,
-    PREPROD_REGION,
     PROD_ACCOUNT,
-    PROD_REGION,
+    DEFAULT_DEPLOYMENT_REGION
 )
 
 
@@ -56,7 +55,7 @@ class SSMConstruct(Construct):
             self,
             "PreProdRegionParameter",
             parameter_name="/mlops/preprod/region",
-            string_value=PREPROD_REGION,
+            string_value=DEFAULT_DEPLOYMENT_REGION,
         )
 
         # PROD parameters
@@ -71,5 +70,5 @@ class SSMConstruct(Construct):
             self,
             "ProdRegionParameter",
             parameter_name="/mlops/prod/region",
-            string_value=PROD_REGION,
+            string_value=DEFAULT_DEPLOYMENT_REGION,
         )
