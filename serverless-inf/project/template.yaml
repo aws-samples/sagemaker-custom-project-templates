@@ -18,6 +18,7 @@ Resources:
   ##### Section 1: Model build and train resources
   MlOpsArtifactsBucket:
     Type: AWS::S3::Bucket
+    UpdateReplacePolicy: Retain
     DeletionPolicy: Retain
     Properties:
       BucketName: !Sub sagemaker-project-${SageMakerProjectId} # 58 chars max/ 64 allowed
@@ -57,8 +58,8 @@ Resources:
       RepositoryDescription: !Sub SageMaker Model building workflow infrastructure as code for the Project ${SageMakerProjectName}
       Code:
         S3:
-          Bucket: <#####BUILD-BUCKET-PLACEHOLDER#####>
-          Key: <#####BUILD-FILE-PATH-PLACEHOLDER#####>
+          Bucket: AWSDEFAULT___CODE_STAGING_BUCKET___
+          Key: AWSDEFAULT___PROJECT_NAME___/seedcode/serverless-inf-build.zip
         BranchName: main
 
   SageMakerModelPipelineBuildProject:
@@ -200,8 +201,8 @@ Resources:
       RepositoryDescription: !Sub SageMaker Endpoint deployment infrastructure as code for the Project ${SageMakerProjectName}
       Code:
         S3:
-          Bucket: <#####DEPLOY-BUCKET-PLACEHOLDER#####>
-          Key: <#####DEPLOY-FILE-PATH-PLACEHOLDER#####>
+          Bucket: AWSDEFAULT___CODE_STAGING_BUCKET___
+          Key: AWSDEFAULT___PROJECT_NAME___/seedcode/serverless-inf-deploy.zip
         BranchName: main
 
   ModelDeployBuildProject:
