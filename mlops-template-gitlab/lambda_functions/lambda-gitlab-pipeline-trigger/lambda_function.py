@@ -12,7 +12,7 @@ logger.addHandler(logging.StreamHandler())
 
 def get_secret():
     ''' '''
-    secret_name = os.environ['SecretName']
+    secret_name = os.environ['GitLabTokenSecretName']
     region_name = os.environ['Region']
 
     session = boto3.session.Session()
