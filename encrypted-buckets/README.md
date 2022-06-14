@@ -1,6 +1,6 @@
 ## Template Description
 
-The sample template `MLOps-template-example.yml` was created using the first-party MLOps template for model building, training and deployment. The template is updated to have security best practices, i.e., encryption and versioning for S3 buckets. The template also requires the user to provide a customer managed key on KMS for bucket encryption, and uses custom roles as launch constraints for deploying the template with least-privilege permissions.
+The sample template was created using the first-party MLOps template for model building, training and deployment. The template is updated to have security best practices, i.e., encryption and versioning for S3 buckets. The template also requires the user to provide a customer managed key on KMS for bucket encryption, and uses custom roles as launch constraints for deploying the template with least-privilege permissions.
 
 The attached IAM role for Catalog Use also enforces tagging for models and training jobs created as well, by explicity denying creation of jobs without corresponding tags. To execute the seed pipeline after the project is created, add tags to the ProcessingStep, TrainingStep etc. of `pipeline.py`. For SageMaker Pipelines SDK, see [SageMaker Pipelines](https://sagemaker.readthedocs.io/en/stable/workflows/pipelines/index.html).
 
@@ -10,7 +10,7 @@ The attached IAM role for Catalog Use also enforces tagging for models and train
 
 Part 1: Create initial Service Catalog Product
 
-1. To create the Service Catalog product for this project, download the `create-async-endpoint-product.yaml` and upload it into your CloudFormation console: https://console.aws.amazon.com/cloudformation
+1. To create the Service Catalog product for this project, download the `create-encrypted-buckets-product.yaml` and upload it into your CloudFormation console: https://console.aws.amazon.com/cloudformation
 
 
 2. Update the Parameters section:
