@@ -13,12 +13,13 @@ Parameters:
   SourceModelPackageGroupName:
     Type: String
     Description: Name of the ModelPackageGroup for which deployments should be triggered for
-
+ 
 Resources:
 
   MlOpsArtifactsBucket:
     Type: AWS::S3::Bucket
     DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
     Properties:
       BucketName: !Sub sagemaker-project-${SageMakerProjectId} # 58 chars max/ 64 allowed
 
@@ -80,8 +81,8 @@ Resources:
       RepositoryDescription: !Sub SageMaker Endpoint deployment infrastructure as code for the Project ${SageMakerProjectName}
       Code:
         S3:
-          Bucket: <#####BUCKET-PLACEHOLDER#####>
-          Key: <#####FILE-PATH-PLACEHOLDER#####>
+          Bucket: AWSDEFAULT___CODE_STAGING_BUCKET___
+          Key: AWSDEFAULT___PROJECT_NAME___/seedcode/async-inference-endpoint-seedcode.zip
         BranchName: main
 
   ModelDeployBuildProject:
@@ -156,7 +157,6 @@ Resources:
 
   ModelDeployPipeline:
     Type: AWS::CodePipeline::Pipeline
-    DependsOn: MlOpsArtifactsBucket
     Properties:
       # Max length: 100 chars
       Name: !Sub sagemaker-${SageMakerProjectName}-${SageMakerProjectId}-modeldeploy # max: 10+33+15+11=69
