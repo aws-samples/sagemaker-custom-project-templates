@@ -24,67 +24,65 @@ There are two architectures available, one using AWS CodePipeline and AWS CodeCo
 
 ![jenkins-arch-train-complete.png](images/jenkins-arch-train-complete.png)
 
-## Usage (Adding the template to Amazon SageMaker Projects in Studio)
+## Instructions
 
-### Step 1. Deploy the baseline stack 
+Part 1: Create initial Service Catalog Product
 
-```
-git clone https://github.com/aws-samples/sagemaker-custom-project-templates.git
-mkdir sample-multi-branch-train
-cp -r sagemaker-custom-project-templates/multi-branch-mlops-train/* sample-multi-branch-train
-cd sample-multi-branch-train
-./deploy.sh -p code_pipeline+code_commit
-```
+1. To create the Service Catalog product for this project, download the `create-multi-branch-mlops-product.yaml` and upload it into your CloudFormation console: https://console.aws.amazon.com/cloudformation/home?#/stacks/create/template
 
-In the example above you can also deploy the stack to support Jenkins and GitHub, using `./deploy.sh -p jenkins`.
+2. Update the Parameters section:
 
-### Step 2. Create portfolio in AWS Service Catalog
+    - Choose a deployment type. You have the option to select between the CodeCommit/CodePipeline and the GitHub/Jenkins based implementation.
 
-![img.png](images/create-portfolio.png)
+        ![](images/mb-params-01.png)
 
-### Step 3. Create a new product for the portfolio
+    - Supply a unique name for the stack
 
-![img.png](images/create-product-1.png)
+        ![](images/mb-params-02.png)
 
-![img.png](images/create-product-2.png)
+    - Enter your Service Catalog portfolio id, which can be found in the __Outputs__ tab of your deployed portfolio stack or in the Service Catalog portfolio list: https://console.aws.amazon.com/servicecatalog/home?#/portfolios
 
-Use the AWS Cloud Formation template deployed by the baseline stack.
+        ![](images/mb-params-03.png)
 
-`https://cloud-formation-<ACCOUNT-ID>-us-east-1.s3.amazonaws.com/model_train.yaml`
+    - Update the Product Information. The product name and description are visible inside of SageMaker Studio. Other fields are visible to users that consume this directly through Service Catalog. 
 
-![img.png](images/create-product-3.png)
+    - Support information is not available inside of SageMaker Studio, but is available in the Service Catalog Dashboard.
 
-### Step 4. Add SageMaker visibility tag to the product
+    - Updating the source code repository information is only necessary if you forked this repo and modified it.
 
-Tag `sagemaker:studio-visibility` with value `true`.
+        ![](images/mb-params-06.png)
 
-![img.png](images/add-product-tag.png)
+3. Choose __Next__, __Next__ again, check the box acknowledging that the template will create IAM resources, and then choose __Create Stack__.
 
-### Step 5. Go to the Portfolio created and add a constraint.
+4. Your template should now be visible inside of SageMaker Studio.
 
-The role `MultiBranchTrainMLOpsLaunchRole` was created by the baseline stack.
 
-![img.png](images/add-portfolio-constraint.png)
+Part 2: Deploy the Project inside of SageMaker Studio
 
-### Step 6. Go to the Portfolio created and share it with the relevant users as well as the SageMaker execution role, used by SageMaker Studio.
+1. Open SageMaker Studio and sign in to your user profile.
 
-![img.png](images/add-portfolio-roles.png)
+1. Choose the SageMaker __components and registries__ icon on the left, and choose the __Create project__ button.
 
-### Step 7. The template becomes available in SageMaker Studio
+1. The default view displays SageMaker templates. Switch to the __Organization__ templates tab to see custom project templates.
 
-![img.png](images/studio-project-available.png)
+1. The template you created will be displayed in the template list. (If you do not see it yet, make sure the correct execution role is added to the product and the __sagemaker:studio-visibility__ tag with a value of __true__ is added to the Service Catalog product).
 
-## Usage (Creating a new project)
+1. Choose the template and click Select the correct project template.
 
-### Step 1. Select the template in the example above and provide a name.
+    ![](../images/sm-projects-listing.png)
 
-Note that the name may have a maximum of 18 characters.
+6. Fill out the required fields for this project.
 
-![img.png](images/create-project.png)
+    - __Name:__ A unique name for the project deployment.
 
-### Step 2. Wait for the project to be created.
+    - __Description:__ Project description for this deployment.
 
-![img.png](images/wait-project-create.png)
+7. Choose __Create Project__.
+
+    ![](images/mb-create-project.png)
+
+8. After a few minutes, your example project should be deployed and ready to use.
+
 
 ### Step 3. Add the sample code to the created repository
 
