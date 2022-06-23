@@ -21,6 +21,7 @@ from aws_cdk import (
     Stage,
     aws_codebuild as codebuild,
     aws_codecommit as codecommit,
+    aws_s3_assets as s3_assets,
     pipelines,
 )
 

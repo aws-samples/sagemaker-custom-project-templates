@@ -38,6 +38,7 @@ from mlops_sm_project_template_rt.constructs.deploy_pipeline_construct import (
     DeployPipelineConstruct,
 )
 
+
 class MLOpsStack(Stack):
     def __init__(self, scope: Construct, construct_id: str, **kwargs) -> None:
         super().__init__(scope, construct_id, **kwargs)
@@ -87,7 +88,6 @@ class MLOpsStack(Stack):
             max_length=10,
             description="Deployment region for preprod and prod account.",
         ).value_as_string
-
 
         Tags.of(self).add("sagemaker:project-id", project_id)
         Tags.of(self).add("sagemaker:project-name", project_name)
