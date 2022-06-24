@@ -153,6 +153,8 @@ Resources:
         detail:
           ModelPackageGroupName:
             - !Sub ${SageMakerProjectName}-${SageMakerProjectId}
+          ModelApprovalStatus:
+            - "Approved"
       State: "ENABLED"
       Targets:
         -
