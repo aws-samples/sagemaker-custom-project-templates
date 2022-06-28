@@ -25,18 +25,20 @@ lint:
 init:
 	git config core.hooksPath .githooks
 
-clean:
+clean: clean-python
 	rm -f cdk.staging
 	rm -rf cdk.out
+
+
+#################################################################################
+# PROJECT RULES                                                                 #
+#################################################################################
+clean-python:
 	find . -name '*.egg-info' -exec rm -fr {} +
 	find . -name '.coverage' -exec rm -fr {} +
 	find . -name '.pytest_cache' -exec rm -fr {} +
 	find . -name '.tox' -exec rm -fr {} +
 	find . -name '__pycache__' -exec rm -fr {} +
-#################################################################################
-# PROJECT RULES                                                                 #
-#################################################################################
-
 
 
 
