@@ -33,7 +33,7 @@ from mlops_infra.config.constants import (
     PIPELINE_BRANCH,
     PREPROD_ACCOUNT,
     PROD_ACCOUNT,
-    DEFAULT_DEPLOYMENT_REGION
+    DEFAULT_DEPLOYMENT_REGION,
 )
 
 from mlops_infra.networking_stack import NetworkingStack

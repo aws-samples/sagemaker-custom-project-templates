@@ -25,7 +25,7 @@ from mlops_sm_project_template_rt.config.constants import (
     DEV_ACCOUNT,
     PREPROD_ACCOUNT,
     PROD_ACCOUNT,
-    DEFAULT_DEPLOYMENT_REGION
+    DEFAULT_DEPLOYMENT_REGION,
 )
 
 
