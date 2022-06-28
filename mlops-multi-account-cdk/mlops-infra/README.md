@@ -3,6 +3,22 @@
 This repository contains the resources that are required to deploy the MLOps Foundation infrastructure. It contains the definition of a secure networking with Amazon VPC, Subnets, Security Group and Amazon VPC Endpoints to be used with Amazon SageMaker Studio. It also defines the setup for Amazon SageMaker Studio Domain and creates SageMaker Studio User Profiles for Data Scientists and Lead Data Scientists.
 
 **NOTE** To effictively use this repository you would need to have a good understanding around AWS networking services, AWS CloudFormation and AWS CDK.
+- [MLOps Foundation Infrastructure](#mlops-foundation-infrastructure)
+  - [Solution Architecture](#solution-architecture)
+    - [Networking Stack](#networking-stack)
+    - [SageMaker Studio Stack](#sagemaker-studio-stack)
+    - [CodeCommit Stack](#codecommit-stack)
+    - [Pipeline Stack](#pipeline-stack)
+  - [Getting Started](#getting-started)
+    - [Prerequisites](#prerequisites)
+    - [Repository Structure](#repository-structure)
+    - [Setup AWS Profiles](#setup-aws-profiles)
+    - [Bootstrap AWS Accounts](#bootstrap-aws-accounts)
+    - [Deployment Options](#deployment-options)
+    - [CI/CD Deployment](#cicd-deployment)
+    - [Manual Deployment](#manual-deployment)
+    - [Clean-up](#clean-up)
+  - [Troubleshooting](#troubleshooting)
 
 ## Solution Architecture
 
@@ -23,7 +39,7 @@ The networking stack deploys all required resources to create a secure environme
 
 3. SSM parameters are used to store information about the VPC and its related components in each deployment account (DEV/PREPROD/PROD)
 
-**NOTE** This is an optional stack for the scenario that the account does not have an existing VPC configured. If you want to use an existing VPC you will need to comment out line 54 and lines 60-61 from `pipeline_stack.py`. Uncomment lines 93-98 from `sagemaker_studio_stack.py`. The uncommented code would load the networking information from the config file for each stage in the pipeline (**DEV/PREPROD/PROD**). In `mlops_infra/config/dev`, there is an example `constants.py` for how the vpc and subnets infromation should be provided. You can use this constant file to add any additional resources such as an exisiting security group that you want to use or an IAM role. Note that this is specific to each account so you would need to provide this information for every account you want to deploy this solution to it; networking infromation for each **DEV**, **PREPROD** and **PROD** account. 
+**NOTE** This is an optional stack for the scenario that the account does not have an existing VPC configured. If you want to use an existing VPC you will need to comment out line 54 and lines 60-61 from `pipeline_stack.py`. Uncomment lines 93-98 from `sagemaker_studio_stack.py`. The uncommented code would load the networking information from the config file for each stage in the pipeline (**DEV/PREPROD/PROD**). In `mlops_infra/config/dev`, there is an example `constants.py` for how the vpc and subnets infromation should be provided. You can use this constant file to add any additional resources such as an exisiting security group that you want to use or an IAM role. Note that this is specific to each account so you would need to provide this information for every account you want to deploy this solution to it; networking infromation for each **DEV**, **PREPROD** and **PROD** account.
 
 
 
@@ -47,11 +63,16 @@ This stack handles the deployment of the following resources:
 
 3. Default SageMaker Project Templates are also enabled on the account on the targeted region using a custom resource; the custom resource uses a lambda function, `functions/sm_studio/enable_sm_projects`, to make necessary SDK calls to both Amazon Service Catalog and Amazon SageMaker.
 
+### CodeCommit Stack
+*This stack is only needed if you want to handle deployments of this folder of the repository to be managed through a CICD pipeline.*
+
+This stack handles setting up an AWS CodeCommit repository for this folder of the repository. This repository will be used as the source for the CI/CD pipeline defined in [Pipeline Stack](#pipeline-stack). The repository will be named based on the value defined in `mlops_infra/config/constants.py` with this variable `CODE_COMMIT_REPO_NAME`. The repository will be intialised with a default branch as defined in the `constants.py` file under `PIPELINE_BRANCH` variable.
+
 ### Pipeline Stack
 
 *This stack is only needed if you want to handle deployments of this folder of the repository to be managed through a CICD pipeline. The pipeline is configured to deploy to 3 accounts, DEV, PREPROD and PROD*
 
-The CICD pipelines in this repository are setup to monitor an AWS CodeCommit repository and must be setup beforehand; the name of the repository is defined in `mlops_infra/config/constants.py` so change the value of this variable `CODE_COMMIT_REPO_NAME`.
+The CICD pipeline in this repository is setup to monitor an AWS CodeCommit repository as defined in [CodeCommit Stack](#codecommit-stack).
 
 If you are using other sources like github or bitbucket for your repository, you will need to modify the connection to the appropriate repository as defined in `mlops_infra/pipeline_stack.py`. This can be done using AWS CodeStar but must be setup on the account.
 
@@ -62,7 +83,7 @@ Make sure the pipelines also point to your targeted branch; by default the pipel
 The pipeline will deploy all stacks and resources to the appropriate accounts.
 
 
-## Solution Deployment
+## Getting Started
 
 ### Prerequisites
 
@@ -89,6 +110,7 @@ This is an AWS CDK project written in Python 3.8. Here's what you need to have o
 │   └── sm_studio                               <--- sagemaker studio stack related lambda function
 │       └── enable_sm_projects                  <--- lambda function to enable sagemaker projects on the account and links the IAM roles of the domain users (used as a custom resource)
 ├── mlops_infra
+│   ├── cdk_helper_scripts
 │   ├── config
 │   │   ├── config_mux.py
 │   │   ├── constants.py                        <--- global configs to be used in CDK stacks regardless of the account
@@ -138,10 +160,7 @@ aws_session_token = YOUR_SESSION_TOKEN
 ...
 ```
 
-### Bootstrap AWS Accounts
-***Warning:** It is best you setup a python environment to handle all installs for this project and manage python packages. Use your preferred terminal and editor to run the following commands.*
-
-Before you start with the deployment of the solution make sure to bootstrap your accounts. Ensure you add the account details in `mlops_infra/config/constants.py` mainly the target deployment accounts: **DEV**, **PREPROD** and **PROD**. 
+Before you start with the deployment of the solution make sure to bootstrap your accounts. Ensure you add the account details in `mlops_infra/config/constants.py` mainly the target deployment accounts: **DEV**, **PREPROD** and **PROD**.
 ```
 PIPELINE_ACCOUNT = ""     # account to host the pipeline handling updates of this repository
 
@@ -151,6 +170,9 @@ PREPROD_ACCOUNT = ""      # account to setup networking stack
 
 PROD_ACCOUNT = ""         # account to setup networking stack
 ```
+
+### Bootstrap AWS Accounts
+***Warning:** It is best you setup a python environment to handle all installs for this project and manage python packages. Use your preferred terminal and editor to run the following commands.*
 
 follow the steps below to achieve that:
 
@@ -170,13 +192,15 @@ cd mlops-infra
 
 4. Run `make init` to setup githooks
 
-5. (Option 1) Bootstrap your deployment target accounts (e.g. governance, dev, etc.) using our script in `scripts/cdk-account-setup.sh.` Ensure that you have the account ids ready and the corresponding AWS profiles with credentials created in your `~/.aws/credentials` for each account (see above).
+5. Ensure your docker daemon is running
+
+6. (Option 1) Bootstrap your deployment target accounts (e.g. governance, dev, etc.) using our script in `scripts/cdk-account-setup.sh` Ensure that you have the account ids ready and the corresponding AWS profiles with credentials created in your `~/.aws/credentials` for each account (see above).
 
 The script will request the 4 accounts, i.e. governance, dev, preprod and prod, and the corresponding AWS profiles as inputs. If you want to only deploy to 1 account you can use the same id for all account variables or pass the same values in the script.
 
 <add screenshot here of sccript execution>
 
-5. (Option 2) If you want to bootstrap the account manually, then run the following command for each account:
+6. (Option 2) If you want to bootstrap the account manually, then run the following command for each account:
 
 ```
 cdk bootstrap aws://<target account id>/<target region> --profile <target account profile>
@@ -200,12 +224,12 @@ for more information read the [AWS CDK documentation on Bootstrapping](https://d
 
 There are two deployment options for the infrastructure to the accounts:
 
-- **[CI/CD Deployment](#1-cicd-deployment)** - deploy by using a governance account setup and a CICD pipeline linked to this folder of the repository
+- **[CI/CD Deployment](#cicd-deployment)** - deploy by using a governance account setup and a CICD pipeline linked to this folder of the repository
 
-- **[Manual Deployment](#2-manual-deployment)** - deploy without a governance account setup and directly to the targeted accounts (1 or more) using CDK commands
+- **[Manual Deployment](#manual-deployment)** - deploy without a governance account setup and directly to the targeted accounts (1 or more) using CDK commands
 
 ### CI/CD Deployment
-For this deployment you must ensure that you have a repository already created and setup with the code from this folder. The setup of this CI/CD deployment is described in [Pipeline Stack](#pipeline-stack).
+This step will deploy 2 stacks: [CodeCommit Stack](#codecommit-stack) and [Pipeline Stack](#pipeline-stack)
 
 1. Deploy the deployment CI/CD pipeline in your governance account (one time operation). This is the CI/CD pipeline that would deploy your required infrastructure to setup your networking in the accounts and SageMaker Studio Domain in the Dev Account:
 
@@ -213,7 +237,7 @@ For this deployment you must ensure that you have a repository already created a
 # builds the pipeline stack and install all assets
 cdk synth
 # deploy stack to target account, use the governance account profile for this
-cdk deploy
+cdk deploy --all
 ```
 
 2. the deployment CI/CD pipeline will now handle all deployments for the other stacks based on the updates to the main branch
@@ -248,7 +272,7 @@ as a stage could include a combination of stacks `--all` flag is included with t
 
 ### Clean-up
 
-In case you used the local deployment, once you are done with testing the new feature that was deployed locally, run the following to clean-up the environment:
+In case you used the local deployment, once you are done with testing the new feature that was deployed locally, run the following commands to clean-up the environment:
 
 ```
 # destroy stage to target account (make it match your stack name)

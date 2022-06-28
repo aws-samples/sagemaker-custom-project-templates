@@ -1,0 +1,425 @@
+---
+AWSTemplateFormatVersion: "2010-09-09"
+
+Description: >-
+  Template for creating a Service Catalog product based on the batch-inference SageMaker Custom Example
+
+Parameters:
+
+  PortfolioIDParameter:
+    Type: String
+    Description: The ID of the Service Catalog Portfolio you wish you create the product inside. If using the Portfolio Stack example, the value will be found in the Outputs' tab of the stack under "CreatedPortfolioID".
+
+  ProductNameParameter:
+    Type: String
+    Default: Batch Interface Endpoint SageMaker Project Example
+    Description: The name of this product within the portfolio.
+
+  ProductDescriptionParameter:
+    Type: String
+    Default: 'The purpose of this template is to deploy a scheduled batch inference using SageMaker Batch Transform and SageMaker Pipelines, given a ModelGroupPackageName from the Amazon SageMaker Model Registry.'
+    Description: The description of this product within the portfolio.
+
+  ProductOwnerParameter:
+    Type: String
+    Default: Product Owner
+    Description: The owner of this product within the portfolio.
+
+  ProductDistributorParameter:
+    Type: String
+    Default: Product Distributor
+    Description: The distributor of this product within the portfolio.
+
+  ProductSupportDescriptionParameter:
+    Type: String
+    Default: Support Description
+    Description: The support description of this product within the portfolio.
+
+  ProductSupportEmailParameter:
+    Type: String
+    Default: support@example.com
+    Description: The support email of this product within the portfolio.
+
+  ProductSupportURLParameter:
+    Type: String
+    Default: 'https://github.com/aws-samples/sagemaker-custom-project-templates'
+    Description: The support url of this product within the portfolio.
+
+  SageMakerProjectRepoZipParameter:
+    Type: String
+    Default: 'https://github.com/aws-samples/sagemaker-custom-project-templates/archive/refs/heads/main.zip'
+    Description: 'URL for a Zip of the SageMaker Projects Examples GitHub Repo'
+
+  SageMakerProjectRepoNameBranchParameter:
+    Type: String
+    Default: 'sagemaker-custom-project-templates-main'
+    Description: 'Name/Branch of the SageMaker Projects Examples GitHub Repo'
+  
+  SageMakerProjectsProjectNameParameter:
+    Type: String
+    Default: batch-inference
+    Description: Project folder inside of the GitHub repo for this project
+
+Metadata: 
+  AWS::CloudFormation::Interface: 
+    ParameterGroups: 
+      - 
+        Label: 
+          default: "Service Catalog Portfolio Information"
+        Parameters: 
+          - PortfolioIDParameter
+      - 
+        Label: 
+          default: "Service Catalog Product Information"
+        Parameters: 
+          - ProductNameParameter
+          - ProductDescriptionParameter
+          - ProductOwnerParameter
+          - ProductDistributorParameter
+      - 
+        Label: 
+          default: "Service Catalog Product Support Information"
+        Parameters: 
+          - ProductSupportDescriptionParameter
+          - ProductSupportEmailParameter
+          - ProductSupportURLParameter
+      - 
+        Label: 
+          default: "Source Code Repository Configuration (leave defaults if not forking the repository)"
+        Parameters: 
+          - SageMakerProjectRepoZipParameter
+          - SageMakerProjectRepoNameBranchParameter
+          - SageMakerProjectsProjectNameParameter
+
+    ParameterLabels: 
+       
+      PortfolioIDParameter:
+        default: 'Portfolio ID'
+
+      ProductNameParameter:
+        default: 'Product Name'
+
+      ProductDescriptionParameter:
+        default: 'Product Description'
+
+      ProductOwnerParameter:
+        default: 'Product Owner'
+
+      ProductDistributorParameter:
+        default: 'Product Distributor'
+
+      ProductSupportDescriptionParameter:
+        default: 'Product Support Description'
+
+      ProductSupportEmailParameter:
+        default: 'Product Support Email'
+
+      ProductSupportURLParameter:
+        default: 'Product Support URL'
+
+      SageMakerProjectRepoZipParameter:
+        default: 'URL to the zipped version of your GitHub Repository'
+
+      SageMakerProjectRepoNameBranchParameter:
+        default: 'Name and branch of your GitHub Repository, should match the root folder of the zip'
+
+      SageMakerProjectsProjectNameParameter:
+        default: 'Project folder inside of the main repository for this project.'
+
+Resources:
+
+  BootstrapS3Bucket:
+    Type: AWS::S3::Bucket
+    Properties: 
+      BucketName: !Join ['-',['sm-project-batchinference-example', !Select [4, !Split ['-', !Select [2, !Split ['/', !Ref 'AWS::StackId']]]]]]
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault:
+              SSEAlgorithm: 'AES256'
+  
+  BootstrapS3BucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    Properties: 
+      Bucket: !Ref BootstrapS3Bucket
+      PolicyDocument:
+          Version: "2012-10-17"
+          Statement:
+            - Effect: Allow
+              Principal: 
+                AWS:
+                  - !Join [ ':', ['arn', !Ref 'AWS::Partition', 'iam:', !Ref 'AWS::AccountId', 'role/service-role/AmazonSageMakerServiceCatalogProductsLaunchRole']]
+              Action: 's3:GetObject'
+              Resource: !Join ['',[!GetAtt BootstrapS3Bucket.Arn,'/*']]
+
+  BootstrapLambdaExecutionRole:
+    Type: AWS::IAM::Role
+    Properties: 
+      RoleName: !Join ['-', ['SMCustomProject-BatchInference-Bootstrap-Role', !Select [4, !Split ['-', !Select [2, !Split ['/', !Ref 'AWS::StackId']]]]]]
+      Description: Role used for launching the lambda function to bootstrap creation of the Batch Inference SageMaker Custom Project Template example
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - lambda.amazonaws.com
+            Action: 'sts:AssumeRole'
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+      Policies:
+          - PolicyName: BootstrapLambdaExecutionPolicy
+            PolicyDocument:
+              Version: "2012-10-17"
+              Statement:
+                - Effect: Allow
+                  Action: 
+                    - 's3:PutObject'
+                    - 's3:GetObject'
+                  Resource: !Join ['',[!GetAtt BootstrapS3Bucket.Arn,'/*']]
+
+  ServiceCatalogProduct:
+    Type: AWS::ServiceCatalog::CloudFormationProduct
+    Properties: 
+      Description: !Ref ProductDescriptionParameter
+      Distributor: !Ref ProductDistributorParameter
+      Name: !Ref ProductNameParameter
+      Owner: !Ref ProductOwnerParameter
+      ProvisioningArtifactParameters:
+        -
+          Description: Base Version
+          DisableTemplateValidation: false
+          Info:
+            LoadTemplateFromURL: !GetAtt InvokeCustomLambda.template_url
+          Name: v1.0
+      SupportDescription: !Ref ProductSupportDescriptionParameter
+      SupportEmail: !Ref ProductSupportEmailParameter
+      SupportUrl: !Ref ProductSupportURLParameter
+      Tags:
+        -
+          Key: sagemaker:studio-visibility
+          Value: 'true'
+
+
+  ServiceCatalogProductAssociation:
+    Type: AWS::ServiceCatalog::PortfolioProductAssociation
+    Properties: 
+      PortfolioId: !Ref PortfolioIDParameter
+      ProductId: !Ref ServiceCatalogProduct
+
+  ServiceCatalogProductRoleLaunchContstraint:
+    Type: AWS::ServiceCatalog::LaunchRoleConstraint
+    DependsOn: 
+      - ServiceCatalogProductAssociation
+    Properties: 
+      Description: Role for launching the batch-inference product
+      PortfolioId: !Ref PortfolioIDParameter
+      ProductId: !Ref ServiceCatalogProduct
+      RoleArn: !Join [ ':', [ 'arn', !Ref 'AWS::Partition', 'iam:', !Ref 'AWS::AccountId', 'role/service-role/AmazonSageMakerServiceCatalogProductsLaunchRole'] ]
+
+  CustomBackedLambda:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: !Join ['-', ['aws-samples-batchinference-lambda-bootstrapper', !Select [4, !Split ['-', !Select [2, !Split ['/', !Ref 'AWS::StackId']]]]]]
+      Runtime: python3.9
+      Role: !GetAtt BootstrapLambdaExecutionRole.Arn
+      Handler: index.lambda_handler
+      Timeout: 300
+      Code:
+        ZipFile: |
+          import cfnresponse
+          import logging
+          import random
+          import json
+          import urllib3
+          import os
+          import zipfile
+          import pathlib
+          import boto3
+
+          logger = logging.getLogger()
+          logger.setLevel(logging.INFO)
+
+          s3_client = boto3.client('s3')
+
+          def lambda_handler(event, context):
+            try:
+                logger.info('Incoming Request:')
+                logger.info(json.dumps(event))
+                
+                if event.get('RequestType') == 'Create':
+                        
+                        required_variables = ['BootStrapBucketName','SageMakerProjectRepoZip','SageMakerProjectRepoNameBranch', 'SageMakerProjectsProjectName']
+
+                        if not set(required_variables).issubset(set(event['ResourceProperties'])):
+                            raise Exception(f'Missing required input from: {required_variables}' )
+
+                        sagemaker_projects_repo = event['ResourceProperties']['SageMakerProjectRepoZip']
+                        sagemaker_projects_repo_root_folder_name = event['ResourceProperties']['SageMakerProjectRepoNameBranch']
+                        sagemaker_projects_project_name = event['ResourceProperties']['SageMakerProjectsProjectName']
+                        
+                        logger.info(f'begin fetch of zipped rep from github: {sagemaker_projects_repo}')
+
+                        chunk_size = 6 * 1024
+                        http = urllib3.PoolManager()
+                        
+                        r = http.request('GET', sagemaker_projects_repo, preload_content=False)
+                        
+                        with open('/tmp/sm_project_repo.zip', 'wb') as out:
+                            while True:
+                                data = r.read(chunk_size)
+                                if not data:
+                                    break
+                                out.write(data)
+                        
+                        r.release_conn()
+                        
+                        logger.info(f'github zip written to /tmp/sm_project_repo.zip')
+                        
+                        local_extracted_path_root = '/tmp/' + sagemaker_projects_repo_root_folder_name
+                        
+                        logger.info(f'extracting github zip to {local_extracted_path_root}')
+                        
+                        with zipfile.ZipFile('/tmp/sm_project_repo.zip', 'r') as zip_ref:
+                            zip_ref.extractall('/tmp')
+                        
+                        logger.info(f'github zip extracted to {local_extracted_path_root}')
+
+                        logger.info(f'begin project template customizations')
+
+                        bootstrap_bucket_name = event['ResourceProperties']['BootStrapBucketName']
+
+                        input_file_path = local_extracted_path_root + '/' + sagemaker_projects_project_name + '/project/template.yaml'
+                        output_file_path = local_extracted_path_root + '/' + sagemaker_projects_project_name + '/project/template_updated.yaml'
+                        s3_template_key = sagemaker_projects_project_name + '/templates/template.yaml'
+                        
+                        with open(input_file_path, 'r') as input_template_file:
+                            with open(output_file_path, 'w') as output_template_file:
+                                file_data = input_template_file.read()
+                                
+                                if 'TemplateSubstitutions' in event['ResourceProperties'].keys():
+                                  for replacement_key in event['ResourceProperties']['TemplateSubstitutions'].keys():
+                                      file_data = file_data.replace(replacement_key, event['ResourceProperties']['TemplateSubstitutions'][replacement_key])
+
+                                output_template_file.write(file_data)
+
+                        with open(output_file_path, 'rb') as file_data:
+                                s3_client.upload_fileobj(file_data, bootstrap_bucket_name, s3_template_key)
+
+                        logger.info(f'completed project template customizations')
+                        
+                        logger.info(f'begin building and uploading sub archives from seedcode and lambda folders')
+                        
+                        archive_info_list = []
+
+                        if 'Archives' in event['ResourceProperties'].keys():
+                              for archive in event['ResourceProperties']['Archives']:
+                                  archive_info_list.append([archive[0], pathlib.Path(local_extracted_path_root + '/' + sagemaker_projects_project_name + archive[1])])
+                        
+                        for archive_info in archive_info_list:
+                            
+                            target_filename = '/tmp/' + archive_info[0]
+                            s3_object_key = sagemaker_projects_project_name + '/seedcode/' + archive_info[0]
+                            source_dir = archive_info[1]
+                            
+                            logger.info(f'source folder: {(source_dir)}')
+                            logger.info(f'begin creating archive: {target_filename}')
+                            
+                            with zipfile.ZipFile(target_filename, mode='w') as archive:
+                                for file_path in source_dir.rglob('*'):
+                                    archive.write(
+                                    file_path,
+                                    arcname=file_path.relative_to(source_dir)
+                                    )
+                            
+                            archive.close()
+                            
+                            logger.info(f'completed creating zip file: {target_filename}')
+                            
+                            logger.info(f'uploading zip file: {target_filename} as s3 object: {bootstrap_bucket_name}/{s3_object_key}')
+
+                            with open(target_filename, 'rb') as file_data:
+                                s3_client.upload_fileobj(file_data, bootstrap_bucket_name, s3_object_key)
+
+                            logger.info(f'upload for s3 object: {bootstrap_bucket_name}/{s3_object_key} complete')
+                        
+                        logger.info(f'completed building and uploading sub archives from seedcode and lambda folders')
+                        
+                        logger.info(f'generating presigned url for template')
+                        
+                        signed_template_url = s3_client.generate_presigned_url('get_object',
+                          Params={'Bucket': bootstrap_bucket_name,'Key': s3_template_key},
+                          ExpiresIn=6000)
+                          
+                        logger.info(f"generated presigned url for template successfully: {signed_template_url}")
+                        
+                        message = 'Create Invoked Successfully'
+                        responseData = {}
+                        responseData['message'] = message
+                        responseData['template_url'] = signed_template_url
+                        logger.info('Sending %s to cloudformation', responseData['message'])
+                        cfnresponse.send(event, context, cfnresponse.SUCCESS, responseData)
+                elif event.get('RequestType') == 'Delete':
+                    responseData = {}
+                    responseData['message'] = "Invoking Delete"
+                    logger.info('Sending %s to cloudformation', responseData['message'])
+                    cfnresponse.send(event, context, cfnresponse.SUCCESS, responseData)
+                else:
+                    logger.error('Unknown operation: %s', event.get('RequestType'))
+
+            except Exception as e:
+                logger.exception(e)
+                responseData = {}
+                responseData['message'] = 'exception caught'
+                cfnresponse.send(event, context, cfnresponse.FAILED, responseData)
+      Description: Cloudformation Custom Lambda to bootstrap the Batch Inference SageMaker Project example
+
+  InvokeCustomLambda:
+    Type: Custom::InvokeCustomLambda
+    Properties:
+      ServiceToken: !GetAtt CustomBackedLambda.Arn
+      BootStrapBucketName: !Ref BootstrapS3Bucket
+      SageMakerProjectRepoZip: !Ref SageMakerProjectRepoZipParameter
+      SageMakerProjectRepoNameBranch: !Ref SageMakerProjectRepoNameBranchParameter
+      SageMakerProjectsProjectName: !Ref SageMakerProjectsProjectNameParameter
+      TemplateSubstitutions:
+        AWSDEFAULT___CODE_STAGING_BUCKET___ : !Ref BootstrapS3Bucket
+        AWSDEFAULT___PROJECT_NAME___ : !Ref SageMakerProjectsProjectNameParameter
+      Archives:
+        - ['batch-inference-seedcode.zip', '/seedcode']
+
+
+Outputs:
+  CreatedServiceCatalogProductName:
+    Description: Name of the newly created product.
+    Value: !GetAtt ServiceCatalogProduct.ProductName
+    Export:
+      Name: !Join [':', [!Ref 'AWS::StackName', 'CreatedServiceCatalogProductName'] ]
+
+  CreatedServiceCatalogProductId:
+    Description: Id of the newly created product.
+    Value: !Ref ServiceCatalogProduct
+    Export:
+      Name: !Join [':', [!Ref 'AWS::StackName', 'CreatedServiceCatalogProductId'] ]
+
+  AssociatedServiceCatalogPortfolioID:
+    Description: ID of the associated Service Catalog Portfolio.
+    Value: !Ref PortfolioIDParameter
+    Export:
+      Name: !Join [':', [!Ref 'AWS::StackName', 'AssociatedServiceCatalogPortfolioID'] ]
+
+  ServiceCatalogProductLaunchRoleARN:
+    Description: ARN of the Role used to launch this product
+    Value: !Join [ ':', [ 'arn', !Ref 'AWS::Partition', 'iam:', !Ref 'AWS::AccountId', 'role/service-role/AmazonSageMakerServiceCatalogProductsLaunchRole'] ]
+    Export:
+      Name: !Join [':', [!Ref 'AWS::StackName', 'ServiceCatalogProductLaunchRoleARN'] ]
+  
+  CodeStagingBucketName:
+    Description: Name of the S3 Bucket containing the staging code for the repository.
+    Value: !Ref BootstrapS3Bucket
+    Export:
+      Name: !Join [':', [!Ref 'AWS::StackName', 'CodeStagingBucketName']]
