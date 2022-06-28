@@ -1,4 +1,5 @@
-Transform: AWS::Serverless-2016-10-31
+AWSTemplateFormatVersion: "2010-09-09"
+
 Parameters:
   SageMakerProjectName:
     Type: String
@@ -434,7 +435,7 @@ Resources:
                 Action:
                   - 's3:GetObject'
                 Resource:
-                  - !Sub 'arn:aws:s3:::cloud-formation-${AWS::AccountId}-${AWS::Region}/pipeline.yaml'
+                  - 'arn:aws:s3:::AWSDEFAULT___CODE_STAGING_BUCKET___/AWSDEFAULT___PROJECT_NAME___/templates/pipeline.yaml'
         - PolicyName: PassRole
           PolicyDocument:
             Version: "2012-10-17"
@@ -560,37 +561,50 @@ Resources:
                       - !Ref AWS::AccountId
                       - !Sub 'model-package/model-${SageMakerProjectName}/*'
   ReleaseLambda:
-    Type: 'AWS::Serverless::Function'
+    Type: AWS::Lambda::Function
     Properties:
       FunctionName: !Sub 'release-model-package-${SageMakerProjectName}'
-      CodeUri: cloud_formation/release_model_package_function/index.py
+      Code:
+        S3Bucket: AWSDEFAULT___CODE_STAGING_BUCKET___
+        S3Key: AWSDEFAULT___PROJECT_NAME___/seedcode/release_model_package_function.zip
       Handler: index.lambda_handler
       Role: !GetAtt ReleaseLambdaRole.Arn
       Runtime: python3.8
       MemorySize: 128
       Timeout: 60
-      EventInvokeConfig:
-        MaximumRetryAttempts: 0
       Environment:
         Variables:
           MODEL_PACKAGE_GROUP_NAME: !Sub 'model-${SageMakerProjectName}'
+  
+  ReleaseLambdaVersion:
+    Type: AWS::Lambda::Version
+    Properties:
+      FunctionName: !Ref ReleaseLambda
+
+  ReleaseLambdaEventInvokeConfig:
+    Type: 'AWS::Lambda::EventInvokeConfig'
+    Properties: 
+      FunctionName: !Ref   ReleaseLambda
+      MaximumRetryAttempts: 0
+      Qualifier: !GetAtt ReleaseLambdaVersion.Version
+
   CreatePipelineLambda:
-    Type: 'AWS::Serverless::Function'
+    Type: AWS::Lambda::Function
     Properties:
       FunctionName: !Sub 'create-train-pipeline-${SageMakerProjectName}'
-      CodeUri: cloud_formation/create_pipeline_function/index.py
+      Code:
+        S3Bucket: AWSDEFAULT___CODE_STAGING_BUCKET___
+        S3Key: AWSDEFAULT___PROJECT_NAME___/seedcode/create_pipeline_function.zip
       Handler: index.lambda_handler
       Role: !GetAtt LambdaCreatePipelineRole.Arn
       Runtime: python3.8
       MemorySize: 128
       Timeout: 10
-      EventInvokeConfig:
-        MaximumRetryAttempts: 0
       Environment:
         Variables:
           MODEL_NAME: !Sub '${SageMakerProjectName}'
-          PIPELINE_STACK_S3_BUCKET: !Sub 'cloud-formation-${AWS::AccountId}-${AWS::Region}'
-          PIPELINE_STACK_S3_KEY: 'pipeline.yaml'
+          PIPELINE_STACK_S3_BUCKET: AWSDEFAULT___CODE_STAGING_BUCKET___
+          PIPELINE_STACK_S3_KEY: 'AWSDEFAULT___PROJECT_NAME___/templates/pipeline.yaml'
           CLOUD_FORMATION_ROLE_ARN: !GetAtt CloudFormationRole.Arn
           CODE_PIPELINE_ARTIFACT_BUCKET: !Ref ModelCodeArtifactsBucket
           CODE_PIPELINE_ROLE_ARN: !GetAtt ModelTrainCodePipelineRole.Arn
@@ -599,6 +613,19 @@ Resources:
           EVENT_START_PIPELINE_ROLE_ARN: !GetAtt StartPipelineTrainEventPipelineRole.Arn
           CODE_BUILD_PROJECT_NAME: !Ref ModelTrainCodeBuildProject
           SAGEMAKER_PIPELINE_ROLE_ARN: !GetAtt SageMakerPipelineRole.Arn
+
+  CreatePipelineLambdaVersion:
+    Type: AWS::Lambda::Version
+    Properties:
+      FunctionName: !Ref CreatePipelineLambda
+
+  CreatePipelineLambdaInvokeConfig:
+    Type: 'AWS::Lambda::EventInvokeConfig'
+    Properties: 
+      FunctionName: !Ref   CreatePipelineLambda
+      MaximumRetryAttempts: 0
+      Qualifier: !GetAtt CreatePipelineLambdaVersion.Version
+
   CreatePipelineLambdaEventPermission:
     Type: 'AWS::Lambda::Permission'
     Properties:
@@ -625,20 +652,33 @@ Resources:
       - Arn: !GetAtt CreatePipelineLambda.Arn
         Id: CreatePipelineLambda
   DeletePipelineLambda:
-    Type: 'AWS::Serverless::Function'
+    Type: AWS::Lambda::Function
     Properties:
       FunctionName: !Sub 'delete-train-pipeline-${SageMakerProjectName}'
-      CodeUri: cloud_formation/delete_pipeline_function/index.py
+      Code:
+        S3Bucket: AWSDEFAULT___CODE_STAGING_BUCKET___
+        S3Key: AWSDEFAULT___PROJECT_NAME___/seedcode/delete_pipeline_function.zip
       Handler: index.lambda_handler
       Role: !GetAtt LambdaDeletePipelineRole.Arn
       Runtime: python3.8
       MemorySize: 128
       Timeout: 10
-      EventInvokeConfig:
-        MaximumRetryAttempts: 0
       Environment:
         Variables:
           CLOUD_FORMATION_ROLE_ARN: !GetAtt CloudFormationRole.Arn
+
+  DeletePipelineLambdaVersion:
+    Type: AWS::Lambda::Version
+    Properties:
+      FunctionName: !Ref DeletePipelineLambda
+
+  DeletePipelineLambdaInvokeConfig:
+    Type: 'AWS::Lambda::EventInvokeConfig'
+    Properties: 
+      FunctionName: !Ref   DeletePipelineLambda
+      MaximumRetryAttempts: 0
+      Qualifier: !GetAtt DeletePipelineLambdaVersion.Version
+
   DeletePipelineLambdaEventPermission:
     Type: 'AWS::Lambda::Permission'
     Properties:

@@ -1,4 +1,5 @@
-Transform: AWS::Serverless-2016-10-31
+AWSTemplateFormatVersion: "2010-09-09"
+
 Parameters:
   SageMakerProjectName:
     Type: String
@@ -176,20 +177,33 @@ Resources:
                       - !Ref AWS::AccountId
                       - !Sub 'model-package/model-${SageMakerProjectName}/*'
   ReleaseLambda:
-    Type: 'AWS::Serverless::Function'
+    Type: AWS::Lambda::Function
     Properties:
       FunctionName: !Sub 'release-model-package-${SageMakerProjectName}'
-      CodeUri: cloud_formation/release_model_package_function/index.py
+      Code:
+        S3Bucket: AWSDEFAULT___CODE_STAGING_BUCKET___
+        S3Key: AWSDEFAULT___PROJECT_NAME___/seedcode/release_model_package_function.zip
       Handler: index.lambda_handler
       Role: !GetAtt ReleaseLambdaRole.Arn
       Runtime: python3.8
       MemorySize: 128
       Timeout: 60
-      EventInvokeConfig:
-        MaximumRetryAttempts: 0
       Environment:
         Variables:
           MODEL_PACKAGE_GROUP_NAME: !Sub 'model-${SageMakerProjectName}'
+  
+  ReleaseLambdaVersion:
+    Type: AWS::Lambda::Version
+    Properties:
+      FunctionName: !Ref ReleaseLambda
+
+  ReleaseLambdaEventInvokeConfig:
+    Type: 'AWS::Lambda::EventInvokeConfig'
+    Properties: 
+      FunctionName: !Ref   ReleaseLambda
+      MaximumRetryAttempts: 0
+      Qualifier: !GetAtt ReleaseLambdaVersion.Version
+
   ModelPackageGroup:
     Type: 'AWS::SageMaker::ModelPackageGroup'
     Properties:
