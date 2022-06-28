@@ -8,20 +8,23 @@ Parameters:
   SageMakerProjectName:
     Type: String
     Description: Name of the project
-    AllowedPattern: '^custom-project-[a-zA-Z0-9]*'
+    AllowedPattern: '^custom-project-[a-zA-Z0-9-]*'
   SageMakerProjectId:
     Type: String
     Description: Service generated Id of the project.
   KmsArn:
     Type: String
+    Default: AWSDEFAULT___KMS_KEY_ARN___
     Description: Key to encrypt S3 bucket
   UseRoleArn:
     Type: String
+    Default: AWSDEFAULT___PROJECT_USE_ROLE_ARN___
     Description: Role name to use for using the services
 Resources:
   MlOpsArtifactsBucket:
     Type: 'AWS::S3::Bucket'
     DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
     Properties:
       PublicAccessBlockConfiguration:
         BlockPublicAcls: True
@@ -110,7 +113,6 @@ Resources:
       TimeoutInMinutes: 480
   ModelBuildPipeline:
     Type: 'AWS::CodePipeline::Pipeline'
-    DependsOn: MlOpsArtifactsBucket
     Properties:
       Name: !Sub 'sagemaker-${SageMakerProjectName}-modelbuild'
       RoleArn: !Ref UseRoleArn
@@ -282,7 +284,6 @@ Resources:
       TimeoutInMinutes: 30
   ModelDeployPipeline:
     Type: 'AWS::CodePipeline::Pipeline'
-    DependsOn: MlOpsArtifactsBucket
     Properties:
       Name: !Sub 'sagemaker-${SageMakerProjectName}-modeldeploy'
       RoleArn: !Ref UseRoleArn
