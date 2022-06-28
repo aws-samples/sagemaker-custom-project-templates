@@ -340,9 +340,12 @@ class ServiceCatalogStack(Stack):
 
         # Remove policies
         policy_list = [
-            k for k in t["Resources"] if t["Resources"][k]["Type"] == "AWS::IAM::Policy" and ("deployPreProdActionRolePolicy" in k or "deployProdActionRolePolicy" in k)
+            k
+            for k in t["Resources"]
+            if t["Resources"][k]["Type"] == "AWS::IAM::Policy"
+            and ("deployPreProdActionRolePolicy" in k or "deployProdActionRolePolicy" in k)
         ]
-        
+
         for p in policy_list:
             logger.debug(f"Removing Policy {p}")
             del t["Resources"][p]

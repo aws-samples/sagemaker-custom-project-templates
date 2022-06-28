@@ -30,6 +30,7 @@ from aws_cdk import (
 import aws_cdk
 from constructs import Construct
 
+
 class DeployPipelineConstruct(Construct):
     def __init__(
         self,
