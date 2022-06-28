@@ -19,6 +19,7 @@
 import aws_cdk as cdk
 import os
 from mlops_sm_project_template_rt.pipeline_stack import PipelineStack, CoreStage
+from mlops_sm_project_template_rt.codecommit_stack import CodeCommitStack
 from mlops_sm_project_template_rt.config.constants import DEFAULT_DEPLOYMENT_REGION, PIPELINE_ACCOUNT, DEV_ACCOUNT
 
 app = cdk.App()
@@ -26,6 +27,7 @@ app = cdk.App()
 pipeline_env = cdk.Environment(account=PIPELINE_ACCOUNT, region=DEFAULT_DEPLOYMENT_REGION)
 deployment_env = cdk.Environment(account=DEV_ACCOUNT, region=DEFAULT_DEPLOYMENT_REGION)
 
+CodeCommitStack(app, "ml-sg-cc-repo", env=pipeline_env)
 PipelineStack(app, "ml-sg-deploy-pipeline", env=pipeline_env)
 
 # Personal Stacks for testing locally, comment out when committing to repository
