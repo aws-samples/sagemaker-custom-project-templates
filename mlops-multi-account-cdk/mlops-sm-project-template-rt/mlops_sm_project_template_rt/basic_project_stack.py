@@ -40,6 +40,7 @@ from mlops_sm_project_template_rt.constructs.deploy_pipeline_construct import (
 
 from mlops_sm_project_template_rt.config.constants import PREPROD_ACCOUNT, PROD_ACCOUNT, DEFAULT_DEPLOYMENT_REGION
 
+
 class MLOpsStack(Stack):
     def __init__(self, scope: Construct, construct_id: str, **kwargs) -> None:
         super().__init__(scope, construct_id, **kwargs)
@@ -261,5 +262,5 @@ class MLOpsStack(Stack):
             deploy_app_key,
             PREPROD_ACCOUNT,
             PROD_ACCOUNT,
-            DEFAULT_DEPLOYMENT_REGION
+            DEFAULT_DEPLOYMENT_REGION,
         )

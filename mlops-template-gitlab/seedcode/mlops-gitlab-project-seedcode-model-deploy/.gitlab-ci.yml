@@ -54,7 +54,7 @@ staging_deploy:
   dependencies: 
     - build_job
   script:
-    - python deploy-stack.py --region $AWS_REGION --stack-name Staging --param-file $EXPORT_TEMPLATE_STAGING_CONFIG --project-id $SAGEMAKER_PROJECT_NAME_ID
+    - python deploy-stack.py --region $AWS_REGION --stack-name gitlab-stg --param-file $EXPORT_TEMPLATE_STAGING_CONFIG --project-id $SAGEMAKER_PROJECT_NAME_ID
 
 test_staging:
   stage: test staging
@@ -68,5 +68,5 @@ production_deploy:
     - build_job
   script:
     - echo "Deploying model to SageMaker Endpoint..."
-    - python deploy-stack.py --region $AWS_REGION --stack-name Production --param-file $EXPORT_TEMPLATE_PROD_CONFIG --project-id $SAGEMAKER_PROJECT_NAME_ID
+    - python deploy-stack.py --region $AWS_REGION --stack-name gitlab-prd --param-file $EXPORT_TEMPLATE_PROD_CONFIG --project-id $SAGEMAKER_PROJECT_NAME_ID
   when: manual
