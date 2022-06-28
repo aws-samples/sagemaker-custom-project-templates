@@ -50,12 +50,12 @@ Parameters:
 
   ProductSupportURLParameter:
     Type: String
-    Default: 'https://github.com/giuseppe-zappia/sagemaker-custom-project-templates'
+    Default: 'https://github.com/aws-samples/sagemaker-custom-project-templates'
     Description: The support url of this product within the portfolio.
 
   SageMakerProjectRepoZipParameter:
     Type: String
-    Default: 'https://github.com/giuseppe-zappia/sagemaker-custom-project-templates/archive/refs/heads/main.zip'
+    Default: 'https://github.com/aws-samples/sagemaker-custom-project-templates/archive/refs/heads/main.zip'
     Description: 'URL for a Zip of the SageMaker Projects Examples GitHub Repo'
 
   SageMakerProjectRepoNameBranchParameter:
