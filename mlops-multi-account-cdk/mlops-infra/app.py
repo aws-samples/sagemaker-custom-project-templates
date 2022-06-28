@@ -20,12 +20,14 @@ import os
 
 from mlops_infra.config.constants import PIPELINE_ACCOUNT, DEFAULT_DEPLOYMENT_REGION
 from mlops_infra.pipeline_stack import PipelineStack, CoreStage
+from mlops_infra.codecommit_stack import CodeCommitStack
 
 app = cdk.App()
 
-deployment_env = cdk.Environment(account=PIPELINE_ACCOUNT, region=DEFAULT_DEPLOYMENT_REGION)
+pipeline_env = cdk.Environment(account=PIPELINE_ACCOUNT, region=DEFAULT_DEPLOYMENT_REGION)
 
-PipelineStack(app, "ml-infra-deploy-pipeline", env=deployment_env)
+CodeCommitStack(app, "ml-infra-cc-repo", env=pipeline_env)
+PipelineStack(app, "ml-infra-deploy-pipeline", env=pipeline_env)
 
 # Personal Stacks for testing locally, comment out when committing to repository
 if not os.getenv("CODEBUILD_BUILD_ARN"):
@@ -33,7 +35,7 @@ if not os.getenv("CODEBUILD_BUILD_ARN"):
         app,
         "Personal",  ## change this to another stack name when doing local tests
         deploy_sm_domain=True,  ## change this to False if you only want to deploy the VPC stack
-        env=deployment_env,
+        env=pipeline_env,
     )
 
 
