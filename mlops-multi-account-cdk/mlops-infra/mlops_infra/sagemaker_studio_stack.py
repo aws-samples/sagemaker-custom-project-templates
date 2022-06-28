@@ -53,9 +53,7 @@ class SMUserProfile(DataClassJsonMixin):
             f"{prefix}-{self.user_profile_name}",
             domain_id=studio_domain_id,
             user_profile_name=self.user_profile_name,
-            user_settings=sagemaker.CfnUserProfile.UserSettingsProperty(
-                execution_role=role_arn
-            ),
+            user_settings=sagemaker.CfnUserProfile.UserSettingsProperty(execution_role=role_arn),
         )
 
         return profile
@@ -71,9 +69,7 @@ class SMUserProfiles(StageYamlDataClassConfig):
         users = []
 
         for user in self.users:
-            users.append(
-                user.get_user(constructor, self.prefix, studio_domain_id, role_arn)
-            )
+            users.append(user.get_user(constructor, self.prefix, studio_domain_id, role_arn))
 
         return users
 
@@ -189,9 +185,7 @@ class SagemakerStudioStack(Stack):
             ),
         )
 
-        provider = Provider(
-            self, "sg-project-lead-provider", on_event_handler=event_handler
-        )
+        provider = Provider(self, "sg-project-lead-provider", on_event_handler=event_handler)
 
         core.CustomResource(
             self,

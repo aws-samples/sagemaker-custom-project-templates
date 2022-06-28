@@ -1,0 +1,155 @@
+---
+AWSTemplateFormatVersion: "2010-09-09"
+
+Description: >-
+  Cloudformation template to create an AWS Service Catalog Portfolio in which to deploy products related to Amazon SageMaker MLOps
+
+Parameters:
+  PortfolioNameParameter:
+    Type: String
+    Default: SageMaker MLOps Templates
+    Description: Name of this AWS Service Catalog Portfolio.
+
+  PortfolioDescriptionParameter:
+    Type: String
+    Default: Custom project templates for MLOps
+    Description: Description of this portfolio.
+
+  PortfolioOwnerParameter:
+    Type: String
+    Default: Portfolio Owner
+    Description: "Owner of this portfolio. Example: Central IT (it@example.com)"
+
+  MakePorfolioAccessibleFromSageMakerStudioParameter:
+    Type: String
+    Default: 'true'
+    AllowedValues:
+      - 'true'
+      - 'false'
+    Description: Whether to allow users to be able to provision this portfolio's products from inside SageMaker Studio. Requires the execution role of the SageMaker Domain to be provided.
+
+  SageMakerStudioExecutionRoleParameter:
+    Type: String
+    Default: ''
+    Description: "ARN of the SageMaker Studio Execution Role to allow direct provisioning from inside SageMaker Studio"
+
+  AllowDirectUserAccessParameter:
+    Type: String
+    Default: 'false'
+    AllowedValues:
+      - 'true'
+      - 'false'
+    Description: Whether to allow users to be able to provision this portfolio's products directly from Service Catalog. Requires the ARN of the user, group, or role to be provided.
+
+  UserAccessPrincipalsParameter:
+    Type: String
+    Default: ''
+    Description: "ARN of the user, group, or role to allow provisioning from inside Service Catalog."
+
+Metadata: 
+  AWS::CloudFormation::Interface: 
+    ParameterGroups: 
+      - 
+        Label: 
+          default: "Portfolio Information"
+        Parameters: 
+          - PortfolioNameParameter
+          - PortfolioDescriptionParameter
+          - PortfolioOwnerParameter
+      - 
+        Label: 
+          default: "SageMaker Studio Access"
+        Parameters: 
+          - MakePorfolioAccessibleFromSageMakerStudioParameter
+          - SageMakerStudioExecutionRoleParameter
+      - 
+        Label: 
+          default: "Direct User Access"
+        Parameters: 
+          - AllowDirectUserAccessParameter
+          - UserAccessPrincipalsParameter
+    ParameterLabels: 
+      PortfolioNameParameter:
+        default: 'Portfolio Name'
+        
+      PortfolioDescriptionParameter:
+        default: 'Portfolio Description'
+
+      PortfolioOwnerParameter:
+        default: 'Portfolio Owner Name'
+
+      MakePorfolioAccessibleFromSageMakerStudioParameter:
+        default: 'Make this portfolio accessible for all SageMaker Studio Users?'
+
+      SageMakerStudioExecutionRoleParameter:
+        default: 'SageMaker Domain Execution Role ARN'
+
+      AllowDirectUserAccessParameter:
+        default: 'Allow a specific prinicpal (user/group/role) access to this portfolio via Service Catalog?'
+
+      UserAccessPrincipalsParameter:
+        default: 'Principal ARN for direct Service Catalog provisioning'
+
+
+Rules:
+  MakePorfolioAccessibleFromSageMakerStudioTest:
+      RuleCondition: !Equals 
+        - !Ref MakePorfolioAccessibleFromSageMakerStudioParameter
+        - 'true'
+      Assertions:
+        - Assert: 
+            !Not [!Equals [!Ref SageMakerStudioExecutionRoleParameter, '']]
+          AssertDescription: 'To allow SageMaker Studio Access, you must supply the SageMakerStudioExecutionRole ARN of the SageMaker Domain.'
+
+Conditions:
+  MakePorfolioAccessibleFromSageMakerStudioCondition: !Equals
+    - !Ref MakePorfolioAccessibleFromSageMakerStudioParameter
+    - 'true'
+
+  AllowDirectUserAccessCondition: !Equals
+    - !Ref AllowDirectUserAccessParameter
+    - 'true'
+
+Resources:
+  ServiceCatalogPortfolio:
+    Type: 'AWS::ServiceCatalog::Portfolio'
+    Properties: 
+      DisplayName: !Ref PortfolioNameParameter
+      Description: !Ref PortfolioDescriptionParameter
+      ProviderName: !Ref PortfolioOwnerParameter
+      Tags:
+        - !If
+          - MakePorfolioAccessibleFromSageMakerStudioCondition
+          -
+            Key: sagemaker:studio-visibility
+            Value: 'true'
+          - !Ref AWS::NoValue
+
+  ServiceCatalogPortfolioSageMakerStudioAssociation:
+    Type: 'AWS::ServiceCatalog::PortfolioPrincipalAssociation'
+    Condition: MakePorfolioAccessibleFromSageMakerStudioCondition
+    Properties: 
+      PortfolioId: !Ref ServiceCatalogPortfolio
+      PrincipalARN: !Ref SageMakerStudioExecutionRoleParameter
+      PrincipalType: IAM
+
+  ServiceCatalogPortfolioUserPrincipalAssociation:
+    Type: 'AWS::ServiceCatalog::PortfolioPrincipalAssociation'
+    Condition: AllowDirectUserAccessCondition
+    Properties: 
+      PortfolioId: !Ref ServiceCatalogPortfolio
+      PrincipalARN: !Ref UserAccessPrincipalsParameter
+      PrincipalType: IAM
+
+Outputs:
+  CreatedPortfolioName:
+    Description: Name of the newly created portfolio.
+    Value: !GetAtt ServiceCatalogPortfolio.PortfolioName
+    Export:
+      Name: !Join [':', [!Ref 'AWS::StackName', 'CreatedPortfolioName']]
+
+  CreatedPortfolioID:
+    Description: ID of the newly created portfolio.
+    Value: !Ref ServiceCatalogPortfolio
+    Export:
+      Name: !Join [':', [!Ref 'AWS::StackName', 'CreatedPortfolioID']]
