@@ -118,7 +118,7 @@ There are 2 way to trigger the deployment CI/CD Pipeline:
 - **Model Events** - These are events which get triggered through a status change to the model package group in SageMaker Model Registry.
 - **Code Events** - The pipeline is triggered on git update events over a specific branch, in this solution it is linked to the **main** branch.
 
-**Note:** For the deployment stages for **PREPROD** and **PROD**, the roles defined for cloudformation deployment in `mlops_sm_project_template_rt/constructs/deploy_pipeline_construct.py` lines 284-292 and lines 317-326 are created when the **PREPROD** and **PROD** are bootstrapped with CDK with trust policies for the deployment CI/CD pipeline account (**DEV** account in our solution); the roles must be created before deploying this stack to any account along with trust policies included between the accounts and the roles. If you can bootstrap those accounts for any reason you should ensure to create similar roles in each of those accounts and adding them to the lines mentioned above in the file.
+**Note:** For the deployment stages for **PREPROD** and **PROD**, the roles defined for cloudformation deployment in `mlops_sm_project_template_rt/templates/constructs/deploy_pipeline_construct.py` lines 284-292 and lines 317-326 are created when the **PREPROD** and **PROD** are bootstrapped with CDK with trust policies for the deployment CI/CD pipeline account (**DEV** account in our solution); the roles must be created before deploying this stack to any account along with trust policies included between the accounts and the roles. If you can bootstrap those accounts for any reason you should ensure to create similar roles in each of those accounts and adding them to the lines mentioned above in the file.
 
 ### CodeCommit Stack
 *This stack is only needed if you want to handle deployments of this folder of the repository to be managed through a CICD pipeline.*
@@ -168,14 +168,16 @@ This is an AWS CDK project written in Python 3.8. Here's what you need to have o
 │   ├── cdk_helper_scripts
 │   ├── config
 │   │   └── constants.py                      <--- global configs to be used in CDK stacks
-│   ├── constructs
-│   │   ├── build_pipeline_construct.py       <--- construct containing CI/CD pipeline linked to the build app
-│   │   ├── deploy_pipeline_construct.py      <--- construct containing CI/CD pipeline linked to the deploy app
-│   │   └── ssm_construct.py                  <--- construct to deploy ssm parameter for the project template to use
+│   ├── codecommit_stack.py                   <--- stack for creation a codecommit repo based on this folder for the CICD pipeline
 │   ├── pipeline_stack.py                     <--- stack for CICD with code pipeline setup for the repo
 │   ├── service_catalog_stack.py              <--- stack for service catalog setup and template deployment
-│   ├── basic_project_stack.py                <--- stack for basic sagemaker project template setup - DEV/PREPROD/PROD Accounts provided in constants.py
-│   └── dynamic_accounts_project_stack.py     <--- stack for sagemaker project template setup - DEV/PREPROD/PROD Accounts provided as parameters during project creation
+│   ├── ssm_construct.py                      <--- construct to deploy ssm parameter for the project template to use
+│   └── templates
+│       ├── basic_project_stack.py                <--- stack for basic sagemaker project template setup - DEV/PREPROD/PROD Accounts provided in constants.py
+│       ├── dynamic_accounts_project_stack.py     <--- stack for sagemaker project template setup - DEV/PREPROD/PROD Accounts provided as parameters during project creation
+│       └── pipeline_constructs
+│           ├── build_pipeline_construct.py       <--- construct containing CI/CD pipeline linked to the build app
+│           └── deploy_pipeline_construct.py      <--- construct containing CI/CD pipeline linked to the deploy app
 ├── requirements-dev.txt
 ├── requirements.txt                          <--- cdk packages used in the stacks (must be installed)
 ├── scripts                                   <--- shell scripts to automate part of the deployments

@@ -1,5 +1,4 @@
 FROM public.ecr.aws/docker/library/python:3.7-buster as base
-# FROM 648011611732.dkr.ecr.eu-west-1.amazonaws.com/delivery-risk:base as base
 
 RUN apt-get -y update && apt-get install -y \
          nginx \

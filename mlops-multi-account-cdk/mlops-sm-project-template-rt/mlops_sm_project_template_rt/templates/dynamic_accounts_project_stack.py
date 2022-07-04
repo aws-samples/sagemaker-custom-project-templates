@@ -31,17 +31,18 @@ import aws_cdk
 
 from constructs import Construct
 
-from mlops_sm_project_template_rt.constructs.build_pipeline_construct import (
+from mlops_sm_project_template_rt.templates.pipeline_constructs.build_pipeline_construct import (
     BuildPipelineConstruct,
 )
-from mlops_sm_project_template_rt.constructs.deploy_pipeline_construct import (
+from mlops_sm_project_template_rt.templates.pipeline_constructs.deploy_pipeline_construct import (
     DeployPipelineConstruct,
 )
 
-from mlops_sm_project_template_rt.config.constants import PREPROD_ACCOUNT, PROD_ACCOUNT, DEFAULT_DEPLOYMENT_REGION
-
 
 class MLOpsStack(Stack):
+    DESCRIPTION: str = "This template includes a model building pipeline that includes a workflow to pre-process, train, evaluate and register a model. The deploy pipeline creates a preprod and production endpoint. The target PREPROD/PROD accounts are provided as cloudformation paramters and must be provided during project creation."
+    TEMPLATE_NAME: str = "Dynamic Accounts MLOps template for real-time deployment"
+
     def __init__(self, scope: Construct, construct_id: str, **kwargs) -> None:
         super().__init__(scope, construct_id, **kwargs)
 
@@ -62,6 +63,33 @@ class MLOpsStack(Stack):
             min_length=1,
             max_length=16,
             description="Service generated Id of the project.",
+        ).value_as_string
+
+        preprod_account = aws_cdk.CfnParameter(
+            self,
+            "PreProdAccount",
+            type="String",
+            min_length=11,
+            max_length=13,
+            description="Id of preprod account.",
+        ).value_as_string
+
+        prod_account = aws_cdk.CfnParameter(
+            self,
+            "ProdAccount",
+            type="String",
+            min_length=11,
+            max_length=13,
+            description="Id of prod account.",
+        ).value_as_string
+
+        deployment_region = aws_cdk.CfnParameter(
+            self,
+            "DeploymentRegion",
+            type="String",
+            min_length=8,
+            max_length=10,
+            description="Deployment region for preprod and prod account.",
         ).value_as_string
 
         Tags.of(self).add("sagemaker:project-id", project_id)
@@ -99,8 +127,8 @@ class MLOpsStack(Stack):
                     "*",
                 ],
                 principals=[
-                    iam.ArnPrincipal(f"arn:aws:iam::{PREPROD_ACCOUNT}:root"),
-                    iam.ArnPrincipal(f"arn:aws:iam::{PROD_ACCOUNT}:root"),
+                    iam.ArnPrincipal(f"arn:aws:iam::{preprod_account}:root"),
+                    iam.ArnPrincipal(f"arn:aws:iam::{prod_account}:root"),
                 ],
             )
         )
@@ -154,8 +182,8 @@ class MLOpsStack(Stack):
                     s3_artifact.bucket_arn,
                 ],
                 principals=[
-                    iam.ArnPrincipal(f"arn:aws:iam::{PREPROD_ACCOUNT}:root"),
-                    iam.ArnPrincipal(f"arn:aws:iam::{PROD_ACCOUNT}:root"),
+                    iam.ArnPrincipal(f"arn:aws:iam::{preprod_account}:root"),
+                    iam.ArnPrincipal(f"arn:aws:iam::{prod_account}:root"),
                 ],
             )
         )
@@ -174,8 +202,8 @@ class MLOpsStack(Stack):
                         f"arn:aws:sagemaker:{Aws.REGION}:{Aws.ACCOUNT_ID}:model-package-group/{model_package_group_name}"
                     ],
                     principals=[
-                        iam.ArnPrincipal(f"arn:aws:iam::{PREPROD_ACCOUNT}:root"),
-                        iam.ArnPrincipal(f"arn:aws:iam::{PROD_ACCOUNT}:root"),
+                        iam.ArnPrincipal(f"arn:aws:iam::{preprod_account}:root"),
+                        iam.ArnPrincipal(f"arn:aws:iam::{prod_account}:root"),
                     ],
                 ),
                 iam.PolicyStatement(
@@ -190,8 +218,8 @@ class MLOpsStack(Stack):
                         f"arn:aws:sagemaker:{Aws.REGION}:{Aws.ACCOUNT_ID}:model-package/{model_package_group_name}/*"
                     ],
                     principals=[
-                        iam.ArnPrincipal(f"arn:aws:iam::{PREPROD_ACCOUNT}:root"),
-                        iam.ArnPrincipal(f"arn:aws:iam::{PROD_ACCOUNT}:root"),
+                        iam.ArnPrincipal(f"arn:aws:iam::{preprod_account}:root"),
+                        iam.ArnPrincipal(f"arn:aws:iam::{prod_account}:root"),
                     ],
                 ),
             ]
@@ -260,7 +288,7 @@ class MLOpsStack(Stack):
             model_package_group_name,
             seed_bucket,
             deploy_app_key,
-            PREPROD_ACCOUNT,
-            PROD_ACCOUNT,
-            DEFAULT_DEPLOYMENT_REGION,
+            preprod_account,
+            prod_account,
+            deployment_region,
         )
