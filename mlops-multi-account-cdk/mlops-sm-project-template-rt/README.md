@@ -1,6 +1,26 @@
 # MLOps Foundation SageMaker Project Template
 This repository contains the resources that are required to deploy the MLOps Foundation SageMaker Project Template.
 
+- [MLOps Foundation SageMaker Project Template](#mlops-foundation-sagemaker-project-template)
+  - [Solution Architecture](#solution-architecture)
+    - [Service Catalog Stack](#service-catalog-stack)
+    - [SageMaker Project Stack](#sagemaker-project-stack)
+      - [Shared Resources](#shared-resources)
+      - [Build App CI/CD Construct](#build-app-cicd-construct)
+      - [Deploy App CI/CD Construct](#deploy-app-cicd-construct)
+    - [CodeCommit Stack](#codecommit-stack)
+    - [Pipeline Stack](#pipeline-stack)
+  - [Getting Started](#getting-started)
+    - [Prerequisites](#prerequisites)
+    - [Repository Structure](#repository-structure)
+    - [Setup AWS Profiles](#setup-aws-profiles)
+    - [Bootstrap AWS Accounts](#bootstrap-aws-accounts)
+    - [Deployment Options](#deployment-options)
+      - [CI/CD Deployment of Service Catalog Stack](#cicd-deployment-of-service-catalog-stack)
+      - [Manual Deployment of Service Catalog Stack](#manual-deployment-of-service-catalog-stack)
+    - [Clean-up](#clean-up)
+  - [Troubleshooting](#troubleshooting)
+
 ## Solution Architecture
 
 ![mlops project architecture](diagrams/MLOPs%20Foundation%20Architecture-mlops%20project%20cicd%20architecture.jpg)
@@ -100,11 +120,16 @@ There are 2 way to trigger the deployment CI/CD Pipeline:
 
 **Note:** For the deployment stages for **PREPROD** and **PROD**, the roles defined for cloudformation deployment in `mlops_sm_project_template_rt/templates/constructs/deploy_pipeline_construct.py` lines 284-292 and lines 317-326 are created when the **PREPROD** and **PROD** are bootstrapped with CDK with trust policies for the deployment CI/CD pipeline account (**DEV** account in our solution); the roles must be created before deploying this stack to any account along with trust policies included between the accounts and the roles. If you can bootstrap those accounts for any reason you should ensure to create similar roles in each of those accounts and adding them to the lines mentioned above in the file.
 
+### CodeCommit Stack
+*This stack is only needed if you want to handle deployments of this folder of the repository to be managed through a CICD pipeline.*
+
+This stack handles setting up an AWS CodeCommit repository for this folder of the repository. This repository will be used as the source for the CI/CD pipeline defined in [Pipeline Stack](#pipeline-stack). The repository will be named based on the value defined in `mlops_sm_project_template_rt/config/constants.py` with this variable `CODE_COMMIT_REPO_NAME`. The repository will be intialised with a default branch as defined in the `constants.py` file under `PIPELINE_BRANCH` variable.
+
 ### Pipeline Stack
 
 *This stack is only needed if you want to handle deployments of this folder of repository to be managed through a CICD pipeline. The pipeline is configured to deploy to 1 account: DEV and will deploy the service catalog stack to the target account*
 
-The CICD pipeline in this folder of the repository is setup to monitor an AWS CodeCommit repository and must be setup beforehand; the name of the repository is defined in `mlops_sm_project_template_rt/config/constants.py` so change the value of this variable `CODE_COMMIT_REPO_NAME`.
+The CICD pipeline in this repository is setup to monitor an AWS CodeCommit repository as defined in [CodeCommit Stack](#codecommit-stack).
 
 If you are using other sources like github or bitbucket for your repository, you will need to modify the connection to the appropriate repository as defined in `mlops_sm_project_template_rt/pipeline_stack.py`. This can be done using AWS CodeStar but must be setup on the account.
 
@@ -115,7 +140,7 @@ Make sure the pipelines also point to your targeted branch; by default the pipel
 The pipeline will deploy all stacks and resources to the appropriate accounts.
 
 
-## Solution Deployment
+## Getting Started
 
 ### Prerequisites
 
@@ -192,8 +217,6 @@ aws_session_token = YOUR_SESSION_TOKEN
 [mlops-prod]
 ...
 ```
-### Bootstrap AWS Accounts
-***Warning:** It is best you setup a python environment to handle all installs for this project and manage python packages. Use your preferred terminal and editor to run the following commands.*
 
 Before you start with the deployment of the solution make sure to bootstrap your accounts. Ensure you add the account details in `mlops_sm_project_template_rt/config/constants.py` mainly the target deployment accounts: **DEV**, **PREPROD** and **PROD**.
 ```
@@ -205,6 +228,10 @@ PREPROD_ACCOUNT = ""      # account to deploy the sagemaker endpoint
 
 PROD_ACCOUNT = ""         # account to deploy the sagemaker endpoint
 ```
+
+
+### Bootstrap AWS Accounts
+***Warning:** It is best you setup a python environment to handle all installs for this project and manage python packages. Use your preferred terminal and editor to run the following commands.*
 
 follow the steps below to achieve that:
 
@@ -224,12 +251,14 @@ cd mlops-sm-project-template-rt
 
 4. Run `make init` to setup githooks
 
-5. (Option 1) Bootstrap your deployment target accounts (e.g. governance, dev, etc.) using our script in `scripts/cdk-account-setup.sh.` Ensure that you have the account ids ready and the corresponding AWS profiles with credentials created in your `~/.aws/credentials` for each account (see above).
+5. Ensure your docker daemon is running
+
+6. (Option 1) Bootstrap your deployment target accounts (e.g. governance, dev, etc.) using our script in `scripts/cdk-account-setup.sh.` Ensure that you have the account ids ready and the corresponding AWS profiles with credentials created in your `~/.aws/credentials` for each account (see above).
 
 The script will request the 4 accounts, i.e. governance, dev, preprod and prod, and the corresponding AWS profiles as inputs. If you want to only deploy to 1 account you can use the same id for all account variables or pass the same values in the script.
 
 
-5. (Option 2) If you want to bootstrap the account manually, then run the following command for each account:
+6. (Option 2) If you want to bootstrap the account manually, then run the following command for each account:
 
 ```
 cdk bootstrap aws://<target account id>/<target region> --profile <target account profile>
@@ -261,7 +290,7 @@ There are two deployment options for the SageMaker Project Template to the Servi
 
 
 #### CI/CD Deployment of Service Catalog Stack
-For this deployment you must ensure that you have a repository already created and setup with the code from this folder. The setup of this CI/CD deployment is described in [Pipeline Stack](#pipeline-stack).
+This step will deploy 2 stacks: [CodeCommit Stack](#codecommit-stack) and [Pipeline Stack](#pipeline-stack)
 
 1. Deploy the deployment CI/CD pipeline in your governance account (one time operation). This is the CI/CD pipeline that would deploy your project template to Service Catalog in your dev account for the data science team to use:
 
@@ -269,7 +298,7 @@ For this deployment you must ensure that you have a repository already created a
 # builds the pipeline stack and install all assets
 cdk synth
 # deploy stack to target account, use the governance account profile for this
-cdk deploy
+cdk deploy --all
 ```
 
 2. the deployment CI/CD pipeline will now handle all deployments for the other stacks based on the updates to the main branch
@@ -300,7 +329,7 @@ as a stage could include a combination of stacks `--all` flag is included with t
 
 ### Clean-up
 
-In case you used the local deployment, once you are done with testing the new feature that was deployed locally, run the following to clean-up the environment:
+In case you used the local deployment, once you are done with testing the new feature that was deployed locally, run the following commands to clean-up the environment:
 ```
 # destroy stage to target account (make it match your stack name)
 cdk --app ./cdk.out/assembly-Personal destroy —all
@@ -310,7 +339,7 @@ This would only delete the service catalog stack deployed in the target account 
 Similarly if you used the CI/CD deployment:
 ```
 # destroy deployed stack in target account (make it match your stack name)
-cdk destroy
+cdk destroy --all
 ```
 This would only delete the pipeline stack and nothing else deployed from the pipeline i.e. stacks deployed to the target accounts and the deployed projects.
 
