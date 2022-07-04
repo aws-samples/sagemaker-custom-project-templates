@@ -15,6 +15,7 @@
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
 # SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
+import importlib
 import json
 import logging
 import os
@@ -36,8 +37,8 @@ import aws_cdk
 
 from constructs import Construct
 
-from mlops_sm_project_template_rt.basic_project_stack import MLOpsStack
-from mlops_sm_project_template_rt.constructs.ssm_construct import SSMConstruct
+from mlops_sm_project_template_rt.templates.basic_project_stack import MLOpsStack
+from mlops_sm_project_template_rt.ssm_construct import SSMConstruct
 
 # Get environment variables
 LOG_LEVEL = os.getenv("LOG_LEVEL", "INFO").upper()
@@ -66,7 +67,7 @@ class ServiceCatalogStack(Stack):
             description="The SageMaker Studio execution role",
             min_length=1,
             default="/mlops/role/lead",
-        )
+        ).value_as_string
 
         portfolio_name = CfnParameter(
             self,
@@ -75,7 +76,7 @@ class ServiceCatalogStack(Stack):
             description="The name of the portfolio",
             default="SageMaker Organization Templates",
             min_length=1,
-        )
+        ).value_as_string
 
         portfolio_owner = CfnParameter(
             self,
@@ -85,7 +86,7 @@ class ServiceCatalogStack(Stack):
             default="administrator",
             min_length=1,
             max_length=50,
-        )
+        ).value_as_string
 
         product_version = CfnParameter(
             self,
@@ -94,7 +95,7 @@ class ServiceCatalogStack(Stack):
             description="The product version to deploy",
             default="1.0",
             min_length=1,
-        )
+        ).value_as_string
 
         # Create the launch role
         products_launch_role = iam.Role(
@@ -142,9 +143,7 @@ class ServiceCatalogStack(Stack):
                 actions=["iam:PassRole"],
                 effect=iam.Effect.ALLOW,
                 resources=[
-                    # f"arn:aws:iam::{PREPROD_ACCOUNT}:role/*",
-                    # f"arn:aws:iam::{PROD_ACCOUNT}:role/*",
-                    "*"
+                    "*"  # TODO lock this policy to only certain roles from the other account that are used for deploying the solution as defined in templates/pipeline_constructs/deploy_pipeline_stack.py
                 ],
             ),
         )
@@ -183,25 +182,9 @@ class ServiceCatalogStack(Stack):
         portfolio = servicecatalog.Portfolio(
             self,
             "Portfolio",
-            display_name=portfolio_name.value_as_string,
-            provider_name=portfolio_owner.value_as_string,
+            display_name=portfolio_name,
+            provider_name=portfolio_owner,
             description="Organization templates for drift detection pipelines",
-        )
-
-        deploy_product = servicecatalog.CloudFormationProduct(
-            self,
-            "DeployProduct",
-            owner=portfolio_owner.value_as_string,
-            product_name="MLOps template for real-time deployment",
-            product_versions=[
-                servicecatalog.CloudFormationProductVersion(
-                    cloud_formation_template=servicecatalog.CloudFormationTemplate.from_asset(
-                        self.generate_template(MLOpsStack, f"MLOpsApp-{stage_name}", **kwargs)
-                    ),
-                    product_version_name=product_version.value_as_string,
-                )
-            ],
-            description="This template includes a model building pipeline that includes a workflow to pre-process, train, evaluate and register a model.   The deploy pipeline creates a preprod and production endpoint.",
         )
 
         # Create portfolio associate that depends on products
@@ -209,28 +192,55 @@ class ServiceCatalogStack(Stack):
             self,
             "PortfolioPrincipalAssociation",
             portfolio_id=portfolio.portfolio_id,
-            principal_arn=execution_role_arn.value_as_string,
+            principal_arn=execution_role_arn,
             principal_type="IAM",
         )
 
-        portfolio_association.node.add_dependency(deploy_product)
+        product = servicecatalog.CloudFormationProduct(
+            self,
+            "DeployProduct",
+            owner=portfolio_owner,
+            product_name=MLOpsStack.TEMPLATE_NAME,
+            product_versions=[
+                servicecatalog.CloudFormationProductVersion(
+                    cloud_formation_template=servicecatalog.CloudFormationTemplate.from_asset(
+                        self.generate_template(MLOpsStack, f"MLOpsApp-{stage_name}", **kwargs)
+                    ),
+                    product_version_name=product_version,
+                )
+            ],
+            description=MLOpsStack.DESCRIPTION,
+        )
+
+        portfolio_association.node.add_dependency(product)
 
         # Add product tags, and create role constraint for each product
 
-        portfolio.add_product(deploy_product)
+        portfolio.add_product(product)
 
-        Tags.of(deploy_product).add(key="sagemaker:studio-visibility", value="true")
+        Tags.of(product).add(key="sagemaker:studio-visibility", value="true")
 
         role_constraint = servicecatalog.CfnLaunchRoleConstraint(
             self,
             f"LaunchRoleConstraint",
             portfolio_id=portfolio.portfolio_id,
-            product_id=deploy_product.product_id,
+            product_id=product.product_id,
             role_arn=products_launch_role.role_arn,
             description=f"Launch as {products_launch_role.role_arn}",
         )
-
         role_constraint.add_depends_on(portfolio_association)
+
+        # uncomment this block if you want to create service catalog products based on all templates
+        # make sure you comment out lines 213-247
+        # products = self.deploy_all_products(
+        #     portfolio_association,
+        #     portfolio,
+        #     products_launch_role,
+        #     portfolio_owner,
+        #     product_version,
+        #     stage_name,
+        #     **kwargs,
+        # )
 
         # Create the build and deployment asset as an output to pass to pipeline stack
         build_app_asset = s3_assets.Asset(
@@ -283,31 +293,70 @@ class ServiceCatalogStack(Stack):
             deploy_app_asset.s3_object_key,
         )
 
-        # issue with pipeline encryption key created with an alias similar https://github.com/aws/aws-cdk/issues/4374
-        # create kms key to be used by the assets bucket
-        # kms_key = kms.Key(
-        #     self,
-        #     "ArtifactsBucketKMSKey",
-        #     description="key used for encryption of data in Amazon S3",
-        #     enable_key_rotation=True
-        # )
-
-        # pipeline_artifact_bucket = s3.Bucket(
-        #     self,
-        #     "S3Artifact",
-        #     bucket_name=f"mlops-pipeline-{construct_id}-{Aws.REGION}",
-        #     encryption_key=kms_key,
-        #     versioned=True,
-        #     removal_policy=aws_cdk.RemovalPolicy.DESTROY,
-        # )
-
-        # self.export_ssm(
-        #     "PipelineArtifactBucket",
-        #     "/mlops/pipeline/bucket",
-        #     pipeline_artifact_bucket.bucket_name,
-        # )
-
         SSMConstruct(self, "MLOpsSSM")
+
+    def deploy_all_products(
+        self,
+        portfolio_association: servicecatalog.CfnPortfolioPrincipalAssociation,
+        portfolio: servicecatalog.Portfolio,
+        products_launch_role: iam.Role,
+        portfolio_owner: str,
+        product_version: str,
+        stage_name: str,
+        templates_directory: str = "mlops_sm_project_template_rt/templates",
+        **kwargs,
+    ):
+
+        i = 0  # used as a counter for the products
+
+        for file in os.listdir(templates_directory):
+            filename = os.fsdecode(file)
+            if filename.endswith("_stack.py"):
+                template_py_file = filename[:-3]
+
+                template_module = importlib.import_module(f"mlops_sm_project_template_rt.templates.{template_py_file}")
+
+                template_py_file = template_py_file.replace("_", "-")
+
+                product = servicecatalog.CloudFormationProduct(
+                    self,
+                    f"Product-{template_py_file}",
+                    owner=portfolio_owner,
+                    product_name=template_module.MLOpsStack.TEMPLATE_NAME,
+                    product_versions=[
+                        servicecatalog.CloudFormationProductVersion(
+                            cloud_formation_template=servicecatalog.CloudFormationTemplate.from_asset(
+                                self.generate_template(
+                                    template_module.MLOpsStack,
+                                    f"{template_py_file}-{stage_name}",
+                                    **kwargs,
+                                )
+                            ),
+                            product_version_name=product_version,
+                        )
+                    ],
+                    description=template_module.MLOpsStack.DESCRIPTION,
+                )
+
+                portfolio_association.node.add_dependency(product)
+
+                # Add product tags, and create role constraint for each product
+
+                portfolio.add_product(product)
+
+                Tags.of(product).add(key="sagemaker:studio-visibility", value="true")
+
+                role_constraint = servicecatalog.CfnLaunchRoleConstraint(
+                    self,
+                    f"LaunchRoleConstraint{i}",
+                    portfolio_id=portfolio.portfolio_id,
+                    product_id=product.product_id,
+                    role_arn=products_launch_role.role_arn,
+                    description=f"Launch as {products_launch_role.role_arn}",
+                )
+                role_constraint.add_depends_on(portfolio_association)
+
+                i += 1
 
     def export_ssm(self, key: str, param_name: str, value: str):
         param = ssm.StringParameter(self, key, parameter_name=param_name, string_value=value)
@@ -340,9 +389,12 @@ class ServiceCatalogStack(Stack):
 
         # Remove policies
         policy_list = [
-            k for k in t["Resources"] if t["Resources"][k]["Type"] == "AWS::IAM::Policy" and ("deployPreProdActionRolePolicy" in k or "deployProdActionRolePolicy" in k)
+            k
+            for k in t["Resources"]
+            if t["Resources"][k]["Type"] == "AWS::IAM::Policy"
+            and ("deployPreProdActionRolePolicy" in k or "deployProdActionRolePolicy" in k)
         ]
-        
+
         for p in policy_list:
             logger.debug(f"Removing Policy {p}")
             del t["Resources"][p]

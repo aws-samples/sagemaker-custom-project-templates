@@ -19,11 +19,9 @@ import importlib
 from aws_cdk import (
     Aws,
     CfnParameter,
-    Fn,
     Stack,
     Tags,
     aws_iam as iam,
-    aws_ec2 as ec2,
     aws_kms as kms,
     aws_sagemaker as sagemaker,
 )
@@ -94,6 +92,7 @@ class DeployEndpointStack(Stack):
 
         Tags.of(self).add("sagemaker:project-id", PROJECT_ID)
         Tags.of(self).add("sagemaker:project-name", PROJECT_NAME)
+        Tags.of(self).add("sagemaker:deployment-stage", Stack.of(self).stack_name)
 
         app_subnet_ids = CfnParameter(
             self,

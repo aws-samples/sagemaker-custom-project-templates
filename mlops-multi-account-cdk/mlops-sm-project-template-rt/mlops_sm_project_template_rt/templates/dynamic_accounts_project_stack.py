@@ -31,14 +31,18 @@ import aws_cdk
 
 from constructs import Construct
 
-from mlops_sm_project_template_rt.constructs.build_pipeline_construct import (
+from mlops_sm_project_template_rt.templates.pipeline_constructs.build_pipeline_construct import (
     BuildPipelineConstruct,
 )
-from mlops_sm_project_template_rt.constructs.deploy_pipeline_construct import (
+from mlops_sm_project_template_rt.templates.pipeline_constructs.deploy_pipeline_construct import (
     DeployPipelineConstruct,
 )
 
+
 class MLOpsStack(Stack):
+    DESCRIPTION: str = "This template includes a model building pipeline that includes a workflow to pre-process, train, evaluate and register a model. The deploy pipeline creates a preprod and production endpoint. The target PREPROD/PROD accounts are provided as cloudformation paramters and must be provided during project creation."
+    TEMPLATE_NAME: str = "Dynamic Accounts MLOps template for real-time deployment"
+
     def __init__(self, scope: Construct, construct_id: str, **kwargs) -> None:
         super().__init__(scope, construct_id, **kwargs)
 
@@ -87,7 +91,6 @@ class MLOpsStack(Stack):
             max_length=10,
             description="Deployment region for preprod and prod account.",
         ).value_as_string
-
 
         Tags.of(self).add("sagemaker:project-id", project_id)
         Tags.of(self).add("sagemaker:project-name", project_name)

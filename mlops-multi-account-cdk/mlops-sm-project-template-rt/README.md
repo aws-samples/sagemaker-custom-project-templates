@@ -98,7 +98,7 @@ There are 2 way to trigger the deployment CI/CD Pipeline:
 - **Model Events** - These are events which get triggered through a status change to the model package group in SageMaker Model Registry.
 - **Code Events** - The pipeline is triggered on git update events over a specific branch, in this solution it is linked to the **main** branch.
 
-**Note:** For the deployment stages for **PREPROD** and **PROD**, the roles defined for cloudformation deployment in `mlops_sm_project_template_rt/constructs/deploy_pipeline_construct.py` lines 284-292 and lines 317-326 are created when the **PREPROD** and **PROD** are bootstrapped with CDK with trust policies for the deployment CI/CD pipeline account (**DEV** account in our solution); the roles must be created before deploying this stack to any account along with trust policies included between the accounts and the roles. If you can bootstrap those accounts for any reason you should ensure to create similar roles in each of those accounts and adding them to the lines mentioned above in the file.
+**Note:** For the deployment stages for **PREPROD** and **PROD**, the roles defined for cloudformation deployment in `mlops_sm_project_template_rt/templates/constructs/deploy_pipeline_construct.py` lines 284-292 and lines 317-326 are created when the **PREPROD** and **PROD** are bootstrapped with CDK with trust policies for the deployment CI/CD pipeline account (**DEV** account in our solution); the roles must be created before deploying this stack to any account along with trust policies included between the accounts and the roles. If you can bootstrap those accounts for any reason you should ensure to create similar roles in each of those accounts and adding them to the lines mentioned above in the file.
 
 ### Pipeline Stack
 
@@ -143,14 +143,15 @@ This is an AWS CDK project written in Python 3.8. Here's what you need to have o
 │   ├── cdk_helper_scripts
 │   ├── config
 │   │   └── constants.py                      <--- global configs to be used in CDK stacks
-│   ├── constructs
-│   │   ├── build_pipeline_construct.py       <--- construct containing CI/CD pipeline linked to the build app
-│   │   ├── deploy_pipeline_construct.py      <--- construct containing CI/CD pipeline linked to the deploy app
-│   │   └── ssm_construct.py                  <--- construct to deploy ssm parameter for the project template to use
 │   ├── pipeline_stack.py                     <--- stack for CICD with code pipeline setup for the repo
 │   ├── service_catalog_stack.py              <--- stack for service catalog setup and template deployment
-│   ├── basic_project_stack.py                <--- stack for basic sagemaker project template setup - DEV/PREPROD/PROD Accounts provided in constants.py
-│   └── dynamic_accounts_project_stack.py     <--- stack for sagemaker project template setup - DEV/PREPROD/PROD Accounts provided as parameters during project creation
+│   ├── ssm_construct.py                      <--- construct to deploy ssm parameter for the project template to use
+│   └── templates
+│       ├── basic_project_stack.py                <--- stack for basic sagemaker project template setup - DEV/PREPROD/PROD Accounts provided in constants.py
+│       ├── dynamic_accounts_project_stack.py     <--- stack for sagemaker project template setup - DEV/PREPROD/PROD Accounts provided as parameters during project creation
+│       └── pipeline_constructs
+│           ├── build_pipeline_construct.py       <--- construct containing CI/CD pipeline linked to the build app
+│           └── deploy_pipeline_construct.py      <--- construct containing CI/CD pipeline linked to the deploy app
 ├── requirements-dev.txt
 ├── requirements.txt                          <--- cdk packages used in the stacks (must be installed)
 ├── scripts                                   <--- shell scripts to automate part of the deployments
@@ -194,7 +195,7 @@ aws_session_token = YOUR_SESSION_TOKEN
 ### Bootstrap AWS Accounts
 ***Warning:** It is best you setup a python environment to handle all installs for this project and manage python packages. Use your preferred terminal and editor to run the following commands.*
 
-Before you start with the deployment of the solution make sure to bootstrap your accounts. Ensure you add the account details in `mlops_sm_project_template_rt/config/constants.py` mainly the target deployment accounts: **DEV**, **PREPROD** and **PROD**. 
+Before you start with the deployment of the solution make sure to bootstrap your accounts. Ensure you add the account details in `mlops_sm_project_template_rt/config/constants.py` mainly the target deployment accounts: **DEV**, **PREPROD** and **PROD**.
 ```
 PIPELINE_ACCOUNT = ""     # account to host the pipeline handling updates of this repository
 
@@ -208,7 +209,7 @@ PROD_ACCOUNT = ""         # account to deploy the sagemaker endpoint
 follow the steps below to achieve that:
 
 1. Clone this repository in your work environment (e.g. your laptop)
-   
+
 2. Change directory to `mlops-sm-project-template-rt` root
 
 ```
