@@ -168,6 +168,7 @@ This is an AWS CDK project written in Python 3.8. Here's what you need to have o
 │   ├── cdk_helper_scripts
 │   ├── config
 │   │   └── constants.py                      <--- global configs to be used in CDK stacks
+│   ├── codecommit_stack.py                   <--- stack for creation a codecommit repo based on this folder for the CICD pipeline
 │   ├── pipeline_stack.py                     <--- stack for CICD with code pipeline setup for the repo
 │   ├── service_catalog_stack.py              <--- stack for service catalog setup and template deployment
 │   ├── ssm_construct.py                      <--- construct to deploy ssm parameter for the project template to use

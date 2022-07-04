@@ -119,6 +119,7 @@ This is an AWS CDK project written in Python 3.8. Here's what you need to have o
 │   │       └── lead_data_scientists.yml        <--- yml file containing a list of users to be linked to lead data scientist role
 │   ├── constructs
 │   │   └── sm_roles.py                         <--- construct containing IAM roles for sagemaker studio users
+│   ├── codecommit_stack.py                     <--- stack for creation a codecommit repo based on this folder for the CICD pipeline
 │   ├── networking_stack.py                     <--- stack to setup a VPC and all related components i.e. subents and vpc endpoints as required
 │   ├── pipeline_stack.py                       <--- stack for CICD with code pipeline setup for the repo
 │   └── sagemaker_studio_stack.py               <--- stack to create sagemaker studio domain along with related IAM roles and the domain users
