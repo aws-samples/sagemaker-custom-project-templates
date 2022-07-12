@@ -21,6 +21,7 @@ train-model:
   stage: training
   script: 
       - pip install --upgrade --force-reinstall . "awscli>1.20.30"
+      - export PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION=python
       - export PYTHONUNBUFFERED=TRUE
       - export SAGEMAKER_PROJECT_NAME_ID="${SAGEMAKER_PROJECT_NAME}-${SAGEMAKER_PROJECT_ID}"
       - |
