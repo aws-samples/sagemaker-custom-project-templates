@@ -28,6 +28,7 @@ from constructs import Construct
 
 from mlops_sm_project_template_rt.config.constants import (
     CODE_COMMIT_REPO_NAME,
+    PIPELINE_BRANCH
 )
 
 
@@ -72,7 +73,7 @@ class CodeCommitStack(Stack):
                     key=repo_asset.s3_object_key,
                     object_version=None,
                 ),
-                branch_name="main",
+                branch_name=PIPELINE_BRANCH,
             ),
         )
 
