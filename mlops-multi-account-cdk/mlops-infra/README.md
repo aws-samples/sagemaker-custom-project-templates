@@ -147,12 +147,12 @@ As the MLOps foundation is based on multiple accounts, it is necessary to create
 [mlops-governance]
 aws_access_key_id = YOUR_ACCESS_KEY_ID
 aws_secret_access_key = YOUR_SECRET_ACCESS_KEY
-aws_session_token = YOUR_SESSION_TOKEN
+aws_session_token = YOUR_SESSION_TOKEN  # this token is generated if you are using an IAM Role to assume into the account
 
 [mlops-dev]
 aws_access_key_id = YOUR_ACCESS_KEY_ID
 aws_secret_access_key = YOUR_SECRET_ACCESS_KEY
-aws_session_token = YOUR_SESSION_TOKEN
+aws_session_token = YOUR_SESSION_TOKEN  # this token is generated if you are using an IAM Role to assume into the account
 
 [mlops-preprod]
 ...
@@ -238,7 +238,7 @@ This step will deploy 2 stacks: [CodeCommit Stack](#codecommit-stack) and [Pipel
 # builds the pipeline stack and install all assets
 cdk synth
 # deploy stack to target account, use the governance account profile for this
-cdk deploy --all
+cdk deploy --all --profile mlops-governance
 ```
 
 2. the deployment CI/CD pipeline will now handle all deployments for the other stacks based on the updates to the main branch
@@ -263,10 +263,7 @@ CoreStage(
 2. Deploy the stage
 
 ```
-cdk --app ./cdk.out/assembly-Personal deploy —all
-# builds the pipeline stack and install all assets
-cdk synth
-# deploy stage to target account (make it match your stack name)
+cdk --app ./cdk.out/assembly-Personal deploy —-all --profile mlops-dev
 ```
 
 as a stage could include a combination of stacks `--all` flag is included with the `deploy` command
@@ -277,14 +274,14 @@ In case you used the local deployment, once you are done with testing the new fe
 
 ```
 # destroy stage to target account (make it match your stack name)
-cdk --app ./cdk.out/assembly-Personal destroy —all
+cdk --app ./cdk.out/assembly-Personal destroy —-all --profile mlops-dev
 ```
 This would only delete the service catalog stack deployed in the target account and not the deployed projects.
 
 Similarly if you used the CI/CD deployment:
 ```
 # destroy deployed stack in target account (make it match your stack name)
-cdk destroy
+cdk destroy --all --profile mlops-governance
 ```
 This would only delete the pipeline stack and nothing else deployed from the pipeline i.e. stacks deployed to the target accounts and the deployed projects.
 
