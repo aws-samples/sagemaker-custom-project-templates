@@ -136,7 +136,11 @@ class BuildPipelineConstruct(Construct):
                             "s3:PutObject*",
                             "s3:Create*",
                         ],
-                        resources=[s3_artifact.bucket_arn, f"{s3_artifact.bucket_arn}/*", "arn:aws:s3:::sagemaker-*"],
+                        resources=[
+                            s3_artifact.bucket_arn,
+                            f"{s3_artifact.bucket_arn}/*",
+                            "arn:aws:s3:::sagemaker-*",
+                        ],
                     ),
                     iam.PolicyStatement(
                         actions=["iam:PassRole"],
@@ -169,9 +173,15 @@ class BuildPipelineConstruct(Construct):
             environment=codebuild.BuildEnvironment(
                 build_image=codebuild.LinuxBuildImage.STANDARD_5_0,
                 environment_variables={
-                    "SAGEMAKER_PROJECT_NAME": codebuild.BuildEnvironmentVariable(value=project_name),
-                    "SAGEMAKER_PROJECT_ID": codebuild.BuildEnvironmentVariable(value=project_id),
-                    "MODEL_PACKAGE_GROUP_NAME": codebuild.BuildEnvironmentVariable(value=model_package_group_name),
+                    "SAGEMAKER_PROJECT_NAME": codebuild.BuildEnvironmentVariable(
+                        value=project_name
+                    ),
+                    "SAGEMAKER_PROJECT_ID": codebuild.BuildEnvironmentVariable(
+                        value=project_id
+                    ),
+                    "MODEL_PACKAGE_GROUP_NAME": codebuild.BuildEnvironmentVariable(
+                        value=model_package_group_name
+                    ),
                     "AWS_REGION": codebuild.BuildEnvironmentVariable(value=Aws.REGION),
                     "SAGEMAKER_PIPELINE_NAME": codebuild.BuildEnvironmentVariable(
                         value=pipeline_name,
@@ -182,7 +192,9 @@ class BuildPipelineConstruct(Construct):
                     "SAGEMAKER_PIPELINE_ROLE_ARN": codebuild.BuildEnvironmentVariable(
                         value=sagemaker_execution_role.role_arn,
                     ),
-                    "ARTIFACT_BUCKET": codebuild.BuildEnvironmentVariable(value=s3_artifact.bucket_name),
+                    "ARTIFACT_BUCKET": codebuild.BuildEnvironmentVariable(
+                        value=s3_artifact.bucket_name
+                    ),
                     "ARTIFACT_BUCKET_KMS_ID": codebuild.BuildEnvironmentVariable(
                         value=s3_artifact.encryption_key.key_id
                     ),
@@ -191,31 +203,51 @@ class BuildPipelineConstruct(Construct):
         )
 
         # code build to include security scan over cloudformation template
-        security_scan = codebuild.Project(
+        docker_build = codebuild.Project(
             self,
-            "SecurityScanTooling",
+            "DockerBuild",
             build_spec=codebuild.BuildSpec.from_object(
                 {
                     "phases": {
                         "build": {
                             "commands": [
-                               
+                                "chmod +x source_scripts/docker-build.sh",
+                                f"./source_scripts/docker-build.sh {ecr_repository_name}",
                             ]
                         },
                     },
                 }
             ),
             environment=codebuild.BuildEnvironment(
-                build_image=codebuild.LinuxBuildImage.STANDARD_5_0,
-                privileged=True
+                build_image=codebuild.LinuxBuildImage.STANDARD_5_0, privileged=True
             ),
+        )
 
+        docker_build.add_to_role_policy(
+            iam.PolicyStatement(
+                actions=["ecr:*"],
+                effect=iam.Effect.ALLOW,
+                resources=[
+                    f"arn:aws:ecr:{Aws.REGION}:{Aws.ACCOUNT_ID}:repository/{ecr_repository_name}"
+                ],
+            )
+        )
+
+        docker_build.add_to_role_policy(
+            iam.PolicyStatement(
+                actions=["ecr:Get*"],
+                effect=iam.Effect.ALLOW,
+                resources=["*"],
+            )
         )
 
         source_artifact = codepipeline.Artifact(artifact_name="GitSource")
 
         build_pipeline = codepipeline.Pipeline(
-            self, "Pipeline", pipeline_name=f"{project_name}-{construct_id}", artifact_bucket=pipeline_artifact_bucket
+            self,
+            "Pipeline",
+            pipeline_name=f"{project_name}-{construct_id}",
+            artifact_bucket=pipeline_artifact_bucket,
         )
 
         # add a source stage
@@ -231,10 +263,21 @@ class BuildPipelineConstruct(Construct):
 
         # add a build stage
         build_stage = build_pipeline.add_stage(stage_name="Build")
+
+        build_stage.add_action(
+            codepipeline_actions.CodeBuildAction(
+                action_name="DockerBuild",
+                input=source_artifact,
+                project=docker_build,
+                run_order=1
+            )
+        )
+        
         build_stage.add_action(
             codepipeline_actions.CodeBuildAction(
                 action_name="SMPipeline",
                 input=source_artifact,
                 project=sm_pipeline_build,
+                run_order=2
             )
         )

@@ -32,10 +32,10 @@ import aws_cdk
 
 from constructs import Construct
 
-from mlops_sm_project_template_rt.templates.pipeline_constructs.build_w_custom_pipeline_construct import (
+from mlops_sm_project_template_rt.templates.byoc_pipeline_constructs.build_pipeline_construct import (
     BuildPipelineConstruct,
 )
-from mlops_sm_project_template_rt.templates.pipeline_constructs.deploy_pipeline_construct import (
+from mlops_sm_project_template_rt.templates.byoc_pipeline_constructs.deploy_pipeline_construct import (
     DeployPipelineConstruct,
 )
 
@@ -304,6 +304,8 @@ class MLOpsStack(Stack):
             project_id,
             pipeline_artifact_bucket,
             model_package_group_name,
+            ml_models_ecr_repo.repository_arn,
+            s3_artifact.bucket_arn,
             seed_bucket,
             deploy_app_key,
             PREPROD_ACCOUNT,
