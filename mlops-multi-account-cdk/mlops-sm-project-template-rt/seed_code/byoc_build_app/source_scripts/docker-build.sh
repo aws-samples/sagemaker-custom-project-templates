@@ -12,20 +12,18 @@ REPOSITORY_URI=${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_DEFAULT_REGION}.amazonaws.com/${R
 
 aws ecr get-login-password --region AWS_DEFAULT_REGION | docker login  --username AWS  --password-stdin ${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_DEFAULT_REGION}.amazonaws.com
 
-for f in */
-do
-    if [ -d "$f" ]; then
-        tag=$(sed 's/.\{1\}$//' <<< "$f")
+target_stages=("xgboost")
 
-        IMAGE_TAG=$tag-$CODEBUILD_RESOLVED_SOURCE_VERSION;
+for stage in "${target_stages[@]}"
+do
+
+        IMAGE_TAG=$stage-$CODEBUILD_RESOLVED_SOURCE_VERSION;
 
         echo $IMAGE_TAG
 
-        docker build --target $tag -t $REPOSITORY_URI:$tag .
-        docker tag $REPOSITORY_URI:$tag $REPOSITORY_URI:$IMAGE_TAG
+        docker build --target $stage -t $REPOSITORY_URI:$stage .
+        docker tag $REPOSITORY_URI:$stage $REPOSITORY_URI:$IMAGE_TAG
 
-        docker push $REPOSITORY_URI:$tag
         docker push $REPOSITORY_URI:$IMAGE_TAG
 
-    fi
 done

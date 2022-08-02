@@ -243,16 +243,33 @@ class ServiceCatalogStack(Stack):
         # )
 
         # Create the build and deployment asset as an output to pass to pipeline stack
+        zip_image = DockerImage.from_build("mlops_sm_project_template_rt/cdk_helper_scripts/zip-image")
+        
         build_app_asset = s3_assets.Asset(
             self,
             "BuildAsset",
             path="seed_code/build_app/",
             bundling=BundlingOptions(
-                image=DockerImage.from_build("mlops_sm_project_template_rt/cdk_helper_scripts/zip-image"),
+                image=zip_image,
                 command=[
                     "sh",
                     "-c",
                     """zip -r /asset-output/build_app.zip .""",
+                ],
+                output_type=BundlingOutput.ARCHIVED,
+            ),
+        )
+
+        byoc_build_app_asset = s3_assets.Asset(
+            self,
+            "BuildAsset",
+            path="seed_code/byoc_build_app/",
+            bundling=BundlingOptions(
+                image=zip_image,
+                command=[
+                    "sh",
+                    "-c",
+                    """zip -r /asset-output/byoc_build_app.zip .""",
                 ],
                 output_type=BundlingOutput.ARCHIVED,
             ),
@@ -263,7 +280,7 @@ class ServiceCatalogStack(Stack):
             "DeployAsset",
             path="seed_code/deploy_app/",
             bundling=BundlingOptions(
-                image=DockerImage.from_build("mlops_sm_project_template_rt/cdk_helper_scripts/zip-image"),
+                image=zip_image,
                 command=[
                     "sh",
                     "-c",
@@ -275,6 +292,7 @@ class ServiceCatalogStack(Stack):
 
         build_app_asset.grant_read(grantee=products_launch_role)
         deploy_app_asset.grant_read(grantee=products_launch_role)
+        byoc_build_app_asset.grant_read(grantee=products_launch_role)
 
         # Output the deployment bucket and key, for input into pipeline stack
         self.export_ssm(
@@ -286,6 +304,11 @@ class ServiceCatalogStack(Stack):
             "CodeBuildKey",
             "/mlops/code/build",
             build_app_asset.s3_object_key,
+        )
+        self.export_ssm(
+            "CodeDeployKey",
+            "/mlops/code/build/byoc",
+            byoc_build_app_asset.s3_object_key,
         )
         self.export_ssm(
             "CodeDeployKey",

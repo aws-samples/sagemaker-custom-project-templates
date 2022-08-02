@@ -255,7 +255,7 @@ class MLOpsStack(Stack):
         )
 
         seed_bucket = CfnDynamicReference(CfnDynamicReferenceService.SSM, "/mlops/code/seed_bucket").to_string()
-        build_app_key = CfnDynamicReference(CfnDynamicReferenceService.SSM, "/mlops/code/build").to_string()
+        build_app_key = CfnDynamicReference(CfnDynamicReferenceService.SSM, "/mlops/code/build/byoc").to_string()
         deploy_app_key = CfnDynamicReference(CfnDynamicReferenceService.SSM, "/mlops/code/deploy").to_string()
 
         kms_key = kms.Key(
