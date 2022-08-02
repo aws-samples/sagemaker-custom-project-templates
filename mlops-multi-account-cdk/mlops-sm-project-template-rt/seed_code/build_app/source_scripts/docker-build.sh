@@ -15,7 +15,7 @@ aws ecr get-login-password --region AWS_DEFAULT_REGION | docker login  --usernam
 for f in */
 do
     if [ -d "$f" ]; then
-        tag=$(sed 's/.\{1\}$//' <<<"$f")
+        tag=$(sed 's/.\{1\}$//' <<< "$f")
 
         IMAGE_TAG=$tag-$CODEBUILD_RESOLVED_SOURCE_VERSION;
 
