@@ -43,8 +43,8 @@ from mlops_sm_project_template_rt.config.constants import PREPROD_ACCOUNT, PROD_
 
 
 class MLOpsStack(Stack):
-    DESCRIPTION: str = "This template includes a model building pipeline that includes a workflow to pre-process, train, evaluate and register a model. The deploy pipeline creates a preprod and production endpoint. The target DEV/PREPROD/PROD accounts are predefined in the template."
-    TEMPLATE_NAME: str = "Basic MLOps template for real-time deployment"
+    DESCRIPTION: str = "This template includes a model building pipeline that includes a workflow to build your own container, pre-process, train, evaluate and register a model. The deploy pipeline creates a preprod and production endpoint. The target DEV/PREPROD/PROD accounts are predefined in the template."
+    TEMPLATE_NAME: str = "MLOps template for real-time deployment using your own container"
 
     def __init__(self, scope: Construct, construct_id: str, **kwargs) -> None:
         super().__init__(scope, construct_id, **kwargs)

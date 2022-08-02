@@ -137,6 +137,9 @@ class ServiceCatalogStack(Stack):
         products_launch_role.add_managed_policy(
             iam.ManagedPolicy.from_aws_managed_policy_name("AmazonSSMReadOnlyAccess")
         )
+        products_launch_role.add_managed_policy(
+            iam.ManagedPolicy.from_aws_managed_policy_name("AmazonEC2ContainerRegistryFullAccess")
+        )
 
         products_launch_role.add_to_policy(
             iam.PolicyStatement(
@@ -196,51 +199,51 @@ class ServiceCatalogStack(Stack):
             principal_type="IAM",
         )
 
-        product = servicecatalog.CloudFormationProduct(
-            self,
-            "DeployProduct",
-            owner=portfolio_owner,
-            product_name=MLOpsStack.TEMPLATE_NAME,
-            product_versions=[
-                servicecatalog.CloudFormationProductVersion(
-                    cloud_formation_template=servicecatalog.CloudFormationTemplate.from_asset(
-                        self.generate_template(MLOpsStack, f"MLOpsApp-{stage_name}", **kwargs)
-                    ),
-                    product_version_name=product_version,
-                )
-            ],
-            description=MLOpsStack.DESCRIPTION,
-        )
+        # product = servicecatalog.CloudFormationProduct(
+        #     self,
+        #     "DeployProduct",
+        #     owner=portfolio_owner,
+        #     product_name=MLOpsStack.TEMPLATE_NAME,
+        #     product_versions=[
+        #         servicecatalog.CloudFormationProductVersion(
+        #             cloud_formation_template=servicecatalog.CloudFormationTemplate.from_asset(
+        #                 self.generate_template(MLOpsStack, f"MLOpsApp-{stage_name}", **kwargs)
+        #             ),
+        #             product_version_name=product_version,
+        #         )
+        #     ],
+        #     description=MLOpsStack.DESCRIPTION,
+        # )
 
-        portfolio_association.node.add_dependency(product)
+        # portfolio_association.node.add_dependency(product)
 
-        # Add product tags, and create role constraint for each product
+        # # Add product tags, and create role constraint for each product
 
-        portfolio.add_product(product)
+        # portfolio.add_product(product)
 
-        Tags.of(product).add(key="sagemaker:studio-visibility", value="true")
+        # Tags.of(product).add(key="sagemaker:studio-visibility", value="true")
 
-        role_constraint = servicecatalog.CfnLaunchRoleConstraint(
-            self,
-            f"LaunchRoleConstraint",
-            portfolio_id=portfolio.portfolio_id,
-            product_id=product.product_id,
-            role_arn=products_launch_role.role_arn,
-            description=f"Launch as {products_launch_role.role_arn}",
-        )
-        role_constraint.add_depends_on(portfolio_association)
+        # role_constraint = servicecatalog.CfnLaunchRoleConstraint(
+        #     self,
+        #     f"LaunchRoleConstraint",
+        #     portfolio_id=portfolio.portfolio_id,
+        #     product_id=product.product_id,
+        #     role_arn=products_launch_role.role_arn,
+        #     description=f"Launch as {products_launch_role.role_arn}",
+        # )
+        # role_constraint.add_depends_on(portfolio_association)
 
         # uncomment this block if you want to create service catalog products based on all templates
         # make sure you comment out lines 213-247
-        # products = self.deploy_all_products(
-        #     portfolio_association,
-        #     portfolio,
-        #     products_launch_role,
-        #     portfolio_owner,
-        #     product_version,
-        #     stage_name,
-        #     **kwargs,
-        # )
+        products = self.deploy_all_products(
+            portfolio_association,
+            portfolio,
+            products_launch_role,
+            portfolio_owner,
+            product_version,
+            stage_name,
+            **kwargs,
+        )
 
         # Create the build and deployment asset as an output to pass to pipeline stack
         zip_image = DockerImage.from_build("mlops_sm_project_template_rt/cdk_helper_scripts/zip-image")
@@ -262,7 +265,7 @@ class ServiceCatalogStack(Stack):
 
         byoc_build_app_asset = s3_assets.Asset(
             self,
-            "BuildAsset",
+            "BYOCBuildAsset",
             path="seed_code/byoc_build_app/",
             bundling=BundlingOptions(
                 image=zip_image,
@@ -306,7 +309,7 @@ class ServiceCatalogStack(Stack):
             build_app_asset.s3_object_key,
         )
         self.export_ssm(
-            "CodeDeployKey",
+            "BYOCCodeBuildKey",
             "/mlops/code/build/byoc",
             byoc_build_app_asset.s3_object_key,
         )
