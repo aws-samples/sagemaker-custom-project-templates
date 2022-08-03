@@ -198,6 +198,9 @@ class BuildPipelineConstruct(Construct):
                     "ARTIFACT_BUCKET_KMS_ID": codebuild.BuildEnvironmentVariable(
                         value=s3_artifact.encryption_key.key_id
                     ),
+                    "ECR_REPO_URI": codebuild.BuildEnvironmentVariable(
+                        value=f"{Aws.ACCOUNT_ID}.dkr.ecr.{Aws.REGION}.amazonaws.com/{ecr_repository_name}"
+                    ),
                 },
             ),
         )

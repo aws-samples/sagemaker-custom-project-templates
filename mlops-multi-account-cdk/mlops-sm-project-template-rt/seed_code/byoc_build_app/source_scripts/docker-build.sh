@@ -12,7 +12,7 @@ REPOSITORY_URI=${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_DEFAULT_REGION}.amazonaws.com/${R
 
 aws ecr get-login-password --region $AWS_DEFAULT_REGION | docker login  --username AWS  --password-stdin ${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_DEFAULT_REGION}.amazonaws.com
 
-target_stages=("xgboost")
+target_stages=("processing" "training")
 
 for stage in "${target_stages[@]}"
 do

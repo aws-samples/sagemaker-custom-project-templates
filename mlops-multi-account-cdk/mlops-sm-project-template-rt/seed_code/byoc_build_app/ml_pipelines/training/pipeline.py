@@ -106,6 +106,8 @@ def get_pipeline(
     pipeline_name="AbalonePipeline",
     base_job_prefix="Abalone",
     project_id="SageMakerProjectId",
+    git_hash="",
+    ecr_repo_uri="",
 ):
     """Gets a SageMaker ML Pipeline instance working with on abalone data.
 
@@ -113,6 +115,8 @@ def get_pipeline(
         region: AWS region to create and run the pipeline.
         role: IAM role to create and run steps and pipeline.
         default_bucket: the bucket to use for storing the artifacts
+        git_hash: the hash id of the current commit. Used to determine which docker image version to use
+        ecr_repo_uri: uri of the ECR repository used by this project 
 
     Returns:
         an instance of a pipeline
@@ -132,9 +136,9 @@ def get_pipeline(
         name="InputDataUrl",
         default_value=f"s3://sagemaker-servicecatalog-seedcode-{region}/dataset/abalone-dataset.csv",
     )
-    processing_image_name = "sagemaker-{0}-processingimagebuild".format(project_id)
-    training_image_name = "sagemaker-{0}-trainingimagebuild".format(project_id)
-    inference_image_name = "sagemaker-{0}-inferenceimagebuild".format(project_id)
+    processing_image_uri = f"{ecr_repo_uri}:processing-{git_hash}"
+    training_image_uri = f"{ecr_repo_uri}:training-{git_hash}"
+    inference_image_uri = f"{ecr_repo_uri}:training-{git_hash}"
 
     # network_config = NetworkConfig(
     #     enable_network_isolation=True,
@@ -143,25 +147,12 @@ def get_pipeline(
     #     encrypt_inter_container_traffic=True,
     # )
 
-    # processing step for feature engineering
-    try:
-        processing_image_uri = sagemaker_session.sagemaker_client.describe_image_version(
-            ImageName=processing_image_name
-        )["ContainerImage"]
-    except (sagemaker_session.sagemaker_client.exceptions.ResourceNotFound):
-        processing_image_uri = sagemaker.image_uris.retrieve(
-            framework="xgboost",
-            region=region,
-            version="1.0-1",
-            py_version="py3",
-            instance_type="ml.m5.xlarge",
-        )
     script_processor = ScriptProcessor(
         image_uri=processing_image_uri,
         instance_type=processing_instance_type,
         instance_count=processing_instance_count,
-        base_job_name=f"{base_job_prefix}/sklearn-abalone-preprocess",
-        command=["python3"],
+        base_job_name=f"{base_job_prefix}/byoc-abalone-preprocess",
+        command=["Rscript"],
         sagemaker_session=sagemaker_session,
         role=role,
         output_kms_key=bucket_kms_id,
@@ -169,32 +160,19 @@ def get_pipeline(
     step_process = ProcessingStep(
         name="PreprocessAbaloneData",
         processor=script_processor,
+        inputs=[ProcessingInput(source =input_data, destination="/opt/ml/processing/input")],
         outputs=[
-            ProcessingOutput(output_name="train", source="/opt/ml/processing/train"),
-            ProcessingOutput(output_name="validation", source="/opt/ml/processing/validation"),
-            ProcessingOutput(output_name="test", source="/opt/ml/processing/test"),
+            ProcessingOutput(output_name="train", source="/opt/ml/processing/output/train"),
+            ProcessingOutput(output_name="validation", source="/opt/ml/processing/output/validation"),
+            ProcessingOutput(output_name="test", source="/opt/ml/processing/test/output"),
         ],
-        code="source_scripts/preprocessing/prepare_abalone_data/main.py",  # we must figure out this path to get it from step_source directory
-        job_arguments=["--input-data", input_data],
+        code="source_scripts/preprocessing/prepare_abalone_data/preprocessing.R",  # we must figure out this path to get it from step_source directory
     )
 
     # training step for generating model artifacts
     model_path = f"s3://{default_bucket}/{base_job_prefix}/AbaloneTrain"
 
-    try:
-        training_image_uri = sagemaker_session.sagemaker_client.describe_image_version(ImageName=training_image_name)[
-            "ContainerImage"
-        ]
-    except (sagemaker_session.sagemaker_client.exceptions.ResourceNotFound):
-        training_image_uri = sagemaker.image_uris.retrieve(
-            framework="xgboost",
-            region=region,
-            version="1.0-1",
-            py_version="py3",
-            instance_type="ml.m5.xlarge",
-        )
-
-    xgb_train = Estimator(
+    train_estimator = Estimator(
         image_uri=training_image_uri,
         instance_type=training_instance_type,
         instance_count=1,
@@ -203,36 +181,30 @@ def get_pipeline(
         sagemaker_session=sagemaker_session,
         role=role,
         output_kms_key=bucket_kms_id,
+        source_dir="source_scripts/training/",
+        entry_point="train.R",
+        metric_definitions=[{"Name":"rmse-validation", "Regex": "Calculated validation RMSE: ([0-9.]+);.*$"}],
     )
-    xgb_train.set_hyperparameters(
-        objective="reg:linear",
-        num_round=50,
-        max_depth=5,
-        eta=0.2,
-        gamma=4,
-        min_child_weight=6,
-        subsample=0.7,
-        silent=0,
-    )
+
     step_train = TrainingStep(
         name="TrainAbaloneModel",
-        estimator=xgb_train,
+        estimator=train_estimator,
         inputs={
             "train": TrainingInput(
                 s3_data=step_process.properties.ProcessingOutputConfig.Outputs["train"].S3Output.S3Uri,
                 content_type="text/csv",
             ),
-            "validation": TrainingInput(
-                s3_data=step_process.properties.ProcessingOutputConfig.Outputs["validation"].S3Output.S3Uri,
-                content_type="text/csv",
-            ),
+            # "validation": TrainingInput(          # Validation data not used by seed code, but uncomment to make available during training
+            #     s3_data=step_process.properties.ProcessingOutputConfig.Outputs["validation"].S3Output.S3Uri,
+            #     content_type="text/csv",
+            # ),
         },
     )
 
     # processing step for evaluation
     script_eval = ScriptProcessor(
         image_uri=training_image_uri,
-        command=["python3"],
+        command=["Rscript"],
         instance_type=processing_instance_type,
         instance_count=1,
         base_job_name=f"{base_job_prefix}/script-abalone-eval",
@@ -261,7 +233,7 @@ def get_pipeline(
         outputs=[
             ProcessingOutput(output_name="evaluation", source="/opt/ml/processing/evaluation"),
         ],
-        code="source_scripts/evaluate/evaluate_xgboost/main.py",
+        code="source_scripts/evaluate/evaluation.R",
         property_files=[evaluation_report],
     )
 
@@ -275,25 +247,13 @@ def get_pipeline(
         )
     )
 
-    try:
-        inference_image_uri = sagemaker_session.sagemaker_client.describe_image_version(ImageName=inference_image_name)[
-            "ContainerImage"
-        ]
-    except (sagemaker_session.sagemaker_client.exceptions.ResourceNotFound):
-        inference_image_uri = sagemaker.image_uris.retrieve(
-            framework="xgboost",
-            region=region,
-            version="1.0-1",
-            py_version="py3",
-            instance_type="ml.m5.xlarge",
-        )
     step_register = RegisterModel(
         name="RegisterAbaloneModel",
-        estimator=xgb_train,
+        estimator=train_estimator,
         image_uri=inference_image_uri,
         model_data=step_train.properties.ModelArtifacts.S3ModelArtifacts,
-        content_types=["text/csv"],
-        response_types=["text/csv"],
+        content_types=["application/json"],
+        response_types=["application/json"],
         inference_instances=["ml.t2.medium", "ml.m5.large"],
         transform_instances=["ml.m5.large"],
         model_package_group_name=model_package_group_name,
@@ -304,7 +264,7 @@ def get_pipeline(
     # condition step for evaluating model quality and branching execution
     cond_lte = ConditionLessThanOrEqualTo(
         left=JsonGet(
-            step_name=step_eval.name, property_file=evaluation_report, json_path="regression_metrics.mse.value"
+            step_name=step_eval.name, property_file=evaluation_report, json_path="regression_metrics.rmse.value"
         ),
         right=6.0,
     )

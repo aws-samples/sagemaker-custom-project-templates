@@ -1,40 +1,37 @@
-FROM public.ecr.aws/docker/library/python:buster as base
+FROM public.ecr.aws/docker/library/r-base:4.1.2 as base
 
-RUN apt-get -y update && apt-get install -y \
-         nginx \
-         ca-certificates \
-         policycoreutils \
-    && rm -rf /var/lib/apt/lists/*
+# Install tidyverse
+RUN apt update && apt-get install -y --no-install-recommends \
+    r-cran-tidyverse
+    
+RUN R -e "install.packages(c('rjson'))"
 
-ENV PATH="/usr/sbin/:${PATH}"
 
-COPY helpers/requirements.txt /requirements.txt
-
-RUN pip install --upgrade pip && pip install --no-cache -r /requirements.txt && \
-    rm /requirements.txt
-# Set up the program in the image
-COPY helpers /opt/program
-
+### start of PROCESSING container
+FROM base as processing
+ENTRYPOINT ["Rscript"]
 
 ### start of TRAINING container
-FROM base as xgboost
-COPY training/xgboost/requirements.txt /requirements.txt
-RUN pip install --no-cache -r /requirements.txt && \
-    rm /requirements.txt
+FROM base as training
+RUN apt-get -y update && apt-get install -y --no-install-recommends \
+    wget \
+    apt-transport-https \
+    ca-certificates \
+    libcurl4-openssl-dev \
+    libsodium-dev
+    
+RUN apt-get update && apt-get install -y python3-dev python3-pip 
+RUN pip3 install boto3
+RUN R -e "install.packages('reticulate',dependencies=TRUE, repos='http://cran.rstudio.com/')"
+RUN R -e "install.packages(c('readr','plumber'))"
 
-# sm vars
-ENV SAGEMAKER_MODEL_SERVER_TIMEOUT="300"
-ENV MODEL_SERVER_TIMEOUT="300"
-ENV PYTHONUNBUFFERED=TRUE
-ENV PYTHONDONTWRITEBYTECODE=TRUE
-ENV PATH="/opt/program:${PATH}"
+ENV PATH="/opt/ml/code:${PATH}"
 
-# env vars
+WORKDIR /opt/ml/code
 
-# Set up the program in the image
-COPY training/xgboost /opt/program
+COPY docker_helpers/run.sh /opt/ml/code/run.sh
+COPY docker_helpers/entrypoint.R /opt/ml/entrypoint.R
 
-# set permissions of entrypoint
-RUN chmod +x /opt/program/__main__.py
+RUN /bin/bash -c 'chmod +x /opt/ml/code/run.sh'
 
-WORKDIR /opt/program
+ENTRYPOINT ["/bin/bash", "run.sh"]

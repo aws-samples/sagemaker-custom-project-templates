@@ -218,7 +218,7 @@ class MLOpsStack(Stack):
             self,
             "MLModelsECRRepository",
             image_scan_on_push=True,
-            image_tag_mutability=ecr.TagMutability.IMMUTABLE,
+            image_tag_mutability=ecr.TagMutability.MUTABLE,
             repository_name=f"{project_name}",
         )
 
