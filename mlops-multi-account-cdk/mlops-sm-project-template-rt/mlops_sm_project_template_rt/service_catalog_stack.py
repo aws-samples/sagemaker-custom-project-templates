@@ -234,7 +234,7 @@ class ServiceCatalogStack(Stack):
         # role_constraint.add_depends_on(portfolio_association)
 
         # uncomment this block if you want to create service catalog products based on all templates
-        # make sure you comment out lines 213-247
+        # make sure you comment out lines 202-234
         products = self.deploy_all_products(
             portfolio_association,
             portfolio,

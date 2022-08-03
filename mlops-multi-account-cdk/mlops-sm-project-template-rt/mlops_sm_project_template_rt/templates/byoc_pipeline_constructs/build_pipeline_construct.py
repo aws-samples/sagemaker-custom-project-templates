@@ -208,11 +208,13 @@ class BuildPipelineConstruct(Construct):
             "DockerBuild",
             build_spec=codebuild.BuildSpec.from_object(
                 {
+                    "version": 0.2,
                     "phases": {
                         "build": {
                             "commands": [
-                                "chmod +x source_scripts/docker-build.sh",
-                                f"./source_scripts/docker-build.sh {ecr_repository_name}",
+                                "cd source_scripts",
+                                "chmod +x docker-build.sh",
+                                f"./docker-build.sh {ecr_repository_name}",
                             ]
                         },
                     },

@@ -1,4 +1,4 @@
-FROM public.ecr.aws/docker/library/python:3.7-buster as base
+FROM public.ecr.aws/docker/library/python:buster as base
 
 RUN apt-get -y update && apt-get install -y \
          nginx \

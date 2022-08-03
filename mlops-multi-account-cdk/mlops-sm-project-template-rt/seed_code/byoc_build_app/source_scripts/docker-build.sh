@@ -10,7 +10,7 @@ AWS_ACCOUNT_ID=$(jq -r .registryId repository-info.json);
 REPOSITORY_URI=${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_DEFAULT_REGION}.amazonaws.com/${REPO_NAME};
 # REPOSITORY_URI=local
 
-aws ecr get-login-password --region AWS_DEFAULT_REGION | docker login  --username AWS  --password-stdin ${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_DEFAULT_REGION}.amazonaws.com
+aws ecr get-login-password --region $AWS_DEFAULT_REGION | docker login  --username AWS  --password-stdin ${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_DEFAULT_REGION}.amazonaws.com
 
 target_stages=("xgboost")
 
@@ -24,6 +24,7 @@ do
         docker build --target $stage -t $REPOSITORY_URI:$stage .
         docker tag $REPOSITORY_URI:$stage $REPOSITORY_URI:$IMAGE_TAG
 
+        docker push $REPOSITORY_URI:$stage
         docker push $REPOSITORY_URI:$IMAGE_TAG
 
 done
