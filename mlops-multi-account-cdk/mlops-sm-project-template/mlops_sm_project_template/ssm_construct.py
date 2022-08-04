@@ -21,7 +21,7 @@ from aws_cdk import (
 
 from constructs import Construct
 
-from mlops_sm_project_template_rt.config.constants import (
+from mlops_sm_project_template.config.constants import (
     DEV_ACCOUNT,
     PREPROD_ACCOUNT,
     PROD_ACCOUNT,

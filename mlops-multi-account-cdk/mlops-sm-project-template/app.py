@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 # Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 #
 # SPDX-License-Identifier: MIT-0
@@ -15,20 +16,27 @@
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
 # SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
-import aws_cdk as core
-import aws_cdk.assertions as assertions
+import aws_cdk as cdk
+import os
+from mlops_sm_project_template.pipeline_stack import PipelineStack, CoreStage
+from mlops_sm_project_template.codecommit_stack import CodeCommitStack
+from mlops_sm_project_template.config.constants import DEFAULT_DEPLOYMENT_REGION, PIPELINE_ACCOUNT, DEV_ACCOUNT
 
-from mlops_sm_project_template_rt.sm_project_stack import MlopsBatchV2Stack
+app = cdk.App()
+
+pipeline_env = cdk.Environment(account=PIPELINE_ACCOUNT, region=DEFAULT_DEPLOYMENT_REGION)
+deployment_env = cdk.Environment(account=DEV_ACCOUNT, region=DEFAULT_DEPLOYMENT_REGION)
+
+CodeCommitStack(app, "ml-sg-cc-repo", env=pipeline_env)
+PipelineStack(app, "ml-sg-deploy-pipeline", env=pipeline_env)
+
+# Personal Stacks for testing locally, comment out when committing to repository
+if not os.getenv("CODEBUILD_BUILD_ARN"):
+    CoreStage(
+        app,
+        "Personal",  ## change this to another stack name when doing local tests
+        env=deployment_env,
+    )
 
 
-# example tests. To run these tests, uncomment this file along with the example
-# resource in mlops_sm_project_template_rt_v2/mlops_sm_project_template_rt_v2_stack.py
-def test_sqs_queue_created():
-    app = core.App()
-    stack = MlopsBatchV2Stack(app, "mlops-batch-v2")
-    template = assertions.Template.from_stack(stack)
-
-
-#     template.has_resource_properties("AWS::SQS::Queue", {
-#         "VisibilityTimeout": 300
-#     })
+app.synth()

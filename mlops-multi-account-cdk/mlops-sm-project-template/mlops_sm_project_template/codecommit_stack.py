@@ -26,7 +26,7 @@ from aws_cdk import (
 
 from constructs import Construct
 
-from mlops_sm_project_template_rt.config.constants import (
+from mlops_sm_project_template.config.constants import (
     CODE_COMMIT_REPO_NAME,
     PIPELINE_BRANCH
 )
@@ -52,7 +52,7 @@ class CodeCommitStack(Stack):
             "DeployAsset",
             path="",
             bundling=BundlingOptions(
-                image=DockerImage.from_build("mlops_sm_project_template_rt/cdk_helper_scripts/zip-image"),
+                image=DockerImage.from_build("mlops_sm_project_template/cdk_helper_scripts/zip-image"),
                 command=[
                     "sh",
                     "-c",

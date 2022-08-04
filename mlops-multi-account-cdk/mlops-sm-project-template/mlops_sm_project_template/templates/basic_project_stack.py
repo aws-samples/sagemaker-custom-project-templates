@@ -31,14 +31,14 @@ import aws_cdk
 
 from constructs import Construct
 
-from mlops_sm_project_template_rt.templates.pipeline_constructs.build_pipeline_construct import (
+from mlops_sm_project_template.templates.pipeline_constructs.build_pipeline_construct import (
     BuildPipelineConstruct,
 )
-from mlops_sm_project_template_rt.templates.pipeline_constructs.deploy_pipeline_construct import (
+from mlops_sm_project_template.templates.pipeline_constructs.deploy_pipeline_construct import (
     DeployPipelineConstruct,
 )
 
-from mlops_sm_project_template_rt.config.constants import PREPROD_ACCOUNT, PROD_ACCOUNT, DEFAULT_DEPLOYMENT_REGION
+from mlops_sm_project_template.config.constants import PREPROD_ACCOUNT, PROD_ACCOUNT, DEFAULT_DEPLOYMENT_REGION
 
 
 class MLOpsStack(Stack):

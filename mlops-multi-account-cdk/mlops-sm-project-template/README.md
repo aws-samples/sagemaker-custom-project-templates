@@ -120,12 +120,12 @@ There are 2 way to trigger the deployment CI/CD Pipeline:
 - **Model Events** - These are events which get triggered through a status change to the model package group in SageMaker Model Registry.
 - **Code Events** - The pipeline is triggered on git update events over a specific branch, in this solution it is linked to the **main** branch.
 
-**Note:** For the deployment stages for **PREPROD** and **PROD**, the roles defined for cloudformation deployment in `mlops_sm_project_template_rt/templates/constructs/deploy_pipeline_construct.py` lines 284-292 and lines 317-326 are created when the **PREPROD** and **PROD** are bootstrapped with CDK with trust policies for the deployment CI/CD pipeline account (**DEV** account in our solution); the roles must be created before deploying this stack to any account along with trust policies included between the accounts and the roles. If you can bootstrap those accounts for any reason you should ensure to create similar roles in each of those accounts and adding them to the lines mentioned above in the file.
+**Note:** For the deployment stages for **PREPROD** and **PROD**, the roles defined for cloudformation deployment in `mlops_sm_project_template/templates/constructs/deploy_pipeline_construct.py` lines 284-292 and lines 317-326 are created when the **PREPROD** and **PROD** are bootstrapped with CDK with trust policies for the deployment CI/CD pipeline account (**DEV** account in our solution); the roles must be created before deploying this stack to any account along with trust policies included between the accounts and the roles. If you can bootstrap those accounts for any reason you should ensure to create similar roles in each of those accounts and adding them to the lines mentioned above in the file.
 
 ### CodeCommit Stack
 *This stack is only needed if you want to handle deployments of this folder of the repository to be managed through a CICD pipeline.*
 
-This stack handles setting up an AWS CodeCommit repository for this folder of the repository. This repository will be used as the source for the CI/CD pipeline defined in [Pipeline Stack](#pipeline-stack). The repository will be named based on the value defined in `mlops_sm_project_template_rt/config/constants.py` with this variable `CODE_COMMIT_REPO_NAME`. The repository will be intialised with a default branch as defined in the `constants.py` file under `PIPELINE_BRANCH` variable.
+This stack handles setting up an AWS CodeCommit repository for this folder of the repository. This repository will be used as the source for the CI/CD pipeline defined in [Pipeline Stack](#pipeline-stack). The repository will be named based on the value defined in `mlops_sm_project_template/config/constants.py` with this variable `CODE_COMMIT_REPO_NAME`. The repository will be intialised with a default branch as defined in the `constants.py` file under `PIPELINE_BRANCH` variable.
 
 ### Pipeline Stack
 
@@ -133,7 +133,7 @@ This stack handles setting up an AWS CodeCommit repository for this folder of th
 
 The CICD pipeline in this repository is setup to monitor an AWS CodeCommit repository as defined in [CodeCommit Stack](#codecommit-stack).
 
-If you are using other sources like github or bitbucket for your repository, you will need to modify the connection to the appropriate repository as defined in `mlops_sm_project_template_rt/pipeline_stack.py`. This can be done using AWS CodeStar but must be setup on the account.
+If you are using other sources like github or bitbucket for your repository, you will need to modify the connection to the appropriate repository as defined in `mlops_sm_project_template/pipeline_stack.py`. This can be done using AWS CodeStar but must be setup on the account.
 
 Make sure the pipelines also point to your targeted branch; by default the pipeline is linked to `main` branch events, this is defined in the `constants.py` file under `PIPELINE_BRANCH` variable.
 
@@ -164,7 +164,7 @@ This is an AWS CDK project written in Python 3.8. Here's what you need to have o
 ├── app.py
 ├── cdk.json
 ├── diagrams
-├── mlops_sm_project_template_rt
+├── mlops_sm_project_template
 │   ├── README.md
 │   ├── __init__.py
 │   ├── cdk_helper_scripts
@@ -221,7 +221,7 @@ aws_session_token = YOUR_SESSION_TOKEN  # this token is generated if you are usi
 ...
 ```
 
-Before you start with the deployment of the solution make sure to bootstrap your accounts. Ensure you add the account details in `mlops_sm_project_template_rt/config/constants.py` mainly the target deployment accounts: **DEV**, **PREPROD** and **PROD**.
+Before you start with the deployment of the solution make sure to bootstrap your accounts. Ensure you add the account details in `mlops_sm_project_template/config/constants.py` mainly the target deployment accounts: **DEV**, **PREPROD** and **PROD**.
 ```
 PIPELINE_ACCOUNT = ""     # account to host the pipeline handling updates of this repository
 

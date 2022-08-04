@@ -26,7 +26,7 @@ from aws_cdk import (
 
 from constructs import Construct
 
-from mlops_sm_project_template_rt.config.constants import (
+from mlops_sm_project_template.config.constants import (
     APP_PREFIX,
     CODE_COMMIT_REPO_NAME,
     DEV_ACCOUNT,
@@ -34,7 +34,7 @@ from mlops_sm_project_template_rt.config.constants import (
     PIPELINE_BRANCH,
 )
 
-from mlops_sm_project_template_rt.service_catalog_stack import ServiceCatalogStack
+from mlops_sm_project_template.service_catalog_stack import ServiceCatalogStack
 
 
 class CoreStage(Stage):

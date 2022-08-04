@@ -15,7 +15,7 @@ sed -i '' -e "s/^PIPELINE_ACCOUNT = \"$pattern\"/PIPELINE_ACCOUNT = \"$gov_accou
             -e "s/^PREPROD_ACCOUNT = \"$pattern\"/PREPROD_ACCOUNT = \"$preprod_account\"/" \
             -e "s/^PROD_ACCOUNT = \"$pattern\"/PROD_ACCOUNT = \"$prod_account\"/" \
             -e "s/^DEFAULT_DEPLOYMENT_REGION = \"$pattern\"/DEFAULT_DEPLOYMENT_REGION = \"$region\"/" \
-            mlops_sm_project_template_rt/config/constants.py
+            mlops_sm_project_template/config/constants.py
 
 echo 'AWS profiles to be used for each account'
 read -p 'Governance Account AWS Profile: ' gov_profile
