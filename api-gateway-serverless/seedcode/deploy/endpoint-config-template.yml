@@ -1,0 +1,111 @@
+Description:
+  This template is built and deployed by the infrastructure pipeline in various stages (staging/production) as required.
+  It specifies the resources that need to be created, like the SageMaker Endpoint. It can be extended to include resources like
+  AutoScalingPolicy, API Gateway, etc,. as required.
+Parameters:
+  SageMakerProjectName:
+    Type: String
+    Description: Name of the project
+    MinLength: 1
+    MaxLength: 32
+    AllowedPattern: ^[a-zA-Z](-*[a-zA-Z0-9])*
+  ModelExecutionRoleArn:
+    Type: String
+    Description: Execution role used for deploying the model.
+  ModelPackageName:
+    Type: String
+    Description: The trained Model Package Name
+  StageName:
+    Type: String
+    Description:
+      The name for a project pipeline stage, such as Staging or Prod, for
+      which resources are provisioned and deployed.
+
+Resources:
+  Model:
+    Type: AWS::SageMaker::Model
+    Properties:
+      Containers:
+         - ModelPackageName: !Ref ModelPackageName
+      ExecutionRoleArn: !Ref ModelExecutionRoleArn
+
+  EndpointConfig:
+    Type: AWS::SageMaker::EndpointConfig
+    Properties:
+      ProductionVariants:
+        - InitialVariantWeight: 1.0
+          ModelName: !GetAtt Model.ModelName
+          VariantName: AllTraffic
+          ServerlessConfig: 
+            MaxConcurrency: 1
+            MemorySizeInMB: 1024
+
+  Endpoint:
+    Type: AWS::SageMaker::Endpoint
+    Properties:
+      EndpointName: !Sub ${SageMakerProjectName}-${StageName}
+      EndpointConfigName: !GetAtt EndpointConfig.EndpointConfigName
+
+  ApiGatewayInvokeSageMakerEndpointRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub ApiGatewayInvokeSageMakerEndpointRole-${SageMakerProjectName}
+      Description: Role used by API Gateway to invoke SageMaker endpoints
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - apigateway.amazonaws.com
+            Action: 'sts:AssumeRole'
+
+  ApiGatewayInvokeSageMakerEndpointPolicy:
+    Type: AWS::IAM::Policy
+    Properties:
+      PolicyName: !Sub ApiGatewayInvokeSageMakerEndpointPolicy-${SageMakerProjectName}
+      Roles: 
+        - !Ref ApiGatewayInvokeSageMakerEndpointRole
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Action:
+            - 'sagemaker:InvokeEndpoint'
+            Effect: Allow
+            Resource: !Ref Endpoint
+            
+  ApiGateway:
+    Type: AWS::ApiGateway::RestApi
+    Properties:
+      Description: Expose the SageMaker endpoint as public-facing REST API
+      EndpointConfiguration:
+        Types:
+          - REGIONAL
+      Name: !Sub ${SageMakerProjectName}-${StageName}-api
+
+  ApiGatewayRootMethod:
+    Type: AWS::ApiGateway::Method
+    Properties:
+      AuthorizationType: NONE
+      HttpMethod: POST
+      Integration:
+        IntegrationHttpMethod: POST
+        Type: AWS
+        Credentials: !Ref ApiGatewayInvokeSageMakerEndpointRole
+        Uri: !Sub
+          - arn:aws:apigateway:${AWS::Region}:runtime.sagemaker:path/endpoints/${EndpointName}/invocations
+          - EndpointName: !GetAtt Endpoint.EndpointName
+        IntegrationResponses:
+          - StatusCode: 200
+      MethodResponses:
+        - StatusCode: 200
+      ResourceId: !GetAtt ApiGateway.RootResourceId
+      RestApiId: !Ref ApiGateway
+
+  ApiGatewayDeployment:
+    Type: AWS::ApiGateway::Deployment
+    DependsOn:
+      - ApiGatewayRootMethod
+    Properties:
+      RestApiId: !Ref ApiGateway
+      StageName: !Sub ${StageName}
