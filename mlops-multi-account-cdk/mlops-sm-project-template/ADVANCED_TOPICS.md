@@ -1,5 +1,5 @@
 # Advanced topics
-The topics defined here assume you have already deployed the solution once following the steps in teh main [README](README.md)
+The topics defined here assume you have already deployed the solution once following the steps in the main [README](README.md)
 
 - [Advanced topics](#advanced-topics)
   - [Setup CodeCommit with this repository](#setup-codecommit-with-this-repository)

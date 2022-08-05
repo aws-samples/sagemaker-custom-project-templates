@@ -20,8 +20,6 @@ This repository contains the resources that are required to deploy the MLOps Fou
       - [Manual Deployment of Service Catalog Stack](#manual-deployment-of-service-catalog-stack)
     - [Clean-up](#clean-up)
   - [Troubleshooting](#troubleshooting)
-  - [Advanced topics](#advanced-topics)
-    - [Test the created templates as normal cloudformation templates](#test-the-created-templates-as-normal-cloudformation-templates)
 
 ## Solution Architecture
 
