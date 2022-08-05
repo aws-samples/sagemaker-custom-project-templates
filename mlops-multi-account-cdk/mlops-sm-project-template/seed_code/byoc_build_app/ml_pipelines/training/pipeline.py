@@ -162,7 +162,7 @@ def get_pipeline(
     step_process = ProcessingStep(
         name="PreprocessAbaloneData",
         processor=script_processor,
-        inputs=[ProcessingInput(source =input_data, destination="/opt/ml/processing/input")],
+        inputs=[ProcessingInput(source=input_data, destination="/opt/ml/processing/input")],
         outputs=[
             ProcessingOutput(output_name="train", source="/opt/ml/processing/output/train"),
             ProcessingOutput(output_name="validation", source="/opt/ml/processing/output/validation"),
@@ -185,7 +185,7 @@ def get_pipeline(
         output_kms_key=bucket_kms_id,
         source_dir="source_scripts/training/",
         entry_point="train.R",
-        metric_definitions=[{"Name":"rmse-validation", "Regex": "Calculated validation RMSE: ([0-9.]+);.*$"}],
+        metric_definitions=[{"Name": "rmse-validation", "Regex": "Calculated validation RMSE: ([0-9.]+);.*$"}],
     )
 
     step_train = TrainingStep(

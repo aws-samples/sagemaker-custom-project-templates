@@ -16,16 +16,39 @@
 # SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 repos:
--   repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: v4.3.0
-    hooks:
-    -   id: check-added-large-files
-    -   id: check-json
-    -   id: check-merge-conflict
-    # -   id: check-yaml
-    -   id: end-of-file-fixer
-    -   id: requirements-txt-fixer
-    -   id: trailing-whitespace
+# General
+- repo: https://github.com/pre-commit/pre-commit-hooks
+  rev: v4.3.0
+  hooks:
+  - id: check-case-conflict
+  - id: detect-private-key
+  - id: trailing-whitespace
+  - id: end-of-file-fixer
+  - id: mixed-line-ending
+    args:
+      - --fix=lf
+    exclude: /package-lock\.json$
+  - id: check-added-large-files
+    args:
+      - --maxkb=1000
+  - id: check-merge-conflict
+  - id: no-commit-to-branch
+    args:
+      - --branch
+      - main
+  - id: pretty-format-json
+    args:
+      - --autofix
+      - --indent=2
+      - --no-sort-keys
+    exclude: /package-lock\.json$
+# Secrets
+- repo: https://github.com/awslabs/git-secrets
+  rev: b9e96b3212fa06aea65964ff0d5cda84ce935f38
+  hooks:
+  - id: git-secrets
+    entry: git-secrets --scan
+    files: .
 -   repo: https://github.com/psf/black
     rev: 22.6.0
     hooks:

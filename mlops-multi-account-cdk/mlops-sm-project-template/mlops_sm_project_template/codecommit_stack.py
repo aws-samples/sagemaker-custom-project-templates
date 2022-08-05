@@ -26,10 +26,7 @@ from aws_cdk import (
 
 from constructs import Construct
 
-from mlops_sm_project_template.config.constants import (
-    CODE_COMMIT_REPO_NAME,
-    PIPELINE_BRANCH
-)
+from mlops_sm_project_template.config.constants import CODE_COMMIT_REPO_NAME, PIPELINE_BRANCH
 
 
 class CodeCommitStack(Stack):

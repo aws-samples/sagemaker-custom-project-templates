@@ -12,7 +12,7 @@ phases:
       - export PYTHONUNBUFFERED=TRUE
       - export SAGEMAKER_PROJECT_NAME_ID="${SAGEMAKER_PROJECT_NAME}-${SAGEMAKER_PROJECT_ID}"
       # Copy sample dataset for template - REMOVE when using your own data
-      - aws s3 cp s3://sagemaker-sample-files/datasets/tabular/uci_abalone/abalone.csv . 
+      - aws s3 cp s3://sagemaker-sample-files/datasets/tabular/uci_abalone/abalone.csv .
       - aws s3 cp abalone.csv s3://${ARTIFACT_BUCKET}
       - |
         run-pipeline --module-name ml_pipelines.training.pipeline \

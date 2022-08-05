@@ -3,7 +3,7 @@ FROM public.ecr.aws/docker/library/r-base:4.1.2 as base
 # Install tidyverse
 RUN apt update && apt-get install -y --no-install-recommends \
     r-cran-tidyverse
-    
+
 RUN R -e "install.packages(c('rjson'))"
 
 
@@ -19,8 +19,8 @@ RUN apt-get -y update && apt-get install -y --no-install-recommends \
     ca-certificates \
     libcurl4-openssl-dev \
     libsodium-dev
-    
-RUN apt-get update && apt-get install -y python3-dev python3-pip 
+
+RUN apt-get update && apt-get install -y python3-dev python3-pip
 RUN pip3 install boto3
 RUN R -e "install.packages('reticulate',dependencies=TRUE, repos='http://cran.rstudio.com/')"
 RUN R -e "install.packages(c('readr','plumber'))"

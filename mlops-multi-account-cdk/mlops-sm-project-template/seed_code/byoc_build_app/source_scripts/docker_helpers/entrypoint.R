@@ -38,24 +38,24 @@ inference_code_dir <- paste(model_path, 'code', sep='/')
 
 
 if (args=="train") {
-  
+
   # This is where the hyperparamters are saved by the estimator on the container instance
   param_path <- paste(prefix, 'input/config/hyperparameters.json', sep='/')
   params <- read_json(param_path)
-  
+
   s3_source_code_tar <- gsub('"', '', params$sagemaker_submit_directory)
   script <- gsub('"', '', params$sagemaker_program)
-  
+
   bucketkey <- str_replace(s3_source_code_tar, "s3://", "")
   bucket <- str_remove(bucketkey, "/.*")
   key <- str_remove(bucketkey, ".*?/")
-  
+
   s3$download_file(bucket, key, "sourcedir.tar.gz")
   untar("sourcedir.tar.gz", exdir=code_dir)
-  
+
   print("training started")
   source(file.path(code_dir, script))
-  
+
 } else if(args=="serve"){
   print("inference time")
   source(file.path(inference_code_dir, "deploy.R"))

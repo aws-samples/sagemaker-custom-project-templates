@@ -247,7 +247,7 @@ class ServiceCatalogStack(Stack):
 
         # Create the build and deployment asset as an output to pass to pipeline stack
         zip_image = DockerImage.from_build("mlops_sm_project_template/cdk_helper_scripts/zip-image")
-        
+
         build_app_asset = s3_assets.Asset(
             self,
             "BuildAsset",

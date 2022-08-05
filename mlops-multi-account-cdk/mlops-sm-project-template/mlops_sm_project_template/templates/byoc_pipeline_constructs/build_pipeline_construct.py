@@ -173,15 +173,9 @@ class BuildPipelineConstruct(Construct):
             environment=codebuild.BuildEnvironment(
                 build_image=codebuild.LinuxBuildImage.STANDARD_5_0,
                 environment_variables={
-                    "SAGEMAKER_PROJECT_NAME": codebuild.BuildEnvironmentVariable(
-                        value=project_name
-                    ),
-                    "SAGEMAKER_PROJECT_ID": codebuild.BuildEnvironmentVariable(
-                        value=project_id
-                    ),
-                    "MODEL_PACKAGE_GROUP_NAME": codebuild.BuildEnvironmentVariable(
-                        value=model_package_group_name
-                    ),
+                    "SAGEMAKER_PROJECT_NAME": codebuild.BuildEnvironmentVariable(value=project_name),
+                    "SAGEMAKER_PROJECT_ID": codebuild.BuildEnvironmentVariable(value=project_id),
+                    "MODEL_PACKAGE_GROUP_NAME": codebuild.BuildEnvironmentVariable(value=model_package_group_name),
                     "AWS_REGION": codebuild.BuildEnvironmentVariable(value=Aws.REGION),
                     "SAGEMAKER_PIPELINE_NAME": codebuild.BuildEnvironmentVariable(
                         value=pipeline_name,
@@ -192,9 +186,7 @@ class BuildPipelineConstruct(Construct):
                     "SAGEMAKER_PIPELINE_ROLE_ARN": codebuild.BuildEnvironmentVariable(
                         value=sagemaker_execution_role.role_arn,
                     ),
-                    "ARTIFACT_BUCKET": codebuild.BuildEnvironmentVariable(
-                        value=s3_artifact.bucket_name
-                    ),
+                    "ARTIFACT_BUCKET": codebuild.BuildEnvironmentVariable(value=s3_artifact.bucket_name),
                     "ARTIFACT_BUCKET_KMS_ID": codebuild.BuildEnvironmentVariable(
                         value=s3_artifact.encryption_key.key_id
                     ),
@@ -223,18 +215,14 @@ class BuildPipelineConstruct(Construct):
                     },
                 }
             ),
-            environment=codebuild.BuildEnvironment(
-                build_image=codebuild.LinuxBuildImage.STANDARD_5_0, privileged=True
-            ),
+            environment=codebuild.BuildEnvironment(build_image=codebuild.LinuxBuildImage.STANDARD_5_0, privileged=True),
         )
 
         docker_build.add_to_role_policy(
             iam.PolicyStatement(
                 actions=["ecr:*"],
                 effect=iam.Effect.ALLOW,
-                resources=[
-                    f"arn:aws:ecr:{Aws.REGION}:{Aws.ACCOUNT_ID}:repository/{ecr_repository_name}"
-                ],
+                resources=[f"arn:aws:ecr:{Aws.REGION}:{Aws.ACCOUNT_ID}:repository/{ecr_repository_name}"],
             )
         )
 
@@ -271,18 +259,12 @@ class BuildPipelineConstruct(Construct):
 
         build_stage.add_action(
             codepipeline_actions.CodeBuildAction(
-                action_name="DockerBuild",
-                input=source_artifact,
-                project=docker_build,
-                run_order=1
+                action_name="DockerBuild", input=source_artifact, project=docker_build, run_order=1
             )
         )
-        
+
         build_stage.add_action(
             codepipeline_actions.CodeBuildAction(
-                action_name="SMPipeline",
-                input=source_artifact,
-                project=sm_pipeline_build,
-                run_order=2
+                action_name="SMPipeline", input=source_artifact, project=sm_pipeline_build, run_order=2
             )
         )

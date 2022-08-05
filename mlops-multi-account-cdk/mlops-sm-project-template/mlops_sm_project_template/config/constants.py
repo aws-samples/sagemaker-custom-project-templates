@@ -15,7 +15,7 @@
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
 # SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
-CODE_COMMIT_REPO_NAME = "mlops-sm-project-template-rt"
+CODE_COMMIT_REPO_NAME = "mlops-sm-project-template"
 PIPELINE_BRANCH = "main"
 
 PIPELINE_ACCOUNT = ""  # account used to host the pipeline handling updates of this repository

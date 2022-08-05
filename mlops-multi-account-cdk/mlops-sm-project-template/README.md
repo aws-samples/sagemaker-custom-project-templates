@@ -371,5 +371,3 @@ One of the following would solve the problem:
     * Docker is having an issue so restart your docker daemon
     * Refresh your awscli credentials
     * Clear all cached cdk outputs by running `make clean`
-
-
