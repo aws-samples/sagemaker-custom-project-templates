@@ -34,7 +34,7 @@ If you want to push the changes you made back to the main repository this folder
 ```
 rm -fr .git
 ```
-This will remove the git settings from this folder so it would go back to the main repository settings.
+This will remove the git settings from this folder so it would go back to the main repository settings. You can then raise a PR to include your changes to the main repository in GitHub.
 
 
 ## Test the created sagemaker templates
@@ -73,7 +73,7 @@ aws cloudformation deploy \
 	  SageMakerProjectName=mlops-test-0 \
 	  SageMakerProjectId=sm12340
 ```
-This command will deploy the byoc project stack if you want to deploy other templates just change the `--template-file`, if you want to create a new stack you can change the other fields as well.
+This command will deploy the byoc project stack if you want to deploy other templates just change the `--template-file`, if you want to create a new stack you can change the other fields as well. 
 
 **OPTION 2** It is also possible to use CDK command for this exact purpose but this would require you to add the following to `app.py` file:
 ```
