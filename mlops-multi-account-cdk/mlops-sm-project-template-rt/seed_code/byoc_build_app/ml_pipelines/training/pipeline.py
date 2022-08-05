@@ -108,6 +108,7 @@ def get_pipeline(
     project_id="SageMakerProjectId",
     git_hash="",
     ecr_repo_uri="",
+    default_input_data="",
 ):
     """Gets a SageMaker ML Pipeline instance working with on abalone data.
 
@@ -116,7 +117,8 @@ def get_pipeline(
         role: IAM role to create and run steps and pipeline.
         default_bucket: the bucket to use for storing the artifacts
         git_hash: the hash id of the current commit. Used to determine which docker image version to use
-        ecr_repo_uri: uri of the ECR repository used by this project 
+        ecr_repo_uri: uri of the ECR repository used by this project
+        default_input_data: s3 location with data to be used by pipeline
 
     Returns:
         an instance of a pipeline
@@ -134,7 +136,7 @@ def get_pipeline(
     model_approval_status = ParameterString(name="ModelApprovalStatus", default_value="PendingManualApproval")
     input_data = ParameterString(
         name="InputDataUrl",
-        default_value=f"s3://sagemaker-servicecatalog-seedcode-{region}/dataset/abalone-dataset.csv",
+        default_value=default_input_data,
     )
     processing_image_uri = f"{ecr_repo_uri}:processing-{git_hash}"
     training_image_uri = f"{ecr_repo_uri}:training-{git_hash}"
@@ -164,7 +166,7 @@ def get_pipeline(
         outputs=[
             ProcessingOutput(output_name="train", source="/opt/ml/processing/output/train"),
             ProcessingOutput(output_name="validation", source="/opt/ml/processing/output/validation"),
-            ProcessingOutput(output_name="test", source="/opt/ml/processing/test/output"),
+            ProcessingOutput(output_name="test", source="/opt/ml/processing/output/test"),
         ],
         code="source_scripts/preprocessing/prepare_abalone_data/preprocessing.R",  # we must figure out this path to get it from step_source directory
     )
@@ -194,10 +196,10 @@ def get_pipeline(
                 s3_data=step_process.properties.ProcessingOutputConfig.Outputs["train"].S3Output.S3Uri,
                 content_type="text/csv",
             ),
-            # "validation": TrainingInput(          # Validation data not used by seed code, but uncomment to make available during training
-            #     s3_data=step_process.properties.ProcessingOutputConfig.Outputs["validation"].S3Output.S3Uri,
-            #     content_type="text/csv",
-            # ),
+            "validation": TrainingInput(
+                s3_data=step_process.properties.ProcessingOutputConfig.Outputs["validation"].S3Output.S3Uri,
+                content_type="text/csv",
+            ),
         },
     )
 

@@ -135,7 +135,8 @@ class DeployEndpointStack(Stack):
                         ],
                         effect=iam.Effect.ALLOW,
                         resources=[
-                            MODEL_BUCKET_ARN
+                            MODEL_BUCKET_ARN,
+                            f"{MODEL_BUCKET_ARN}/*",
                         ],
                     ),
                     iam.PolicyStatement(

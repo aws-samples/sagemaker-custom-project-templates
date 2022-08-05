@@ -21,6 +21,7 @@ library(readr)
 prefix <- '/opt/ml/'
 
 input_path <- paste0(prefix , 'input/data/train/')
+input_path_v <- paste0(prefix , 'input/data/validation/')
 output_path <- paste0(prefix, 'output/')
 model_path <- paste0(prefix, 'model/')
 code_path <- paste(prefix, 'code', sep='/')
@@ -28,7 +29,7 @@ inference_code_dir <- paste(model_path, 'code', sep='/')
 
 
 abalone_train <- read_csv(paste0(input_path, 'abalone_train.csv'))
-abalone_valid <- read_csv(paste0(input_path, 'abalone_valid.csv'))
+abalone_valid <- read_csv(paste0(input_path_v, 'abalone_valid.csv'))
 
 regressor = lm(formula = rings ~ female + male + length + diameter + height + whole_weight + shucked_weight + viscera_weight + shell_weight, data = abalone_train)
 summary(regressor)

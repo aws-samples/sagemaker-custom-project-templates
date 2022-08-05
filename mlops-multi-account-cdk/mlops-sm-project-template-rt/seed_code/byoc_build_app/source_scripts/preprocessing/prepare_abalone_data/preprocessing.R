@@ -28,6 +28,8 @@ output_dir <- "/opt/ml/processing/output/"
 filename <- Sys.glob(paste(input_dir, "*.csv", sep=""))
 abalone <- read_csv(filename)
 
+names(abalone) <- c('sex', 'length', 'diameter', 'height', 'whole_weight', 'shucked_weight', 'viscera_weight', 'shell_weight', 'rings')
+
 abalone <- abalone %>%
   mutate(female = as.integer(ifelse(sex == 'F', 1, 0)),
          male = as.integer(ifelse(sex == 'M', 1, 0)),
@@ -45,6 +47,5 @@ abalone_valid <- anti_join(abalone, abalone_test)
 
 
 write_csv(abalone_train, paste0(output_dir,'train/abalone_train.csv'))
-
 write_csv(abalone_valid, paste0(output_dir,'validation/abalone_valid.csv'))
 write_csv(abalone_test, paste0(output_dir,'test/abalone_test.csv'))
