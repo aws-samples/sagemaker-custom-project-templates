@@ -1,4 +1,5 @@
 # Advanced topics
+The topics defined here assume you have already deployed the solution once following the steps in teh main [README](README.md)
 
 - [Advanced topics](#advanced-topics)
   - [Setup CodeCommit with this repository](#setup-codecommit-with-this-repository)
@@ -22,10 +23,11 @@ Ensure you have configured your machine to connect to CodeCommit and make `git p
 
 Now you can interact with the CodeCommit repository as normal. You will need to do the following for the first commit:
 ```
-make init
 git add -A
 git commit -m "first commit"
+export AWS_PROFILE=mlops-governance
 git push origin main
+make init   # this will enable precommit which will now block any further pushes to the main branch
 ```
 
 Ensure that your git uses the branch name **main** by default, otherwise the push command might fail and you will need to create a main branch then push changes through it.
