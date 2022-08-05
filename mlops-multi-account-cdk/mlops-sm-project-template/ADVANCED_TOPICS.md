@@ -40,7 +40,7 @@ This command will deploy the byoc project stack if you want to deploy other temp
 
 It is also possible to use CDK command for this exact purpose but this would require you to add the following to `app.py` file:
 ```
-from mlops_sm_project_template_rt.templates.byoc_project_stack import MLOpsStack
+from mlops_sm_project_template.templates.byoc_project_stack import MLOpsStack
 
 MLOpsStack(
     app,

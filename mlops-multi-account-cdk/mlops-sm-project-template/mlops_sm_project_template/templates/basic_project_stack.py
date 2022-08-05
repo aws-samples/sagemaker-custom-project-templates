@@ -24,7 +24,6 @@ from aws_cdk import (
     aws_s3 as s3,
     aws_iam as iam,
     aws_kms as kms,
-    aws_ecr as ecr,
     aws_sagemaker as sagemaker,
 )
 
@@ -32,19 +31,19 @@ import aws_cdk
 
 from constructs import Construct
 
-from mlops_sm_project_template_rt.templates.byoc_pipeline_constructs.build_pipeline_construct import (
+from mlops_sm_project_template.templates.pipeline_constructs.build_pipeline_construct import (
     BuildPipelineConstruct,
 )
-from mlops_sm_project_template_rt.templates.byoc_pipeline_constructs.deploy_pipeline_construct import (
+from mlops_sm_project_template.templates.pipeline_constructs.deploy_pipeline_construct import (
     DeployPipelineConstruct,
 )
 
-from mlops_sm_project_template_rt.config.constants import PREPROD_ACCOUNT, PROD_ACCOUNT, DEFAULT_DEPLOYMENT_REGION
+from mlops_sm_project_template.config.constants import PREPROD_ACCOUNT, PROD_ACCOUNT, DEFAULT_DEPLOYMENT_REGION
 
 
 class MLOpsStack(Stack):
-    DESCRIPTION: str = "This template includes a model building pipeline that includes a workflow to build your own container, pre-process, train, evaluate and register a model. The deploy pipeline creates a preprod and production endpoint. The target DEV/PREPROD/PROD accounts are predefined in the template."
-    TEMPLATE_NAME: str = "MLOps template for real-time deployment using your own container"
+    DESCRIPTION: str = "This template includes a model building pipeline that includes a workflow to pre-process, train, evaluate and register a model. The deploy pipeline creates a dev,preprod and production endpoint. The target DEV/PREPROD/PROD accounts are predefined in the template."
+    TEMPLATE_NAME: str = "Basic MLOps template for real-time deployment"
 
     def __init__(self, scope: Construct, construct_id: str, **kwargs) -> None:
         super().__init__(scope, construct_id, **kwargs)
@@ -213,49 +212,8 @@ class MLOpsStack(Stack):
             ],
         )
 
-        # create ECR repository
-        ml_models_ecr_repo = ecr.Repository(
-            self,
-            "MLModelsECRRepository",
-            image_scan_on_push=True,
-            image_tag_mutability=ecr.TagMutability.MUTABLE,
-            repository_name=f"{project_name}",
-        )
-
-        # add cross account resource policies
-        ml_models_ecr_repo.add_to_resource_policy(
-            iam.PolicyStatement(
-                actions=[
-                    "ecr:BatchCheckLayerAvailability",
-                    "ecr:BatchGetImage",
-                    "ecr:CompleteLayerUpload",
-                    "ecr:GetDownloadUrlForLayer",
-                    "ecr:InitiateLayerUpload",
-                    "ecr:PutImage",
-                    "ecr:UploadLayerPart",
-                ],
-                principals=[
-                    iam.ArnPrincipal(f"arn:aws:iam::{Aws.ACCOUNT_ID}:root"),
-                ],
-            )
-        )
-
-        ml_models_ecr_repo.add_to_resource_policy(
-            iam.PolicyStatement(
-                actions=[
-                    "ecr:BatchCheckLayerAvailability",
-                    "ecr:BatchGetImage",
-                    "ecr:GetDownloadUrlForLayer",
-                ],
-                principals=[
-                    iam.ArnPrincipal(f"arn:aws:iam::{PREPROD_ACCOUNT}:root"),
-                    iam.ArnPrincipal(f"arn:aws:iam::{PROD_ACCOUNT}:root"),
-                ],
-            )
-        )
-
         seed_bucket = CfnDynamicReference(CfnDynamicReferenceService.SSM, "/mlops/code/seed_bucket").to_string()
-        build_app_key = CfnDynamicReference(CfnDynamicReferenceService.SSM, "/mlops/code/build/byoc").to_string()
+        build_app_key = CfnDynamicReference(CfnDynamicReferenceService.SSM, "/mlops/code/build").to_string()
         deploy_app_key = CfnDynamicReference(CfnDynamicReferenceService.SSM, "/mlops/code/deploy").to_string()
 
         kms_key = kms.Key(
@@ -292,7 +250,6 @@ class MLOpsStack(Stack):
             s3_artifact,
             pipeline_artifact_bucket,
             model_package_group_name,
-            ml_models_ecr_repo.repository_name,
             seed_bucket,
             build_app_key,
         )
@@ -304,8 +261,6 @@ class MLOpsStack(Stack):
             project_id,
             pipeline_artifact_bucket,
             model_package_group_name,
-            ml_models_ecr_repo.repository_arn,
-            s3_artifact.bucket_arn,
             seed_bucket,
             deploy_app_key,
             PREPROD_ACCOUNT,

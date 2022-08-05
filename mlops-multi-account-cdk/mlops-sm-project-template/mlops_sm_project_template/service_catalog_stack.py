@@ -37,8 +37,8 @@ import aws_cdk
 
 from constructs import Construct
 
-from mlops_sm_project_template_rt.templates.basic_project_stack import MLOpsStack
-from mlops_sm_project_template_rt.ssm_construct import SSMConstruct
+from mlops_sm_project_template.templates.basic_project_stack import MLOpsStack
+from mlops_sm_project_template.ssm_construct import SSMConstruct
 
 # Get environment variables
 LOG_LEVEL = os.getenv("LOG_LEVEL", "INFO").upper()
@@ -246,7 +246,7 @@ class ServiceCatalogStack(Stack):
         )
 
         # Create the build and deployment asset as an output to pass to pipeline stack
-        zip_image = DockerImage.from_build("mlops_sm_project_template_rt/cdk_helper_scripts/zip-image")
+        zip_image = DockerImage.from_build("mlops_sm_project_template/cdk_helper_scripts/zip-image")
         
         build_app_asset = s3_assets.Asset(
             self,
@@ -329,7 +329,7 @@ class ServiceCatalogStack(Stack):
         portfolio_owner: str,
         product_version: str,
         stage_name: str,
-        templates_directory: str = "mlops_sm_project_template_rt/templates",
+        templates_directory: str = "mlops_sm_project_template/templates",
         **kwargs,
     ):
 
@@ -340,7 +340,7 @@ class ServiceCatalogStack(Stack):
             if filename.endswith("_stack.py"):
                 template_py_file = filename[:-3]
 
-                template_module = importlib.import_module(f"mlops_sm_project_template_rt.templates.{template_py_file}")
+                template_module = importlib.import_module(f"mlops_sm_project_template.templates.{template_py_file}")
 
                 template_py_file = template_py_file.replace("_", "-")
 
