@@ -226,11 +226,6 @@ class DeployPipelineConstruct(Construct):
             )
         )
         
-        # optionally: add a stage to publish assets if the code in the deploy repository needs them
-        
-        if enable_asset_publishing:
-            self.enable_asset_publishing(cdk_synth_artifact, deploy_code_pipeline)
-        
         # add a security evaluation stage for cloudformation templates
         security_stage = deploy_code_pipeline.add_stage(stage_name="SecurityEvaluation")
 
@@ -242,7 +237,11 @@ class DeployPipelineConstruct(Construct):
                 project=security_scan,
             )
         )
-
+        
+        # optionally: add a stage to publish assets if the code in the deploy repository needs them
+        if enable_asset_publishing:
+            self.enable_asset_publishing(cdk_synth_artifact, deploy_code_pipeline)
+        
         # add stages to deploy to the different environments
         deploy_code_pipeline.add_stage(
             stage_name="DeployDev",
