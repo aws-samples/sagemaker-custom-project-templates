@@ -391,9 +391,9 @@ class DeployPipelineConstruct(Construct):
                             },
                             "build": {
                             "commands": [
-                                "cdk-assets --path \"dev.assets.json\" --verbose publish",
-                                "cdk-assets --path \"preprod.assets.json\" --verbose publish",
-                                "cdk-assets --path \"prod.assets.json\" --verbose publish",
+                                "if [ -f dev.assets.json ]; then cdk-assets --path \"dev.assets.json\" --verbose publish; else echo \"no assets found\"; fi",
+                                "if [ -f preprod.assets.json ]; then cdk-assets --path \"preprod.assets.json\" --verbose publish; else echo \"no assets found\"; fi",
+                                "if [ -f prod.assets.json ]; then cdk-assets --path \"prod.assets.json\" --verbose publish; else echo \"no assets found\"; fi"
                             ]
                         }
                     }
