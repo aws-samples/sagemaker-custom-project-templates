@@ -73,7 +73,6 @@ def extend_config(args, model_package_arn, stage_config):
         "SageMakerProjectName": args.sagemaker_project_name,
         "ModelPackageName": model_package_arn,
         "ModelExecutionRoleArn": args.model_execution_role,
-        "DataCaptureUploadPath": "s3://" + args.s3_bucket + '/datacapture-' + stage_config["Parameters"]["StageName"],
     }
     new_tags = {
         "sagemaker:deployment-stage": stage_config["Parameters"]["StageName"],
