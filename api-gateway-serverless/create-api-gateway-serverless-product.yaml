@@ -152,7 +152,7 @@ Resources:
             - Effect: Allow
               Principal: 
                 AWS:
-                  - !Join [ ':', ['arn', !Ref 'AWS::Partition', 'iam:', !Ref 'AWS::AccountId', 'role/service-role/AmazonSageMakerServiceCatalogProductsLaunchRole']] # TODO: Change this to custom role
+                  - !GetAtt ServiceCatalogProductLaunchRole.Arn
               Action: 's3:GetObject'
               Resource: !Join ['',[!GetAtt BootstrapS3Bucket.Arn,'/*']]
 
@@ -239,7 +239,18 @@ Resources:
                     - 'iam:PassRole'
                   Resource:
                     - !GetAtt CustomProjectServiceCatalogUseRole.Arn
-        RoleName: !Join ['-', ['SM-Serverless-Example-Launch-Role', !Select [4, !Split ['-', !Select [2, !Split ['/', !Ref 'AWS::StackId']]]]]]
+                # Permissions for updating project. See https://docs.aws.amazon.com/sagemaker/latest/dg/sagemaker-projects-update.html
+                - Effect: Allow
+                  Action:
+                    - 'cloudformation:CreateChangeSet'
+                    - 'cloudformation:DeleteChangeSet'
+                    - 'cloudformation:DescribeChangeSet'
+                  Resource: 'arn:aws:cloudformation:*:*:stack/SC-*' 
+                - Effect: Allow
+                  Action:
+                    - 'codecommit:PutRepositoryTriggers'
+                  Resource: 'arn:aws:codecommit:*:*:sagemaker-*' 
+        RoleName: !Join ['-', ['SM-APIGW-Serverless-Launch-Role', !Select [4, !Split ['-', !Select [2, !Split ['/', !Ref 'AWS::StackId']]]]]]
 
   ServiceCatalogProductRoleLaunchContstraint:
     Type: AWS::ServiceCatalog::LaunchRoleConstraint
