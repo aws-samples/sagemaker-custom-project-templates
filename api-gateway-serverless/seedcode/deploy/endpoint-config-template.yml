@@ -49,7 +49,7 @@ Resources:
   ApiGatewayInvokeSageMakerEndpointRole:
     Type: AWS::IAM::Role
     Properties:
-      RoleName: !Sub ApiGatewayInvokeSageMakerEndpointRole-${SageMakerProjectName}
+      RoleName: !Sub ApiGatewayInvokeSageMakerEndpointRole-${SageMakerProjectName}-${StageName}
       Description: Role used by API Gateway to invoke SageMaker endpoints
       AssumeRolePolicyDocument:
         Version: '2012-10-17'
