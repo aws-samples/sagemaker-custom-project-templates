@@ -91,7 +91,7 @@ Resources:
       Integration:
         IntegrationHttpMethod: POST
         Type: AWS
-        Credentials: !Ref ApiGatewayInvokeSageMakerEndpointRole
+        Credentials: !GetAtt ApiGatewayInvokeSageMakerEndpointRole.Arn
         Uri: !Sub
           - arn:aws:apigateway:${AWS::Region}:runtime.sagemaker:path/endpoints/${EndpointName}/invocations
           - EndpointName: !GetAtt Endpoint.EndpointName
