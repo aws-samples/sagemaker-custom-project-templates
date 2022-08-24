@@ -498,7 +498,7 @@ Resources:
                         - !Ref AWS::Region
                         - !Ref AWS::AccountId
                         - 'model-package-group/model-*'
-          - PolicyName: LambdaReadWrite
+          - PolicyName: LambdaReadWriteTag
             PolicyDocument:
               Version: "2012-10-17"
               Statement:
@@ -513,6 +513,7 @@ Resources:
                     - 'lambda:RemovePermission'
                     - 'lambda:ListVersionsByFunction'
                     - 'lambda:PublishVersion'
+                    - 'lambda:TagResource'
                   Resource:
                     - !Join
                       - ':'
