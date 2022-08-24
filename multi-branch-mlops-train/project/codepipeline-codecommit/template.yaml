@@ -236,7 +236,7 @@ Resources:
       Source:
         Location: !GetAtt ModelTrainRepository.CloneUrlHttp
         Type: CODECOMMIT
-        BuildSpec: 'buildspec_train.yml'
+        BuildSpec: 'buildspec_train.yaml'
   TrainCodePipelineSourceActionRole:
     Type: 'AWS::IAM::Role'
     Properties:
