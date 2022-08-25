@@ -332,6 +332,10 @@ Resources:
                   - 'iam:PassRole'
                 Resource:
                   - !Join ['', ['arn:aws:iam::', !Ref AWS::AccountId, ':role/SM-Gitlab-Example-Use-Role-*']]
+              - Effect: Allow
+                Action:
+                  - 'sagemaker:AddTags'
+                Resource: '*'
       RoleName: !Join ['-', ['SM-Gitlab-Example-Launch-Role', !Select [4, !Split ['-', !Select [2, !Split ['/', !Ref 'AWS::StackId']]]]]]
 
   ServiceCatalogProductUseRole:
