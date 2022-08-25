@@ -4,6 +4,8 @@ The topics defined here assume you have already deployed the solution once follo
 - [Advanced topics](#advanced-topics)
   - [Setup CodeCommit with this repository](#setup-codecommit-with-this-repository)
   - [Test the created sagemaker templates](#test-the-created-sagemaker-templates)
+  - [Delete a Project](#delete-a-project)
+  - [Delete a Domain](#delete-a-domain)
 
 
 ## Setup CodeCommit with this repository
@@ -91,4 +93,35 @@ The run `cdk synth` and then run the following to deploy:
 ```
 cdk deploy test --parameters SageMakerProjectName=mlops-test \
     --parameters SageMakerProjectId=sm1234 --profile mlops-dev
+```
+
+## Delete a Project
+Deleting a project is a very involved process especially if you want to perform a complete delete of all the resources that were deployed for this project and even more tricky if those resource were deployed in other accounts.  
+
+## Delete a Domain
+Deleting a domain through CloudFormation will always fail especially if you have users with running applications in it. To be able to delete a domain you would need to run the following using `boto3` (you will need to know the `domain_id`):
+```
+domain_apps = sm_client.list_apps(DomainIdEquals=domain_id)
+
+    for app in domain_apps["Apps"]:
+        response = sm_client.delete_app(
+            DomainId=app["DomainId"],
+            UserProfileName=app["UserProfileName"],
+            AppType=app["AppType"],
+            AppName=app["AppName"],
+        )
+        logger.info(response)
+
+    logger.info(f"finished deleting apps for {domain_id} SageMaker Domain")
+
+    domain_users = sm_client.list_user_profiles(DomainIdEquals=domain_id)
+
+    for user_profile in domain_users["UserProfiles"]:
+        response = sm_client.delete_user_profile(
+            DomainId=user_profile["DomainId"],
+            UserProfileName=user_profile["UserProfileName"],
+        )
+        logger.info(response)
+
+    logger.info(f"finished deleting user profiles for {domain_id} SageMaker Domain")
 ```
