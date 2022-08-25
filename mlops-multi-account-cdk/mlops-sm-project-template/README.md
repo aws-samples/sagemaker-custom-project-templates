@@ -18,7 +18,12 @@ This repository contains the resources that are required to deploy the MLOps Fou
 
 ![mlops project architecture](diagrams/MLOPs%20Foundation%20Architecture-mlops%20project%20cicd%20architecture.jpg)
 
-For a detailed explaination of the solution architecture go to [docs/SOLUTION_ARCITECTURE.md](docs/SOLUTION_ARCHITECTURE.md)
+For a detailed explaination of the solution architecture go to [Solution Architecture](docs/SOLUTION_ARCHITECTURE.md)
+
+The following templates are deployed as part of the solution:
+- [Basic Project Template](docs/templates/BASIC_PROJECT_TEMPLATE.md)
+- [Dynamic Account Project Template](docs/templates/DYNAMIC_ACCOUNT_PROJECT_TEMPLATE.md)
+- [BYOC Project Template](docs/templates/BYOC_PROJECT_TEMPLATE.md)
 
 ## Getting Started
 

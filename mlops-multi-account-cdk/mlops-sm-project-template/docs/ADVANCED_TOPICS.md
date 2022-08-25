@@ -8,6 +8,9 @@ The topics defined here assume you have already deployed the solution once follo
   - [Delete a Domain](#delete-a-domain)
 
 
+## Create new template
+You can use `templates/basic_project_stack.py` as the bases to create your own template.  
+
 ## Setup CodeCommit with this repository
 You would wonder after you have cloned this repository and deployed the solution how would you then start to interact with your deployed CodeCommit repository and start using it as a main repository and push changes to it. You have 2 options for this:
 1. Clone the created CodeCommit repository and start treating it seperately from this repository

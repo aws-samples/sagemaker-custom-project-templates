@@ -29,9 +29,9 @@ The following resources are created:
 Once this stack is deployed in the account, the template will be usable by Amazon SageMaker Studio Domain user with the role: **Execution Role** that was provided to this stack.
 
 This stack deploys the following templates:
-- [Basic Project Template](Templates/BASIC_PROJECT_TEMPLATE.md)
-- [Dynamic Account Project Template](Templates/DYNAMIC_ACCOUNT_PROJECT_TEMPLATE.md)
-- [BYOC Project Template](Templates/BYOC_PROJECT_TEMPLATE.md)
+- [Basic Project Template](templates/BASIC_PROJECT_TEMPLATE.md)
+- [Dynamic Account Project Template](templates/DYNAMIC_ACCOUNT_PROJECT_TEMPLATE.md)
+- [BYOC Project Template](templates/BYOC_PROJECT_TEMPLATE.md)
 
 ## CodeCommit Stack
 *This stack is only needed if you want to handle deployments of this folder of the repository to be managed through a CICD pipeline.*

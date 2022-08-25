@@ -28,6 +28,7 @@ The following resources are deployed as part of a SageMaker Project and are used
 - **Artifact Bucket** and its **KMS key**, this bucket will be used to store SageMaker Pipeline's steps outputs and also the trained model for this project.
 - **Model Package Group**, this group is created at this stack mainly to setup its policy and enable cross account access to the other deployment accounts.
 - **Pipeline Bucket** and its **KMS key**, this bucket will be used by both CICD pipelines to store the pipelines artifacts.
+- **ECR repository**, this repository will be used by both CICD pipelines to store the docker images and later on use them during the cross account deployment for inference.
 
 These resources are deployed to the DEV account with cross account access enabled for PREPROD and PROD; except for the pipeline bucket and its kms key, those are constraint to the DEV account.
 
