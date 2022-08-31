@@ -1,0 +1,721 @@
+---
+AWSTemplateFormatVersion: "2010-09-09"
+
+Description: >-
+  Template for creating a Service Catalog product based on the api-gateway-serverless SageMaker Custom Example
+
+Parameters:
+
+  PortfolioIDParameter:
+    Type: String
+    Description: The ID of the Service Catalog Portfolio you wish you create the product inside. If using the Portfolio Stack example, the value will be found in the Outputs' tab of the stack under "CreatedPortfolioID".
+
+  ProductNameParameter:
+    Type: String
+    Default: Serverless Inference Endpoint fronted with API Gateway SageMaker Project Example
+    Description: The name of this product within the portfolio.
+
+  ProductDescriptionParameter:
+    Type: String
+    Default: 'The purpose of this template is to deploy an serverless inference endpoint, given a ModelGroupPackageName from the Amazon SageMaker Model Registry.'
+    Description: The description of this product within the portfolio.
+
+  ProductOwnerParameter:
+    Type: String
+    Default: Product Owner
+    Description: The owner of this product within the portfolio.
+
+  ProductDistributorParameter:
+    Type: String
+    Default: Product Distributor
+    Description: The distributor of this product within the portfolio.
+
+  ProductSupportDescriptionParameter:
+    Type: String
+    Default: Support Description
+    Description: The support description of this product within the portfolio.
+
+  ProductSupportEmailParameter:
+    Type: String
+    Default: support@example.com
+    Description: The support email of this product within the portfolio.
+
+  ProductSupportURLParameter:
+    Type: String
+    Default: 'https://github.com/aws-samples/sagemaker-custom-project-templates'
+    Description: The support url of this product within the portfolio.
+
+  SageMakerProjectRepoZipParameter:
+    Type: String
+    Default: 'https://github.com/aws-samples/sagemaker-custom-project-templates/archive/refs/heads/main.zip'
+    Description: 'URL for a Zip of the SageMaker Projects Examples GitHub Repo'
+
+  SageMakerProjectRepoNameBranchParameter:
+    Type: String
+    Default: 'sagemaker-custom-project-templates-main'
+    Description: 'Name/Branch of the SageMaker Projects Examples GitHub Repo'
+  
+  SageMakerProjectsProjectNameParameter:
+    Type: String
+    Default: api-gateway-serverless
+    Description: Project folder inside of the GitHub repo for this project
+
+Metadata: 
+  AWS::CloudFormation::Interface: 
+    ParameterGroups: 
+      - 
+        Label: 
+          default: "Service Catalog Portfolio Information"
+        Parameters: 
+          - PortfolioIDParameter
+      - 
+        Label: 
+          default: "Service Catalog Product Information"
+        Parameters: 
+          - ProductNameParameter
+          - ProductDescriptionParameter
+          - ProductOwnerParameter
+          - ProductDistributorParameter
+      - 
+        Label: 
+          default: "Service Catalog Product Support Information"
+        Parameters: 
+          - ProductSupportDescriptionParameter
+          - ProductSupportEmailParameter
+          - ProductSupportURLParameter
+      - 
+        Label: 
+          default: "Source Code Repository Configuration (leave defaults if not forking the repository)"
+        Parameters: 
+          - SageMakerProjectRepoZipParameter
+          - SageMakerProjectRepoNameBranchParameter
+          - SageMakerProjectsProjectNameParameter
+
+    ParameterLabels: 
+       
+      PortfolioIDParameter:
+        default: 'Portfolio ID'
+
+      ProductNameParameter:
+        default: 'Product Name'
+
+      ProductDescriptionParameter:
+        default: 'Product Description'
+
+      ProductOwnerParameter:
+        default: 'Product Owner'
+
+      ProductDistributorParameter:
+        default: 'Product Distributor'
+
+      ProductSupportDescriptionParameter:
+        default: 'Product Support Description'
+
+      ProductSupportEmailParameter:
+        default: 'Product Support Email'
+
+      ProductSupportURLParameter:
+        default: 'Product Support URL'
+
+      SageMakerProjectRepoZipParameter:
+        default: 'URL to the zipped version of your GitHub Repository'
+
+      SageMakerProjectRepoNameBranchParameter:
+        default: 'Name and branch of your GitHub Repository, should match the root folder of the zip'
+
+      SageMakerProjectsProjectNameParameter:
+        default: 'Project folder inside of the main repository for this project.'
+
+Resources:
+
+  BootstrapS3Bucket:
+    Type: AWS::S3::Bucket
+    Properties: 
+      BucketName: !Join ['-',['sm-project-api-gateway-serverless-example', !Select [4, !Split ['-', !Select [2, !Split ['/', !Ref 'AWS::StackId']]]]]]
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault:
+              SSEAlgorithm: 'AES256'
+  
+  BootstrapS3BucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    Properties: 
+      Bucket: !Ref BootstrapS3Bucket
+      PolicyDocument:
+          Version: "2012-10-17"
+          Statement:
+            - Effect: Allow
+              Principal: 
+                AWS:
+                  - !GetAtt ServiceCatalogProductLaunchRole.Arn
+              Action: 's3:GetObject'
+              Resource: !Join ['',[!GetAtt BootstrapS3Bucket.Arn,'/*']]
+
+  BootstrapLambdaExecutionRole:
+    Type: AWS::IAM::Role
+    Properties: 
+      RoleName: !Join ['-', ['SMCustomProject-api-gateway-Bootstrap-Role', !Select [4, !Split ['-', !Select [2, !Split ['/', !Ref 'AWS::StackId']]]]]]
+      Description: Role used for launching the lambda function to bootstrap creation of the Serverless Endpoint fronted with API Gateway SageMaker Custom Project Template example
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - lambda.amazonaws.com
+            Action: 'sts:AssumeRole'
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+      Policies:
+          - PolicyName: BootstrapLambdaExecutionPolicy
+            PolicyDocument:
+              Version: "2012-10-17"
+              Statement:
+                - Effect: Allow
+                  Action: 
+                    - 's3:PutObject'
+                    - 's3:GetObject'
+                  Resource: !Join ['',[!GetAtt BootstrapS3Bucket.Arn,'/*']]
+
+  ServiceCatalogProduct:
+    Type: AWS::ServiceCatalog::CloudFormationProduct
+    Properties: 
+      Description: !Ref ProductDescriptionParameter
+      Distributor: !Ref ProductDistributorParameter
+      Name: !Ref ProductNameParameter
+      Owner: !Ref ProductOwnerParameter
+      ProvisioningArtifactParameters:
+        -
+          Description: Base Version
+          DisableTemplateValidation: false
+          Info:
+            LoadTemplateFromURL: !GetAtt InvokeCustomLambda.template_url
+          Name: v1.0
+      SupportDescription: !Ref ProductSupportDescriptionParameter
+      SupportEmail: !Ref ProductSupportEmailParameter
+      SupportUrl: !Ref ProductSupportURLParameter
+      Tags:
+        -
+          Key: sagemaker:studio-visibility
+          Value: 'true'
+
+  ServiceCatalogProductAssociation:
+    Type: AWS::ServiceCatalog::PortfolioProductAssociation
+    Properties: 
+      PortfolioId: !Ref PortfolioIDParameter
+      ProductId: !Ref ServiceCatalogProduct
+
+  ServiceCatalogProductLaunchRole:
+      Type: AWS::IAM::Role
+      Properties: 
+        AssumeRolePolicyDocument:
+          Version: '2012-10-17'
+          Statement:
+            - Effect: Allow
+              Principal:
+                Service:
+                  - servicecatalog.amazonaws.com
+              Action: 'sts:AssumeRole'
+        Description: Role to use for launching the api-gateway-serverless SageMaker Project example.
+        ManagedPolicyArns: 
+          - arn:aws:iam::aws:policy/AmazonSageMakerAdmin-ServiceCatalogProductsServiceRolePolicy
+        Policies:
+          - PolicyName: SM-Serverless-Example-Launch-Policy
+            PolicyDocument:
+              Version: "2012-10-17"
+              Statement:
+                - Effect: Allow
+                  Action: 
+                    - 's3:PutObject'
+                    - 's3:GetObject'
+                  Resource: !Join ['',[!GetAtt BootstrapS3Bucket.Arn,'/*']]
+                - Effect: Allow
+                  Action:
+                    - 'iam:PassRole'
+                  Resource:
+                    - !GetAtt CustomProjectServiceCatalogUseRole.Arn
+                # Permissions for updating project. See https://docs.aws.amazon.com/sagemaker/latest/dg/sagemaker-projects-update.html
+                - Effect: Allow
+                  Action:
+                    - 'cloudformation:CreateChangeSet'
+                    - 'cloudformation:DeleteChangeSet'
+                    - 'cloudformation:DescribeChangeSet'
+                  Resource: 'arn:aws:cloudformation:*:*:stack/SC-*' 
+                - Effect: Allow
+                  Action:
+                    - 'codecommit:PutRepositoryTriggers'
+                  Resource: 'arn:aws:codecommit:*:*:sagemaker-*' 
+        RoleName: !Join ['-', ['SM-APIGW-Serverless-Launch-Role', !Select [4, !Split ['-', !Select [2, !Split ['/', !Ref 'AWS::StackId']]]]]]
+
+  ServiceCatalogProductRoleLaunchContstraint:
+    Type: AWS::ServiceCatalog::LaunchRoleConstraint
+    DependsOn: 
+      - ServiceCatalogProductAssociation
+    Properties: 
+      Description: Role for launching the API gateway serverless endpoint product
+      PortfolioId: !Ref PortfolioIDParameter
+      ProductId: !Ref ServiceCatalogProduct
+      RoleArn: !GetAtt ServiceCatalogProductLaunchRole.Arn
+      
+  CustomProjectServiceCatalogUseRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: SMCustomProject-APIGW-Serverless-SCUseRole
+      Description: Role used for by components of the the api-gateway-serverless SageMaker Custom Project Template example. Has extra API gateway permissions comparing to built-in UseRole.
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - cloudformation.amazonaws.com
+                - apigateway.amazonaws.com
+                - lambda.amazonaws.com
+                - sagemaker.amazonaws.com
+                - codebuild.amazonaws.com
+                - glue.amazonaws.com
+                - states.amazonaws.com
+                - events.amazonaws.com
+                - codepipeline.amazonaws.com
+                - firehose.amazonaws.com
+            Action: 'sts:AssumeRole'
+
+  CustomProjectServiceCatalogUsePolicy:
+    Type: AWS::IAM::Policy
+    Properties:
+      PolicyName: SMCustomProject-APIGW-Serverlesss-SCUsePolicy
+      Roles: 
+        - !Ref CustomProjectServiceCatalogUseRole
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Action:
+            - 'apigateway:*'
+            Effect: Allow
+            Resource: 
+              - 'arn:aws:apigateway:*::/restapis'
+              - 'arn:aws:apigateway:*::/restapis/*'
+              - 'arn:aws:apigateway:*::/tags*'
+          - Action:
+            - 'iam:AttachRolePolicy'
+            - 'iam:CreateRole'
+            - 'iam:CreatePolicy'
+            - 'iam:CreatePolicyVersion'
+            - 'iam:DeletePolicy'
+            - 'iam:DeletePolicyVersion'
+            - 'iam:DeleteRole'
+            - 'iam:DeleteRolePolicy'
+            - 'iam:DetachRolePolicy'
+            - 'iam:GetPolicy'
+            - 'iam:GetPolicyVersion'
+            - 'iam:GetRole'
+            - 'iam:GetRolePolicy'
+            - 'iam:ListAttachedRolePolicies'
+            - 'iam:ListPolicies'
+            - 'iam:ListPolicyVersions'
+            - 'iam:ListRolePolicies'
+            - 'iam:PutRolePolicy'
+            Effect: Allow
+            Resource: '*'
+          - Effect: Allow
+            Action:
+            - 'iam:PassRole'
+            Resource: !Join [ ':', [ 'arn', !Ref 'AWS::Partition', 'iam:', !Ref 'AWS::AccountId', 'role/ApiGatewayInvokeSageMakerEndpointRole-*'] ]
+            # Below are default roles from the built-in template
+          - Action:
+            - 'cloudformation:CreateChangeSet'
+            - 'cloudformation:CreateStack'
+            - 'cloudformation:DescribeChangeSet'
+            - 'cloudformation:DeleteChangeSet'
+            - 'cloudformation:DeleteStack'
+            - 'cloudformation:DescribeStacks'
+            - 'cloudformation:ExecuteChangeSet'
+            - 'cloudformation:SetStackPolicy'
+            - 'cloudformation:UpdateStack'
+            Effect: Allow
+            Resource: 'arn:aws:cloudformation:*:*:stack/sagemaker-*'
+          - Action:
+            - 'cloudwatch:PutMetricData'
+            Effect: Allow
+            Resource: '*'
+          - Action:
+            - 'codebuild:BatchGetBuilds'
+            - 'codebuild:StartBuild'
+            Effect: Allow
+            Resource:
+            - 'arn:aws:codebuild:*:*:project/sagemaker-*'
+            - 'arn:aws:codebuild:*:*:build/sagemaker-*'
+          - Action:
+            - 'codecommit:CancelUploadArchive'
+            - 'codecommit:GetBranch'
+            - 'codecommit:GetCommit'
+            - 'codecommit:GetUploadArchiveStatus'
+            - 'codecommit:UploadArchive'
+            Effect: Allow
+            Resource: 'arn:aws:codecommit:*:*:sagemaker-*'
+          - Action:
+            - 'codepipeline:StartPipelineExecution'
+            Effect: Allow
+            Resource: 'arn:aws:codepipeline:*:*:sagemaker-*'
+          - Action:
+            - 'ec2:DescribeRouteTables'
+            Effect: Allow
+            Resource: '*'
+          - Action:
+            - 'ecr:BatchCheckLayerAvailability'
+            - 'ecr:BatchGetImage'
+            - 'ecr:Describe*'
+            - 'ecr:GetAuthorizationToken'
+            - 'ecr:GetDownloadUrlForLayer'
+            Effect: Allow
+            Resource: '*'
+          - Action:
+            - 'ecr:BatchDeleteImage'
+            - 'ecr:CompleteLayerUpload'
+            - 'ecr:CreateRepository'
+            - 'ecr:DeleteRepository'
+            - 'ecr:InitiateLayerUpload'
+            - 'ecr:PutImage'
+            - 'ecr:UploadLayerPart'
+            Effect: Allow
+            Resource:
+            - 'arn:aws:ecr:*:*:repository/sagemaker-*'
+          - Action:
+            - 'events:DeleteRule'
+            - 'events:DescribeRule'
+            - 'events:PutRule'
+            - 'events:PutTargets'
+            - 'events:RemoveTargets'
+            Effect: Allow
+            Resource:
+            - 'arn:aws:events:*:*:rule/sagemaker-*'
+          - Action:
+            - 'firehose:PutRecord'
+            - 'firehose:PutRecordBatch'
+            Effect: Allow
+            Resource: 'arn:aws:firehose:*:*:deliverystream/sagemaker-*'
+          - Action:
+            - 'glue:BatchCreatePartition'
+            - 'glue:BatchDeletePartition'
+            - 'glue:BatchDeleteTable'
+            - 'glue:BatchDeleteTableVersion'
+            - 'glue:BatchGetPartition'
+            - 'glue:CreateDatabase'
+            - 'glue:CreatePartition'
+            - 'glue:CreateTable'
+            - 'glue:DeletePartition'
+            - 'glue:DeleteTable'
+            - 'glue:DeleteTableVersion'
+            - 'glue:GetDatabase'
+            - 'glue:GetPartition'
+            - 'glue:GetPartitions'
+            - 'glue:GetTable'
+            - 'glue:GetTables'
+            - 'glue:GetTableVersion'
+            - 'glue:GetTableVersions'
+            - 'glue:SearchTables'
+            - 'glue:UpdatePartition'
+            - 'glue:UpdateTable'
+            Effect: Allow
+            Resource:
+            - 'arn:aws:glue:*:*:catalog'
+            - 'arn:aws:glue:*:*:database/default'
+            - 'arn:aws:glue:*:*:database/global_temp'
+            - 'arn:aws:glue:*:*:database/sagemaker-*'
+            - 'arn:aws:glue:*:*:table/sagemaker-*'
+            - 'arn:aws:glue:*:*:tableVersion/sagemaker-*'
+          - Action:
+            - 'iam:PassRole'
+            Effect: Allow
+            Resource:
+            - !GetAtt CustomProjectServiceCatalogUseRole.Arn
+          - Action:
+            - 'lambda:InvokeFunction'
+            Effect: Allow
+            Resource:
+            - 'arn:aws:lambda:*:*:function:sagemaker-*'
+          - Action:
+            - 'logs:CreateLogDelivery'
+            - 'logs:CreateLogGroup'
+            - 'logs:CreateLogStream'
+            - 'logs:DeleteLogDelivery'
+            - 'logs:Describe*'
+            - 'logs:GetLogDelivery'
+            - 'logs:GetLogEvents'
+            - 'logs:ListLogDeliveries'
+            - 'logs:PutLogEvents'
+            - 'logs:PutResourcePolicy'
+            - 'logs:UpdateLogDelivery'
+            Effect: Allow
+            Resource: '*'
+          - Action:
+            - 's3:CreateBucket'
+            - 's3:DeleteBucket'
+            - 's3:GetBucketAcl'
+            - 's3:GetBucketCors'
+            - 's3:GetBucketLocation'
+            - 's3:ListAllMyBuckets'
+            - 's3:ListBucket'
+            - 's3:ListBucketMultipartUploads'
+            - 's3:PutBucketCors'
+            - 's3:PutObjectAcl'
+            Effect: Allow
+            Resource:
+            - 'arn:aws:s3:::aws-glue-*'
+            - 'arn:aws:s3:::sagemaker-*'
+          - Action:
+            - 's3:AbortMultipartUpload'
+            - 's3:DeleteObject'
+            - 's3:GetObject'
+            - 's3:GetObjectVersion'
+            - 's3:PutObject'
+            Effect: Allow
+            Resource:
+            - 'arn:aws:s3:::aws-glue-*'
+            - 'arn:aws:s3:::sagemaker-*'
+          - Action:
+            - 'sagemaker:*'
+            Effect: Allow
+            NotResource:
+            - 'arn:aws:sagemaker:*:*:domain/*'
+            - 'arn:aws:sagemaker:*:*:user-profile/*'
+            - 'arn:aws:sagemaker:*:*:app/*'
+            - 'arn:aws:sagemaker:*:*:flow-definition/*'
+          - Action:
+            - 'states:DescribeExecution'
+            - 'states:DescribeStateMachine'
+            - 'states:DescribeStateMachineForExecution'
+            - 'states:GetExecutionHistory'
+            - 'states:ListExecutions'
+            - 'states:ListTagsForResource'
+            - 'states:StartExecution'
+            - 'states:StopExecution'
+            - 'states:TagResource'
+            - 'states:UntagResource'
+            - 'states:UpdateStateMachine'
+            Effect: Allow
+            Resource:
+            - 'arn:aws:states:*:*:stateMachine:sagemaker-*'
+            - 'arn:aws:states:*:*:execution:sagemaker-*:*'
+          - Action:
+            - 'states:ListStateMachines'
+            Effect: Allow
+            Resource: '*'
+          - Action:
+            - 'codestar-connections:UseConnection'
+            Condition:
+              StringEqualsIgnoreCase:
+                aws:ResourceTag/sagemaker: 'true'
+            Effect: Allow
+            Resource: 'arn:aws:codestar-connections:*:*:connection/*'
+    
+
+  CustomBackedLambda:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: !Join ['-', ['aws-samples-api-gateway-lambda-bootstrapper', !Select [4, !Split ['-', !Select [2, !Split ['/', !Ref 'AWS::StackId']]]]]]
+      Runtime: python3.9
+      Role: !GetAtt BootstrapLambdaExecutionRole.Arn
+      Handler: index.lambda_handler
+      Timeout: 300
+      Code:
+        ZipFile: |
+          import cfnresponse
+          import logging
+          import random
+          import json
+          import urllib3
+          import os
+          import zipfile
+          import pathlib
+          import boto3
+
+          logger = logging.getLogger()
+          logger.setLevel(logging.INFO)
+
+          s3_client = boto3.client('s3')
+
+          def lambda_handler(event, context):
+            try:
+                logger.info('Incoming Request:')
+                logger.info(json.dumps(event))
+                
+                if event.get('RequestType') == 'Create' or event.get('RequestType') == 'Update':
+                        
+                        required_variables = ['BootStrapBucketName','SageMakerProjectRepoZip','SageMakerProjectRepoNameBranch', 'SageMakerProjectsProjectName']
+
+                        if not set(required_variables).issubset(set(event['ResourceProperties'])):
+                            raise Exception(f'Missing required input from: {required_variables}' )
+
+                        sagemaker_projects_repo = event['ResourceProperties']['SageMakerProjectRepoZip']
+                        sagemaker_projects_repo_root_folder_name = event['ResourceProperties']['SageMakerProjectRepoNameBranch']
+                        sagemaker_projects_project_name = event['ResourceProperties']['SageMakerProjectsProjectName']
+                        
+                        logger.info(f'begin fetch of zipped rep from github: {sagemaker_projects_repo}')
+
+                        chunk_size = 6 * 1024
+                        http = urllib3.PoolManager()
+                        
+                        r = http.request('GET', sagemaker_projects_repo, preload_content=False)
+                        
+                        with open('/tmp/sm_project_repo.zip', 'wb') as out:
+                            while True:
+                                data = r.read(chunk_size)
+                                if not data:
+                                    break
+                                out.write(data)
+                        
+                        r.release_conn()
+                        
+                        logger.info(f'github zip written to /tmp/sm_project_repo.zip')
+                        
+                        local_extracted_path_root = '/tmp/' + sagemaker_projects_repo_root_folder_name
+                        
+                        logger.info(f'extracting github zip to {local_extracted_path_root}')
+                        
+                        with zipfile.ZipFile('/tmp/sm_project_repo.zip', 'r') as zip_ref:
+                            zip_ref.extractall('/tmp')
+                        
+                        logger.info(f'github zip extracted to {local_extracted_path_root}')
+
+                        logger.info(f'begin project template customizations')
+
+                        bootstrap_bucket_name = event['ResourceProperties']['BootStrapBucketName']
+
+                        input_file_path = local_extracted_path_root + '/' + sagemaker_projects_project_name + '/project/template.yaml'
+                        output_file_path = local_extracted_path_root + '/' + sagemaker_projects_project_name + '/project/template_updated.yaml'
+                        s3_template_key = sagemaker_projects_project_name + '/templates/template.yaml'
+                        
+                        with open(input_file_path, 'r') as input_template_file:
+                            with open(output_file_path, 'w') as output_template_file:
+                                file_data = input_template_file.read()
+                                
+                                if 'TemplateSubstitutions' in event['ResourceProperties'].keys():
+                                  for replacement_key in event['ResourceProperties']['TemplateSubstitutions'].keys():
+                                      file_data = file_data.replace(replacement_key, event['ResourceProperties']['TemplateSubstitutions'][replacement_key])
+
+                                output_template_file.write(file_data)
+
+                        with open(output_file_path, 'rb') as file_data:
+                                s3_client.upload_fileobj(file_data, bootstrap_bucket_name, s3_template_key)
+
+                        logger.info(f'completed project template customizations')
+                        
+                        logger.info(f'begin building and uploading sub archives from seedcode and lambda folders')
+                        
+                        archive_info_list = []
+
+                        if 'Archives' in event['ResourceProperties'].keys():
+                              for archive in event['ResourceProperties']['Archives']:
+                                  archive_info_list.append([archive[0], pathlib.Path(local_extracted_path_root + '/' + sagemaker_projects_project_name + archive[1])])
+                        
+                        for archive_info in archive_info_list:
+                            
+                            target_filename = '/tmp/' + archive_info[0]
+                            s3_object_key = sagemaker_projects_project_name + '/seedcode/' + archive_info[0]
+                            source_dir = archive_info[1]
+                            
+                            logger.info(f'source folder: {(source_dir)}')
+                            logger.info(f'begin creating archive: {target_filename}')
+                            
+                            with zipfile.ZipFile(target_filename, mode='w') as archive:
+                                for file_path in source_dir.rglob('*'):
+                                    archive.write(
+                                    file_path,
+                                    arcname=file_path.relative_to(source_dir)
+                                    )
+                            
+                            archive.close()
+                            
+                            logger.info(f'completed creating zip file: {target_filename}')
+                            
+                            logger.info(f'uploading zip file: {target_filename} as s3 object: {bootstrap_bucket_name}/{s3_object_key}')
+
+                            with open(target_filename, 'rb') as file_data:
+                                s3_client.upload_fileobj(file_data, bootstrap_bucket_name, s3_object_key)
+
+                            logger.info(f'upload for s3 object: {bootstrap_bucket_name}/{s3_object_key} complete')
+                        
+                        logger.info(f'completed building and uploading sub archives from seedcode and lambda folders')
+                        
+                        logger.info(f'generating presigned url for template')
+                        
+                        signed_template_url = s3_client.generate_presigned_url('get_object',
+                          Params={'Bucket': bootstrap_bucket_name,'Key': s3_template_key},
+                          ExpiresIn=6000)
+                          
+                        logger.info(f"generated presigned url for template successfully: {signed_template_url}")
+                        
+                        message = 'Create Invoked Successfully'
+                        responseData = {}
+                        responseData['message'] = message
+                        responseData['template_url'] = signed_template_url
+                        logger.info('Sending %s to cloudformation', responseData['message'])
+                        cfnresponse.send(event, context, cfnresponse.SUCCESS, responseData)
+                elif event.get('RequestType') == 'Delete':
+                    responseData = {}
+                    responseData['message'] = "Invoking Delete"
+                    logger.info('Sending %s to cloudformation', responseData['message'])
+                    cfnresponse.send(event, context, cfnresponse.SUCCESS, responseData)
+                else:
+                    logger.error('Unknown operation: %s', event.get('RequestType'))
+                    raise Exception("Unknown operation")
+
+            except Exception as e:
+                logger.exception(e)
+                responseData = {}
+                responseData['message'] = 'exception caught'
+                cfnresponse.send(event, context, cfnresponse.FAILED, responseData)
+      Description: Cloudformation Custom Lambda to bootstrap the Serverless Endpoint fronted SageMaker Project example
+
+  InvokeCustomLambda:
+    Type: Custom::InvokeCustomLambda
+    Properties:
+      ServiceToken: !GetAtt CustomBackedLambda.Arn
+      BootStrapBucketName: !Ref BootstrapS3Bucket
+      SageMakerProjectRepoZip: !Ref SageMakerProjectRepoZipParameter
+      SageMakerProjectRepoNameBranch: !Ref SageMakerProjectRepoNameBranchParameter
+      SageMakerProjectsProjectName: !Ref SageMakerProjectsProjectNameParameter
+      TemplateSubstitutions:
+        AWSDEFAULT___CODE_STAGING_BUCKET___ : !Ref BootstrapS3Bucket
+        AWSDEFAULT___PROJECT_NAME___ : !Ref SageMakerProjectsProjectNameParameter
+        AWSDEFAULT___PROJECT_USE_ROLE_ARN___: !GetAtt CustomProjectServiceCatalogUseRole.Arn
+      Archives:
+        - ['api-gateway-serverless-deploy.zip','/seedcode/deploy']
+
+
+Outputs:
+  CreatedServiceCatalogProductName:
+    Description: Name of the newly created product.
+    Value: !GetAtt ServiceCatalogProduct.ProductName
+    Export:
+      Name: !Join [':', [!Ref 'AWS::StackName', 'CreatedServiceCatalogProductName'] ]
+
+  CreatedServiceCatalogProductId:
+    Description: Id of the newly created product.
+    Value: !Ref ServiceCatalogProduct
+    Export:
+      Name: !Join [':', [!Ref 'AWS::StackName', 'CreatedServiceCatalogProductId'] ]
+
+  AssociatedServiceCatalogPortfolioID:
+    Description: ID of the associated Service Catalog Portfolio.
+    Value: !Ref PortfolioIDParameter
+    Export:
+      Name: !Join [':', [!Ref 'AWS::StackName', 'AssociatedServiceCatalogPortfolioID'] ]
+
+  ServiceCatalogProductLaunchRoleARN:
+    Description: ARN of the Role used to launch this product
+    Value: !Join [ ':', [ 'arn', !Ref 'AWS::Partition', 'iam:', !Ref 'AWS::AccountId', 'role/service-role/AmazonSageMakerServiceCatalogProductsLaunchRole'] ]
+    Export:
+      Name: !Join [':', [!Ref 'AWS::StackName', 'ServiceCatalogProductLaunchRoleARN'] ]
+  
+  CodeStagingBucketName:
+    Description: Name of the S3 Bucket containing the staging code for the repository.
+    Value: !Ref BootstrapS3Bucket
+    Export:
+      Name: !Join [':', [!Ref 'AWS::StackName', 'CodeStagingBucketName']]
