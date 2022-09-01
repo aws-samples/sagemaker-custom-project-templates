@@ -2,14 +2,58 @@
 The topics defined here assume you have already deployed the solution once following the steps in the main [README](README.md)
 
 - [Advanced topics](#advanced-topics)
+  - [Create new template](#create-new-template)
   - [Setup CodeCommit with this repository](#setup-codecommit-with-this-repository)
   - [Test the created sagemaker templates](#test-the-created-sagemaker-templates)
   - [Delete a Project](#delete-a-project)
   - [Delete a Domain](#delete-a-domain)
 
-
 ## Create new template
-You can use `templates/basic_project_stack.py` as the bases to create your own template.  
+You can use `templates/basic_project_stack.py` as the bases to create your own template. You need to follow these steps to create your own template:
+1. create a new file in `mlops_sm_project_template/templates` with the suffix `_stack.py` (this is very important as the code will look for files with that suffix when it comes to pushing the templates)
+2. copy the following into the new created stack:
+```
+from aws_cdk import (
+    Stack,
+    Tags,
+)
+
+
+from constructs import Construct
+
+class MLOpsStack(Stack):
+    DESCRIPTION: str = "<add a description of the template here>"
+    TEMPLATE_NAME: str = "<add a unique name here as this will appear in sagemaker studio console>"
+
+    def __init__(self, scope: Construct, construct_id: str, **kwargs) -> None:
+        super().__init__(scope, construct_id, **kwargs)
+
+        # Define required parmeters
+        project_name = aws_cdk.CfnParameter(
+            self,
+            "SageMakerProjectName",
+            type="String",
+            description="The name of the SageMaker project.",
+            min_length=1,
+            max_length=32,
+        ).value_as_string
+
+        project_id = aws_cdk.CfnParameter(
+            self,
+            "SageMakerProjectId",
+            type="String",
+            min_length=1,
+            max_length=16,
+            description="Service generated Id of the project.",
+        ).value_as_string
+
+        Tags.of(self).add("sagemaker:project-id", project_id)
+        Tags.of(self).add("sagemaker:project-name", project_name)
+```
+The 2 parameters defined here are mandatory for any template created for Sagemaker Projects.
+
+3. now add any resources that you would like to create as part of your template i.e. S3 bucket, a pipeline to deploy/build the model .. etc. 
+
 
 ## Setup CodeCommit with this repository
 You would wonder after you have cloned this repository and deployed the solution how would you then start to interact with your deployed CodeCommit repository and start using it as a main repository and push changes to it. You have 2 options for this:

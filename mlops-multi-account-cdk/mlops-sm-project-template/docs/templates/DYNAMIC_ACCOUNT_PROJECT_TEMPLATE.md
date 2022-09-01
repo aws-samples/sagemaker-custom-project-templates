@@ -2,6 +2,7 @@
 This template mainly differs to the [Basic Project Template](BASIC_PROJECT_TEMPLATE.md) in the template parameters. The archietcture and other componenets are exactly the same. 
 
 ## Dynamic Project Stack
+
 ![project architecture](../../diagrams/MLOPs%20Foundation%20Architecture-sagemaker%20project%20architecture.jpg)
 
 The stack expects 5 cloudformation parameters:

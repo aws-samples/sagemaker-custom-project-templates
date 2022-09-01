@@ -18,6 +18,7 @@ Other parameters can be included and those will be visible in SageMaker Studio D
 All resources deployed as part of this stack are tagged with those 2 parameters.
 
 This stack can be broken into 3 parts:  
+
 - **[Shared resources with Cross Account Permissions](#shared-resources)**
 - **[Build application resources and CI/CD pipeline](#build-app-cicd-construct)**
 - **[Deploy application resources and CI/CD pipeline](#deploy-app-cicd-construct)**  

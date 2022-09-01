@@ -1,5 +1,6 @@
 # Basic Project Template
 
+
 ## Basic Project Stack
 *This stack is stored as a service catalog product in the DEV Account and is visible in SageMaker Studio Domain*
 
