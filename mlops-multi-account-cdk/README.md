@@ -6,7 +6,7 @@ In this repository, we have created a baseline infrastructure for a secure MLOps
 
  - [mlops-infra](mlops-infra/): The necessary secure infrastructure for the multiple accounts of MLOps including VPCs and entpoints, SSM, IAM user roles, etc.
 
- - [mlops-sm-project-template-rt](mlops-sm-project-template-rt/): A custom Amazon SageMaker Project template that enable the multi account model promotion.
+ - [mlops-sm-project-template](mlops-sm-project-template/): A custom Amazon SageMaker Project template that enable the multi account model promotion.
 
 If you have any comments or questions, please contact:
 
