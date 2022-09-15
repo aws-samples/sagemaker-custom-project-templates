@@ -67,9 +67,7 @@ Resources:
       PipelineName: !Sub ${SageMakerProjectName}-${StageName}-BatchPipeline
       RoleArn: !Ref ModelExecutionRoleArn
       PipelineDefinition: 
-        PipelineDefinitionBody: !Sub
-          - ${PipelineDefinitionBody}
-          - { ModelName: !GetAtt ModelToDeploy.ModelName }
+        PipelineDefinitionBody: !Ref PipelineDefinitionBody
       Tags:
         - Key: sagemaker:project-name
           Value: !Ref SageMakerProjectName
@@ -78,7 +76,7 @@ Resources:
   EventRule:
     Type: AWS::Events::Rule
     Properties:
-      Name: !Sub ${SageMakerProjectName}-${StageName}-SchedExecRule
+      Name: !Sub sagemaker-${SageMakerProjectName}-${StageName}-SchedExecRule
       ScheduleExpression: !Sub rate(${ScheduleExpressionforPipeline})
       Targets:
         - Arn: !Sub arn:aws:sagemaker:${AWS::Region}:${AWS::AccountId}:pipeline/${SageMakerProjectName}-${StageName}-batch-pipeline
@@ -94,3 +92,9 @@ Resources:
                 Value: !Ref BatchInstanceType
               - Name: BatchInstanceCount
                 Value: !Ref BatchInstanceCount
+              - Name: ModelName
+                Value: !GetAtt ModelToDeploy.ModelName
+Outputs:
+  ModelName:
+    Description: SageMaker model name 
+    Value: !GetAtt ModelToDeploy.ModelName
