@@ -35,6 +35,7 @@ if __name__ == "__main__":
     parser.add_argument("--log-level", type=str, default=os.environ.get("LOGLEVEL", "INFO").upper())
     parser.add_argument("--import-build-config", type=str, required=True)
     parser.add_argument("--export-test-results", type=str, required=True)
+    parser.add_argument("--model-name", type=str, required=True)
     args, _ = parser.parse_known_args()
 
     # Configure logging to output the line number and message
@@ -58,6 +59,7 @@ if __name__ == "__main__":
         {'Name': 'OutputPath', 'Value': output_path},
         {'Name': 'BatchInstanceType', 'Value': batch_instance_type},
         {'Name': 'BatchInstanceCount', 'Value': batch_instance_count},
+        {'Name': 'ModelName', 'Value': args.model_name},
     ]
     pipeline_arn = start_pipeline_execution(
         pipeline_name=pipeline_name,
