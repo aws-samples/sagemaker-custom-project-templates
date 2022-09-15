@@ -169,7 +169,9 @@ if __name__ == "__main__":
         json.dumps({
             'region':args.aws_region,
             'pipeline_name':f'{args.sagemaker_project_name}-{args.sagemaker_project_id}-BatchInference',
-            'base_job_prefix':f'{args.sagemaker_project_name}-{args.sagemaker_project_id}'
+            'base_job_prefix':f'{args.sagemaker_project_name}-{args.sagemaker_project_id}',
+            'model_package_arn': model_package_arn,
+            'model_execution_role': args.model_execution_role
         })
     )
 

@@ -2,7 +2,7 @@ import os
 
 import boto3
 import sagemaker
-from sagemaker import model
+from sagemaker import model, ModelPackage
 import sagemaker.session
 from sagemaker.workflow.parameters import (
     ParameterInteger,
@@ -68,6 +68,8 @@ def get_pipeline_custom_tags(new_tags, region, sagemaker_project_arn=None):
 
 def get_pipeline(
     region,
+    model_package_arn,
+    model_execution_role,
     pipeline_name="AbalonePipelineBatchInference",
     base_job_prefix="Abalone",
 ):
@@ -75,30 +77,35 @@ def get_pipeline(
 
     Args:
         region: AWS region to create and run the pipeline.
-        model_name: Name of the SageMaker Model to deploy
-
+        model_package_arn: The Amazon Resource Name (ARN) of the SageMaker model package group to deploy
+        model_execution_role: The Amazon Resource Name (ARN) of the IAM role that SageMaker can assume to access model artifacts and docker image for deployment
+        base_job_prefix: Base job prefix for jobs in the SageMaker pipeline
     Returns:
         an instance of a pipeline
     """
     sagemaker_session = get_session(region)
 
     #### PARAMETERS
-    model_name = ParameterString("ModelName", default_value='${ModelName}')
     batch_inference_instance_count = ParameterInteger("BatchInstanceCount", default_value=1)
     batch_inference_instance_type = ParameterString("BatchInstanceType", default_value='ml.m5.xlarge')
     input_path = ParameterString("InputPath", default_value=f"s3://sagemaker-servicecatalog-seedcode-{region}/dataset/abalone-dataset.csv")
     output_path = ParameterString("OutputPath")
 
+    model = ModelPackage(
+        role=model_execution_role,
+        model_package_arn=model_package_arn,
+        sagemaker_session=sagemaker_session
+    )
+    
     #### SAGEMAKER CONSTRUCTS
-    transform = Transformer(
-        model_name=model_name,
+    transform = model.transformer(
         instance_count=1,
-        instance_type='ml.m5.xlarge',
+        instance_type='ml.m5.large',
         output_path=output_path,
-        base_transform_job_name=f"{base_job_prefix}/batch-transform-job",
         max_payload=10,
         accept='text/csv'
     )
+    transform.base_transform_job_name = f"{base_job_prefix}/batch-transform-job",
 
     #### STEPS
     transform_step = TransformStep(
@@ -110,7 +117,7 @@ def get_pipeline(
     #### PIPELINE
     pipeline = Pipeline(
         name=pipeline_name,
-        parameters=[model_name, batch_inference_instance_count, batch_inference_instance_type, input_path, output_path],
+        parameters=[batch_inference_instance_count, batch_inference_instance_type, input_path, output_path],
         steps=[transform_step],
         sagemaker_session=sagemaker_session
     )
