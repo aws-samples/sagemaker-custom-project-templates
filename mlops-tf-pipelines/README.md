@@ -83,10 +83,13 @@ In this section of this repository we will take a look how we can set up an Amaz
 1. Clone this GitHub repository. __"git clone https://github.com/aws-samples/sagemaker-custom-project-templates.git"__.
 2. Navigate to the "Service Catalog Set up" directory. Run __"cd mlops-tf-pipelines/service-catalog-setup/"__.
 3. Update the __"terraform.tfvars"__ file as per your organization environment.
-4. Initialize Terraform. Run __"terraform init"__.
-5. Generate the Terraform plan. Run __"terraform plan"__.
-6. Execute the Terraform code. Run __"terraform apply"__.
-7. This terraform execution will return the follow outputs. Make a note of these outputs.
+4. Navigate to the "SageMaker Projects Set up" directory. Run __"cd ../sagemaker-project-setup/"__.
+5. Update the __"terraform.tfvars"__  and the __"backend.tf"__ files as per your organization environment.
+6. Navigate back to the "Service Catalog Set up" directory. Run __"cd ../service-catalog-setup/"__.
+7. Initialize Terraform. Run __"terraform init"__.
+8. Generate the Terraform plan. Run __"terraform plan"__.
+9. Execute the Terraform code. Run __"terraform apply"__.
+10. This terraform execution will return the follow outputs. Make a note of these outputs.
     - IAM Instance Profile for the CommandRunner Utility.
     - S3 Bucket Name.
     - Secrets Manager Secret ARN which has the GitHub Secrets.
