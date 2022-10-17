@@ -2,7 +2,7 @@
 
 This section of the repository contains steps to set up Amazon SageMaker Project from Terraform.
 
-[A SageMaker Project] (https://docs.aws.amazon.com/sagemaker/latest/dg/sagemaker-projects-whatis.html) helps organizations set up and standarize environments for automating different steps involved in a Machine Learning Lifecycle.
+[A SageMaker Project](https://docs.aws.amazon.com/sagemaker/latest/dg/sagemaker-projects-whatis.html) helps organizations set up and standarize environments for automating different steps involved in a Machine Learning Lifecycle.
 
 While notebooks are helpful for model building and experimentation, a team of data scientists and ML engineers sharing code needs a more scalable way to maintain code consistency and strict version control.
 
@@ -41,7 +41,7 @@ In this section of this repository we will take a look how we can set up an Amaz
             - CloudWatch Log group.
             - Secrets Manager secret to store the GitHub Credentials.
             
-    * Second package is for the [Amazon SageMaker Project Set Up] (../../tree/main/sagemaker-project-setup)
+    * Second package is for the [Amazon SageMaker Project Set Up](../../tree/main/sagemaker-project-setup)
         - This has the terraform code to provision Machine Learning Pipeline resources associated with the SageMaker project.
         - At a high level those resources are:
             - AWS CodePipeline for the ML workflow.
@@ -74,10 +74,10 @@ In this section of this repository we will take a look how we can set up an Amaz
 
 1. As mentioned earlier, we will be using CommandRunner Utility to run the second package of the Terraform Code to provision the ML pipeline resources.
 2. CommandRunner is not enabled by default, we will need to register it to start using it.
-3. Follow the instructions provided [in this link for the CommandRunner set up] (https://aws.amazon.com/premiumsupport/knowledge-center/cloudformation-commandrunner-stack/)
+3. Follow the instructions provided [in this link for the CommandRunner set up](https://aws.amazon.com/premiumsupport/knowledge-center/cloudformation-commandrunner-stack/)
 
 ### Step 3: Terraform Installation.
-1. Install Terraform on your development machine. [Reference Link] (https://learn.hashicorp.com/tutorials/terraform/install-cli)
+1. Install Terraform on your development machine. [Reference Link](https://learn.hashicorp.com/tutorials/terraform/install-cli)
 
 ### Step 4: Service Catalog Set up.
 1. Clone this GitHub repository. __"git clone https://github.com/aws-samples/sagemaker-custom-project-templates.git"__.
@@ -86,26 +86,54 @@ In this section of this repository we will take a look how we can set up an Amaz
 4. Initialize Terraform. Run __"terraform init"__.
 5. Generate the Terraform plan. Run __"terraform plan"__.
 6. Execute the Terraform code. Run __"terraform apply"__.
+7. This terraform execution will return the follow outputs. Make a note of these outputs.
+    - IAM Instance Profile for the CommandRunner Utility.
+    - S3 Bucket Name.
+    - Secrets Manager Secret ARN which has the GitHub Secrets.
+    - Service Catalog Product Name.
+    - CloudWatch Log Group Name.
 
 ### Step 5: Create the Amazon SageMaker Project inside the SageMaker Studio.
 
 1. Open SageMaker Studio and sign in to your user profile.
 2. Choose the SageMaker __components and registries__ icon on the left, and choose the __Create project__ button.
 3. The default view displays SageMaker templates. Switch to the __Organization__ templates tab to see custom project templates.
-4. The template you created will be displayed in the template list. (If you do not see it yet, make sure the correct execution role is added to the product and the __sagemaker:studio-visibility__ tag with a value of __true__ is added to the Service Catalog product).
-5. Choose the template and click Select project template.
+4. Look for the template with the Service Catalog Product Name you noted from the outputs of the previous Terraform execution step.
 
     ![](images/sm-projects-image-1.png)
-
-1. Enter a name and optional description for the project. 
+    
+5. Choose the template and click Select project template.
+6. Enter a name and optional description for the project. 
 
     ![](images/sm-projects-image-2.png)
 
-2. For GitRepoURL, enter the URL of your Git repository for the model build code in https://git-url.git format.
-3. For GitBranchName, enter the branch to use from your Git repository for pipeline activities.
-4. For MLOpsS3BucketFolder, enter the S3 Bucket created as part of Step1.
-5. For GitRepoName, enter the Git repository name in the format of username/repository name or organization/repository name.
-6. For Codestar Connection ARN, enter the ARN of the AWS CodeStar connection you created in Step 1.
+7. We now need to enter the values for the Project Template parameters. They are populated with the default values, but needs to be updated as per your environment.
+8. For CommandRunnerIAMInstanceProfile, enter the value you had noted from the Output of Terraform Run of previous step.
+9. For TerraformInitAction, select "init". 
+10. For GitRepoURL, enter the URL of your GitHub repository that will have model build code in https://git-url.git format.
+11. For GitBranchName, enter the branch to use from your Git repository for pipeline activities.
+12. For TerraformAction - select "apply".
+13. For MLOpsS3Bucket, enter the value you had noted from the Output of Terraform Run of previous step.
+14. For GitRepoName, enter the Git repository name in the format of username/repository name or organization/repository name.
+15. For Codestar Connection ARN, enter the ARN of the AWS CodeStar connection you created in Step 1.
+16. For CommandRunerCWLogGrp, enter the value you had noted from the Output of Terraform Run of previous step.
+17. Select Create Project.
+18. This will trigger the CloudFormation CommandRunner Utility which will inturn perform the Terraform execution to provision the SageMaker Pipeline resources.
+19. The logs of this terraform run will be available in the CloudWatch Log Group you noted from the Output of Terraform Run of previous step.
+20. You have now successfully created an MLOps SageMaker Project with Terraform integration. 
 
 
-You have now successfully created an MLOps SageMaker Project with Terraform integration. 
+### Step 6: Cleanup (Optional)
+
+1. To cleanup the SageMaker Project resources, right click on the SageMaker Project and select "Update Project"
+
+    ![](images/sm-projects-image-3.png)
+
+2. Change TerraformAction parameter to "destroy".
+3. Update the SageMaker Project.
+4. Monitor the logs in CloudWatch Log group for completion of Terraform run.
+5. Once it is complete, right click on the SageMaker Project and select "Delect Project" to delete the SageMaker Project.
+6. Now go back to the development machine where you had cloned this repo.
+7. Navigate back to the "Service Catalog Set up" directory. Run __"cd mlops-tf-pipelines/service-catalog-setup/"__.
+8. Generate the Terraform plan. Run __"terraform plan"__.
+9. Execute the Terraform Destroy. Run __"terraform destroy"__.

@@ -30,3 +30,13 @@ output "s3_bucket_id" {
 output "secrets_manager_github_secret_arn" {
   value = aws_secretsmanager_secret.git_repo_secret.arn
 }
+
+#Service Catalog Product Name
+output "service_catalog_product_name" {
+  value = aws_servicecatalog_product.mlops_tf_sc_product.name
+}
+
+#CloudWatch Log Group Name
+output "cw_log_group_name" {
+  value = aws_cloudwatch_log_group.command_runner_logs.name
+}

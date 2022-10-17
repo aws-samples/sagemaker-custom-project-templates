@@ -4,11 +4,11 @@
 
 terraform {
   backend "s3" {
-    bucket               = "dev-machine-learning-ops-167084800113"
+    bucket               = ""
     key                  = "mlops.tfstate"
     workspace_key_prefix = ""
     region               = "us-west-2"
-    dynamodb_table       = "terraform-tfstate-dev-167084800113"
+    dynamodb_table       = ""
     encrypt              = true
   }
 }
