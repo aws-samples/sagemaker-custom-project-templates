@@ -4,10 +4,6 @@ variable "region" {
   description = "AWS region identifier"
 }
 
-variable "region_name" {
-  description = "Region name as in the place where the region is located"
-}
-
 variable "env" {
   description = "Name of the environment the infrastructure is for"
 }
