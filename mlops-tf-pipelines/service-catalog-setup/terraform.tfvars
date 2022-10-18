@@ -15,9 +15,9 @@ sc_product_owner   = "Admin"
 sc_product_launch_role = "CustomAmazonSagemakerServiceCatalogProductLaunchRole"
 
 # Service Catalog Execution Role. Use the SageMaker Studio Execution Role
-sc_portfolio_service_role = "role/service-role/AmazonSageMaker-ExecutionRole-<acct-id>"
+sc_portfolio_service_role = "role/service-role/<AmazonSageMakerStudioExecutionRole>"
 
-# DynamoDB Table for Backend
+# Prefix for DynamoDB Table Name to store Backend TF State
 backend_table_prefix = "terraform-tfstate-dev"
 
 # Pass Role Variable for Command Runner to assume Service Catalog
