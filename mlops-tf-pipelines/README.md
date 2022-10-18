@@ -31,7 +31,7 @@ In this section of this repository we will take a look how we can set up an Amaz
 ### Repository Overview:
 * This repository contains two different packages of Terraform Code:
 
-    * First package is for the [AWS Service Catalog Set Up ](../../tree/main/mlops-tf-pipelines/service-catalog-setup)
+    * First package is for the [AWS Service Catalog Set Up ](service-catalog-setup)
         - This has the terraform code to provision all the AWS Cloud Infrastructure required to create the SageMaker project.
         - At a high level those resources are:
             - Service Catalog resources.
@@ -41,7 +41,7 @@ In this section of this repository we will take a look how we can set up an Amaz
             - CloudWatch Log group.
             - Secrets Manager secret to store the GitHub Credentials.
             
-    * Second package is for the [Amazon SageMaker Project Set Up](../../tree/main/mlops-tf-pipelines/sagemaker-project-setup)
+    * Second package is for the [Amazon SageMaker Project Set Up](sagemaker-project-setup)
         - This has the terraform code to provision Machine Learning Pipeline resources associated with the SageMaker project.
         - At a high level those resources are:
             - AWS CodePipeline for the ML workflow.
