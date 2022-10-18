@@ -1,6 +1,6 @@
 # Amazon SageMaker Project with Terraform
 
-This section of the repository contains steps to set up Amazon SageMaker Project from Terraform.
+This section of the repository contains steps to set up Amazon SageMaker Project with Terraform integration.
 
 [A SageMaker Project](https://docs.aws.amazon.com/sagemaker/latest/dg/sagemaker-projects-whatis.html) helps organizations set up and standarize environments for automating different steps involved in a Machine Learning Lifecycle.
 
@@ -22,16 +22,16 @@ In this section of this repository we will take a look how we can set up an Amaz
 
 * In this example, the ML code will be hosted in a GitHub Repository.
 * Everytime a Git Push is performed in this repository, it will trigger a Machine Learning Pipeline orchestrated by the AWS CodePipeline.
-* Different steps within the AWS CodePipeline will be execute within an AWS CodeBuild project.
+* Different steps of the AWS CodePipeline will be executed within an AWS CodeBuild project.
 * These steps part of the ML workflow will be represented within an Amazon SageMaker feature called as the SageMaker Pipelines.
-* This SageMaker Pipeline is a series of interconnected steps encoded using a directed acyclic graph (DAG).
+* SageMaker Pipelines are a series of interconnected steps encoded using a directed acyclic graph (DAG).
 * DataScientists can review these SageMaker Pipelines in Amazon SageMaker Studio within the SageMaker Project.
 * SageMaker Project also contains other ML workflow components like Experiments, ML repositories, Model Groups, Endpoints etc all in one place for an holistic overview of maintaining a standardized Machine Learning Workflow.
 
 ### Repository Overview:
-* This repository two different packages of Terraform Code:
+* This repository contains two different packages of Terraform Code:
 
-    * First package is for the [AWS Service Catalog Set Up ](../../tree/main/service-catalog-setup)
+    * First package is for the [AWS Service Catalog Set Up ](../../tree/main/mlops-tf-pipelines/service-catalog-setup)
         - This has the terraform code to provision all the AWS Cloud Infrastructure required to create the SageMaker project.
         - At a high level those resources are:
             - Service Catalog resources.
@@ -41,7 +41,7 @@ In this section of this repository we will take a look how we can set up an Amaz
             - CloudWatch Log group.
             - Secrets Manager secret to store the GitHub Credentials.
             
-    * Second package is for the [Amazon SageMaker Project Set Up](../../tree/main/sagemaker-project-setup)
+    * Second package is for the [Amazon SageMaker Project Set Up](../../tree/main/mlops-tf-pipelines/sagemaker-project-setup)
         - This has the terraform code to provision Machine Learning Pipeline resources associated with the SageMaker project.
         - At a high level those resources are:
             - AWS CodePipeline for the ML workflow.
@@ -54,7 +54,7 @@ In this section of this repository we will take a look how we can set up an Amaz
 * To create a SageMaker Project, you have to he select a template suited for your ML workflow. It can be a SageMaker provided templates or Custom Templates as explained earlier.
 * In this example, you will be selected a Custom template that is provisioned by the First Terraform package as explained in the Repository overview.
 * When you create the SageMaker project using this custom template, it will launch a Service Catalog product associated with the template.
-* The Service Catalog Product is in turn execute a CloudFormation Stack.
+* The Service Catalog Product will in turn execute a CloudFormation Stack.
 * This CloudFormation Stack will launch only a single resource called as the Command Runner Utility.
 * This utility provisions an Amazon EC2 instance and runs the Second Terraform package mentioned in the Repository overview section to create the ML pipeline resources required for the SageMaker project.
 * CloudFormation does not launch any other resources. It is only used to run a Command Runner Utility to perform the execution of the Terraform code.
