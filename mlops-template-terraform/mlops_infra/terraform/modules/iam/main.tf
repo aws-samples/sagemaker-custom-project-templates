@@ -1,3 +1,5 @@
+# TODO: Consider scoping down IAM roles depending on your needs
+
 locals {
   prefix         = var.prefix
   sm_execution_role_name = "${local.prefix}-sagemaker-execution-role"
@@ -34,8 +36,6 @@ resource "aws_iam_role_policy_attachment" "aws_sagemaker_full_access" {
   policy_arn = "arn:aws:iam::aws:policy/AmazonSageMakerFullAccess"
 }
 
-# How to restrict to necessary actions and services
-# TODO: SCOPE DOWN!
 resource "aws_iam_role_policy_attachment" "aws_sagemaker_cloudformation_poweruser" {
   role       = aws_iam_role.sagemaker_execution_role.name
   policy_arn = "arn:aws:iam::aws:policy/AWSCloudFormationFullAccess"
@@ -120,10 +120,6 @@ resource "aws_iam_role_policy_attachment" "attach_codepipeline_policy" {
 }
 
 
-
-
-# Only to bucket attached to the project
-# TODO: SCOPE DOWN!
 resource "aws_iam_role_policy_attachment" "aws_sagemaker_s3_full_access" {
   role       = aws_iam_role.sagemaker_execution_role.name
   policy_arn = "arn:aws:iam::aws:policy/AmazonS3FullAccess"
@@ -155,7 +151,6 @@ resource "aws_iam_role_policy_attachment" "attach_eventbridge_policy" {
   policy_arn = aws_iam_policy.eventbridge_policy.arn
 }
 
-# Below should be fine as only access to the created KMS key
 resource "aws_iam_policy" "kms_policy" {
   name        = "${local.prefix}-kms-policy"
   description = "kms_policy for SM Studio"
