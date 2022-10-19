@@ -1,0 +1,23 @@
+version: 0.2
+env:
+  variables:
+    TERRAFORM_VERSION: 1.2.4
+
+phases:
+  install:
+    runtime-versions:
+      python: 3.8
+    commands:
+      - pip install --upgrade --force-reinstall "awscli>1.20.30"
+      - pip install -r requirements.txt
+      - export PYTHONUNBUFFERED=TRUE
+      - echo "Installing Terraform"
+      - curl -o /tmp/terraform_${TERRAFORM_VERSION}_linux_amd64.zip https://releases.hashicorp.com/terraform/${TERRAFORM_VERSION}/terraform_${TERRAFORM_VERSION}_linux_amd64.zip
+      - unzip -o /tmp/terraform_${TERRAFORM_VERSION}_linux_amd64.zip -d /tmp && mv /tmp/terraform /usr/bin
+      - chmod +x /usr/bin/terraform
+      - terraform --version
+
+  build:
+    commands:
+      - echo "Looking up last approved model and deploying infra"
+      - make auto-apply

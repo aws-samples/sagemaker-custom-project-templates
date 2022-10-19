@@ -1,0 +1,8 @@
+aws_region = "$AWS_REGION"
+aws_account_id = "$AWS_ACCOUNT_ID"
+sm_project_id = "$SM_PROJECT_ID"
+sm_project_name = "$SM_PROJECT_NAME"
+codecommit_id = "$CODECOMMIT_ID"
+prefix = "$PREFIX"
+artifact_bucket_name = "$ARTIFACT_BUCKET_NAME"
+default_branch = "$DEFAULT_BRANCH"

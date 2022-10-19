@@ -1,0 +1,12 @@
+provider "aws" {
+  region = "$AWS_REGION"
+}
+
+terraform {
+  required_version = ">= $TERRAFORM_VERSION"
+  backend "s3" {
+    bucket = "$STATE_BUCKET_NAME"
+    key    = "projects/state/build/mlops-$SM_PROJECT_ID-build-state.tfstate"
+    region = "$AWS_REGION"
+  }
+}
