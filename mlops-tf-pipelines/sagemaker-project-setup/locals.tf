@@ -8,7 +8,7 @@ locals {
   account_id = data.aws_caller_identity.current.account_id
 
   # Common Resource Name
-  cmn_res_name = lower("${var.sagemaker_project_name}-${var.sagemaker_project_id}")
+  cmn_res_name = lower("sagemaker-${var.sagemaker_project_id}")
 
   # SeedCode Lambda Files
   lambda_files = "lambdas-source"

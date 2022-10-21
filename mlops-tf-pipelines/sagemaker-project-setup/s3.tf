@@ -6,8 +6,9 @@
 
 
 resource "aws_s3_bucket" "terraform_data_source_s3" {
-  bucket = local.cmn_res_name
-  tags   = local.common_tags
+  bucket        = local.cmn_res_name
+  force_destroy = true
+  tags          = local.common_tags
 }
 
 resource "aws_s3_bucket_server_side_encryption_configuration" "terraform_data_source_s3_sse" {

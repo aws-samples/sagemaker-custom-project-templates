@@ -45,11 +45,21 @@ resource "aws_servicecatalog_product_portfolio_association" "mlops_sc_assocation
 }
 
 #----------------------------------------------------------------#
+# Adding Sleep Resource for Service Catalog IAM role dependency
+#----------------------------------------------------------------#
+
+resource "time_sleep" "wait_30_seconds" {
+  depends_on = [aws_servicecatalog_product_portfolio_association.mlops_sc_assocation, aws_iam_role.sc_launch_iam_role]
+
+  create_duration = "30s"
+}
+
+#----------------------------------------------------------------#
 # Add Launch Constraint to the Service Catalog Product
 #----------------------------------------------------------------#
 
 resource "aws_servicecatalog_constraint" "mlops_sc_constraint" {
-  depends_on   = [aws_servicecatalog_product_portfolio_association.mlops_sc_assocation]
+  depends_on   = [time_sleep.wait_30_seconds]
   description  = "IAM Role for launching the MLOps SC product"
   portfolio_id = aws_servicecatalog_portfolio.mlops_sc_portfolio.id
   product_id   = aws_servicecatalog_product.mlops_tf_sc_product.id
