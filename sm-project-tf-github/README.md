@@ -1,4 +1,4 @@
-# Amazon SageMaker Project with Terraform
+# Amazon SageMaker Project with Terraform and GitHub
 
 This section of the repository contains steps to set up Amazon SageMaker Project with Terraform integration.
 
