@@ -6,11 +6,11 @@ This section of the repository contains steps to set up Amazon SageMaker Project
 
 While notebooks are helpful for model building and experimentation, a team of data scientists and ML engineers sharing code needs a more scalable way to maintain code consistency and strict version control.
 
-Amazon SageMaker provides a set of first-party templates for organizations that want to quickly get started with ML workflows and CI/CD. The templates include projects that use AWS-native services for CI/CD, such as AWS CodeBuild, AWS CodePipeline, and AWS CodeCommit. For more information about SageMaker-Provided Templates refer to this [link](https://docs.aws.amazon.com/sagemaker/latest/dg/sagemaker-projects-templates-sm.html).
+Amazon SageMaker provides a set of first-party templates for organizations that want to quickly get started with ML workflows and CI/CD. The templates include projects that use AWS-native services for CI/CD, such as AWS CodeBuild, AWS CodePipeline etc. For more information about SageMaker-Provided Templates refer to this [link](https://docs.aws.amazon.com/sagemaker/latest/dg/sagemaker-projects-templates-sm.html).
 
 SageMaker Projects can support custom template offerings where organizations use AWS CloudFormation templates and Terraform to define the resources needed for an ML workflow. 
 
-In this section of this repository we will take a look how we can set up an Amazon SageMaker Project to automate and standardize the different steps involved in a Machine Learning Lifecycle by integrating with Terraform.
+In this section of this repository we will take a look how we can set up an Amazon SageMaker Project to automate and standardize the different steps involved in a Machine Learning Lifecycle by integrating with Terraform and GitHub.
 
 
 
@@ -81,7 +81,7 @@ In this section of this repository we will take a look how we can set up an Amaz
 
 ### Step 4: Service Catalog Set up.
 1. Clone this GitHub repository. __"git clone https://github.com/aws-samples/sagemaker-custom-project-templates.git"__.
-2. Navigate to the "Service Catalog Set up" directory. Run __"cd mlops-tf-pipelines/service-catalog-setup/"__.
+2. Navigate to the "Service Catalog Set up" directory. Run __"cd sm-project-tf-github/service-catalog-setup/"__.
 3. Update the __"terraform.tfvars"__ file as per your organization environment.
 4. Navigate to the "SageMaker Projects Set up" directory. Run __"cd ../sagemaker-project-setup/"__.
 5. Update the __"terraform.tfvars"__  and the __"backend.tf"__ files as per your organization environment.
@@ -123,7 +123,7 @@ In this section of this repository we will take a look how we can set up an Amaz
 17. Select Create Project.
 18. This will trigger the CloudFormation CommandRunner Utility which will inturn perform the Terraform execution to provision the SageMaker Pipeline resources.
 19. The logs of this terraform run will be available in the CloudWatch Log Group you noted from the Output of Terraform Run of previous step.
-20. You have now successfully created an MLOps SageMaker Project with Terraform integration. 
+20. You have now successfully created an MLOps SageMaker Project with Terraform integration and GitHub. 
 
 
 ### Step 6: Cleanup (Optional)
@@ -137,6 +137,6 @@ In this section of this repository we will take a look how we can set up an Amaz
 4. Monitor the logs in CloudWatch Log group for completion of Terraform run.
 5. Once it is complete, right click on the SageMaker Project and select "Delect Project" to delete the SageMaker Project.
 6. Now go back to the development machine where you had cloned this repo.
-7. Navigate back to the "Service Catalog Set up" directory. Run __"cd mlops-tf-pipelines/service-catalog-setup/"__.
+7. Navigate back to the "Service Catalog Set up" directory. Run __"cd sm-project-tf-github/service-catalog-setup/"__.
 8. Generate the Terraform plan. Run __"terraform plan"__.
 9. Execute the Terraform Destroy. Run __"terraform destroy"__.
