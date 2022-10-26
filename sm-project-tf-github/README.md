@@ -1,6 +1,6 @@
 # Amazon SageMaker Project with Terraform and GitHub
 
-This section of the repository contains steps to set up Amazon SageMaker Project with Terraform integration.
+This section of the repository contains steps to set up Amazon SageMaker Project with Terraform as infrastructure as code for resources creation and GitHub connection for use case version control.
 
 [A SageMaker Project](https://docs.aws.amazon.com/sagemaker/latest/dg/sagemaker-projects-whatis.html) helps organizations set up and standarize environments for automating different steps involved in a Machine Learning Lifecycle.
 
@@ -8,9 +8,9 @@ While notebooks are helpful for model building and experimentation, a team of da
 
 Amazon SageMaker provides a set of first-party templates for organizations that want to quickly get started with ML workflows and CI/CD. The templates include projects that use AWS-native services for CI/CD, such as AWS CodeBuild, AWS CodePipeline etc. For more information about SageMaker-Provided Templates refer to this [link](https://docs.aws.amazon.com/sagemaker/latest/dg/sagemaker-projects-templates-sm.html).
 
-SageMaker Projects can support custom template offerings where organizations use AWS CloudFormation templates and Terraform to define the resources needed for an ML workflow. 
+SageMaker Projects can support custom template offerings where organizations use a minimum AWS CloudFormation template to execute a Terraform stack and create the resources needed for an ML workflow.
 
-In this section of this repository we will take a look how we can set up an Amazon SageMaker Project to automate and standardize the different steps involved in a Machine Learning Lifecycle by integrating with Terraform and GitHub.
+In this section of this repository we will take a look how we can set up an Amazon SageMaker Project to automate and standardize the different steps involved in a Machine Learning Lifecycle by extending the SageMaker provided templates to provision AWS resources with Terraform and connect the use case code with GitHub repositories.
 
 
 
@@ -51,13 +51,12 @@ In this section of this repository we will take a look how we can set up an Amaz
 
 ### Integration between Amazon SageMaker Project and Terraform
 
-* To create a SageMaker Project, you have to he select a template suited for your ML workflow. It can be a SageMaker provided templates or Custom Templates as explained earlier.
-* In this example, you will be selected a Custom template that is provisioned by the First Terraform package as explained in the Repository overview.
+* To create a SageMaker Project, you have to select a template suited for your ML workflow. It can be a SageMaker provided templates or Custom Templates as explained earlier.
+* In this example, we will be selecting a custom template that is provisioned by the first Terraform package as explained in the Repository overview.
 * When you create the SageMaker project using this custom template, it will launch a Service Catalog product associated with the template.
-* The Service Catalog Product will in turn execute a CloudFormation Stack.
-* This CloudFormation Stack will launch only a single resource called as the Command Runner Utility.
+* The Service Catalog Product will execute a CloudFormation Stack that launches only a single resource called **Command Runner Utility**.
 * This utility provisions an Amazon EC2 instance and runs the Second Terraform package mentioned in the Repository overview section to create the ML pipeline resources required for the SageMaker project.
-* CloudFormation does not launch any other resources. It is only used to run a Command Runner Utility to perform the execution of the Terraform code.
+* **This CloudFormation Stack will not launch any other resources.** It is only used to run a Command Runner Utility to perform the execution of the Terraform code.
 * Once the Terraform execution is complete, the CloudFormation Stack status changes to complete and the Amazon EC2 instance launched from the CommandRunner utility is terminated.
 
 
