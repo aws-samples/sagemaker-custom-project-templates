@@ -78,7 +78,10 @@ In this section of this repository we will take a look how we can set up an Amaz
 ### Step 3: Terraform Installation.
 1. Install Terraform on your development machine. [Reference Link](https://learn.hashicorp.com/tutorials/terraform/install-cli)
 
-### Step 4: Service Catalog Set up.
+### Step 4: Configure AWS permissions in your development environment.
+1. Make sure your development has AWS permissions configured to provision the AWS resources using Terraform. [Reference Link](https://docs.aws.amazon.com/cli/latest/userguide/cli-configure-quickstart.html)
+
+### Step 5: Service Catalog Set up.
 1. Clone this GitHub repository. __"git clone https://github.com/aws-samples/sagemaker-custom-project-templates.git"__.
 2. Navigate to the "Service Catalog Set up" directory. Run __"cd sm-project-tf-github/service-catalog-setup/"__.
 3. Update the __"terraform.tfvars"__ file as per your organization environment.
@@ -95,7 +98,7 @@ In this section of this repository we will take a look how we can set up an Amaz
     - Service Catalog Product Name.
     - CloudWatch Log Group Name.
 
-### Step 5: Create the Amazon SageMaker Project inside the SageMaker Studio.
+### Step 6: Create the Amazon SageMaker Project inside the SageMaker Studio.
 
 1. Open SageMaker Studio and sign in to your user profile.
 2. Choose the SageMaker __components and registries__ icon on the left, and choose the __Create project__ button.
@@ -125,7 +128,7 @@ In this section of this repository we will take a look how we can set up an Amaz
 20. You have now successfully created an MLOps SageMaker Project with Terraform integration and GitHub. 
 
 
-### Step 6: Cleanup (Optional)
+### Step 7: Cleanup (Optional)
 
 1. To cleanup the SageMaker Project resources, right click on the SageMaker Project and select "Update Project"
 
