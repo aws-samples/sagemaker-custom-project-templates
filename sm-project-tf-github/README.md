@@ -78,8 +78,8 @@ In this section of this repository we will take a look how we can set up an Amaz
 ### Step 3: Terraform Installation.
 1. Install Terraform on your development machine. [Reference Link](https://learn.hashicorp.com/tutorials/terraform/install-cli)
 
-### Step 4: Configure AWS permissions in your development environment.
-1. Make sure your development has AWS permissions configured to provision the AWS resources using Terraform. [Reference Link](https://docs.aws.amazon.com/cli/latest/userguide/cli-configure-quickstart.html)
+### Step 4: Configure AWS permissions in your development machine.
+1. Make sure your development machine has AWS permissions configured to provision the AWS resources using Terraform. [Reference Link](https://docs.aws.amazon.com/cli/latest/userguide/cli-configure-quickstart.html)
 
 ### Step 5: Service Catalog Set up.
 1. Clone this GitHub repository. __"git clone https://github.com/aws-samples/sagemaker-custom-project-templates.git"__.
