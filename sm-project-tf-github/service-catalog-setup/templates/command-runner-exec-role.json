@@ -1,0 +1,27 @@
+{
+    "Version": "2012-10-17",
+    "Statement": [
+        {
+            "Effect": "Allow",
+            "Action": [
+                "s3:*",
+                "codebuild:*",
+                "codepipeline:*",
+                "lambda:*",
+                "sagemaker:*",
+                "logs:*",
+                "dynamodb:*",
+                "sts:GetCallerIdentity",
+                "codestar-connections:PassConnection"
+            ],
+            "Resource": "*"
+        },
+         {
+            "Effect": "Allow",
+            "Action": [
+                "iam:PassRole"
+            ],
+            "Resource": "${pass_role_arn}"
+        }       
+    ]
+}
