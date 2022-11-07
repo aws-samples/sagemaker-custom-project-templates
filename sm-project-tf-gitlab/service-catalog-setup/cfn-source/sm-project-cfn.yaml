@@ -1,0 +1,111 @@
+AWSTemplateFormatVersion: 2010-09-09
+
+Parameters:
+
+  SageMakerProjectName:
+    Type: String
+    Description: Name of the project
+
+  SageMakerProjectId:
+    Type: String
+    Description: Service generated Id of the project.
+    NoEcho: true
+    
+  GitlabURL:
+    Type: String
+    Default: 'https://gitlab.com'
+    Description: URL of the Gitlab domain.
+
+  GitRepoName:
+    Type: String
+    Default: 'username/repo-name'
+    Description: Service generated Id of the project.
+    
+  GitBranchName:
+    Type: String
+    Default: 'main'
+    Description: Service generated Id of the project.    
+
+  MLOpsS3Bucket:
+    Type: String
+    Default: 'dev-machine-learning-ops'
+    Description: S3 Bucket containing the MLOps Terraform Code.  
+
+  CommandRunnerIAMInstanceProfile:
+    Type: String
+    Default: 'CommandRunnerExecRole'
+    Description: IAM Instance Profile to be assumed by CommandRunner. 
+
+  CommandRunnerCWLogGrp:
+    Type: String
+    Default: 'dev-machine-learning-ops'
+    Description: CloudWatch Log Group for CommandRunner.
+    
+  SecretsManagerGitlabSecretName:
+    Type: String
+    Default: 'dev-machine-learning-ops-gitlab-token'
+    Description: ARN of the Secrets Manager Secret having the Gitlab private token.
+
+  SecretsManagerGitlabIAMAccessKey:
+    Type: String
+    Default: 'dev-machine-learning-ops-gitlab-iam-access-key'
+    Description: ARN of the Secrets Manager Secret having the Gitlab IAM Access Key.
+    
+  SecretsManagerGitlabIAMSecretKey:
+    Type: String
+    Default: 'dev-machine-learning-ops-gitlab-iam-secret-key'
+    Description: ARN of the Secrets Manager Secret having the Gitlab IAM Secret Key.   
+
+  TerraformAction:
+    Type: String
+    Default: 'apply'
+    Description: Set action as either apply or destroy.
+    AllowedValues:
+      - apply
+      - destroy
+
+  TerraformInitAction:
+    Type: String
+    Default: 'init'
+    Description: Set action as either apply or destroy.
+    AllowedValues:
+      - init
+      - init -reconfigure
+
+Resources:
+  CommandRunner:
+    Type: 'AWSUtility::CloudFormation::CommandRunner'
+    Properties:
+      Command: !Sub |
+        sudo su
+        yum update -y
+        yum install -y yum-utils
+        yum install -y unzip
+        yum-config-manager --add-repo https://rpm.releases.hashicorp.com/AmazonLinux/hashicorp.repo
+        yum -y install terraform
+        terraform -help
+        mkdir /tmp/terraform 
+        aws s3 cp s3://${MLOpsS3Bucket}/tf-code.zip /tmp/terraform 
+        cd /tmp/terraform
+        unzip tf-code.zip
+        ls -la
+        terraform ${TerraformInitAction}
+        echo "Terraform Init Output : $?" 
+        export TF_VAR_sagemaker_project_name=${SageMakerProjectName}
+        export TF_VAR_sagemaker_project_id=${SageMakerProjectId}
+        export TF_VAR_gitlab_url=${GitlabURL}
+        export TF_VAR_git_repo_name=${GitRepoName}
+        export TF_VAR_git_repo_branch=${GitBranchName}
+        export TF_VAR_secrets_manager_gitlab_secret_name=${SecretsManagerGitlabSecretName}
+        export TF_VAR_secrets_manager_gitlab_iam_access_key=${SecretsManagerGitlabIAMAccessKey}
+        export TF_VAR_secrets_manager_gitlab_iam_secret_key=${SecretsManagerGitlabIAMSecretKey}        
+        terraform plan
+        terraform ${TerraformAction} -auto-approve 
+        echo "Terraform Apply Output : $?" 
+        echo "Exiting" >> /command-output.txt
+      Role: !Ref CommandRunnerIAMInstanceProfile
+      LogGroup: !Ref CommandRunnerCWLogGrp
+Outputs:
+  CommandOutput:
+    Description: The output of terraform.
+    Value: !GetAtt CommandRunner.Output
