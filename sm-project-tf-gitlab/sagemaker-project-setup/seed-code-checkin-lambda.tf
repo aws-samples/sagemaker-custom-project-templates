@@ -57,7 +57,7 @@ resource "aws_lambda_function" "seed_code_checkin_build_trigger" {
       SageMakerProjectName     = var.sagemaker_project_name
       SageMakerProjectId       = var.sagemaker_project_id
       IAMAccessKeySecretName   = var.secrets_manager_gitlab_iam_access_key
-      IAMSecretKeySecretName   = var.secrets_manager_gitlab_secret_name
+      IAMSecretKeySecretName   = var.secrets_manager_gitlab_iam_secret_key
       AccountId                = local.account_id
     }
   }
