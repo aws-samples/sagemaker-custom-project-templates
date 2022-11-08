@@ -84,11 +84,11 @@ In this section of this repository we will take a look how we can set up an Amaz
 10. This terraform execution will return the follow outputs. Make a note of these outputs.
     - IAM Instance Profile for the CommandRunner Utility.
     - S3 Bucket Name.
-    - Secrets Manager Secret Name which has the GitLab Secrets.
+    - Secrets Manager Secrets which has the GitLab token, credentials and IAM access keys. 
     - Service Catalog Product Name.
     - CloudWatch Log Group Name.
 
-### Step 6: Create the Amazon SageMaker Project inside the SageMaker Studio.
+### Step 5: Create the Amazon SageMaker Project inside the SageMaker Studio.
 
 1. Open SageMaker Studio and sign in to your user profile.
 2. Choose the SageMaker __components and registries__ icon on the left, and choose the __Create project__ button.
@@ -103,19 +103,22 @@ In this section of this repository we will take a look how we can set up an Amaz
     ![](images/sm-projects-image-2.png)
 
 7. We now need to enter the values for the Project Template parameters. They are populated with the default values, but needs to be updated as per your environment.
-8. For CommandRunnerIAMInstanceProfile, enter the value you had noted from the Output of Terraform Run of previous step.
+8. For CommandRunnerIAMInstanceProfile, enter the value of "command_runner_instance_profile" you had noted from the Output of Terraform Run of previous step.
 9. For TerraformInitAction, select "init". 
-10. For GitRepoURL, enter the URL of your GitLab repository that will have model build code in https://git-url.git format.
-11. For GitBranchName, enter the branch to use from your Git repository for pipeline activities.
-12. For TerraformAction - select "apply".
-13. For MLOpsS3Bucket, enter the value you had noted from the Output of Terraform Run of previous step.
-14. For GitRepoName, enter the Git repository name in the format of username/repository name or organization/repository name.
-15. For Codestar Connection ARN, enter the ARN of the AWS CodeStar connection you created in Step 1.
-16. For CommandRunerCWLogGrp, enter the value you had noted from the Output of Terraform Run of previous step.
-17. Select Create Project.
-18. This will trigger the CloudFormation CommandRunner Utility which will inturn perform the Terraform execution to provision the SageMaker Pipeline resources.
-19. The logs of this terraform run will be available in the CloudWatch Log Group you noted from the Output of Terraform Run of previous step.
-20. You have now successfully created an MLOps SageMaker Project with Terraform integration and GitLab. 
+10. For TerraformAction - select "apply".
+11. For SecretsManagerGitlabPrivateToken, enter the "secrets_manager_gitlab_private_token" noted from the Output of Terraform Run of previous step.
+12. For MLOpsS3Bucket, enter the value of "s3_bucket_id" you had noted from the Output of Terraform Run of previous step.
+13. For GitRepoName, enter the GitLab Project Name where you will have the ML Build Code. If can be an existing or a new project name.
+14. For GitRepoURL, enter the URL of your GitLab repository (For ex: https://gitlab.com).
+15. For SecretsManagerGitlabIAMSecretKey, enter the value of "secrets_manager_gitlab_iam_secret_key" you had noted from the Output of Terraform Run of previous step.
+16. For CommandRunerCWLogGrp, enter the value of "cw_log_group_name" you had noted from the Output of Terraform Run of previous step.
+17. For GitBranchName, enter the branch to use from your Git repository for pipeline activities.
+18. For SecretsManagerGitlabUserSecretARN, enter the value of "secrets_manager_gitlab_user_creds" you had noted from the Output of Terraform Run of previous step.
+19. For SecretsManagerGitlabIAMAccessKey, enter the value of "secrets_manager_gitlab_iam_access_key" you had noted from the Output of Terraform Run of previous step.
+20. Select Create Project.
+21. This will trigger the CloudFormation CommandRunner Utility which will inturn perform the Terraform execution to provision the SageMaker Pipeline resources.
+22. The logs of this terraform run will be available in the CloudWatch Log Group you noted from the Output of Terraform Run of previous step.
+23. You have now successfully created an MLOps SageMaker Project with Terraform integration and GitLab. 
 
 
 ### Step 7: Cleanup (Optional)
