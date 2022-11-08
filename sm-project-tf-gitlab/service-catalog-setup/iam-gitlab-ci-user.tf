@@ -4,6 +4,9 @@
 
 data "template_file" "gitlab_ci_template" {
   template = file("templates/gitlab-ci-iam-user.json")
+  vars = {
+    pass_role_arn = "arn:aws:iam::${local.account_id}:${var.cm_exec_pass_role_arn}"
+  }
 }
 
 resource "aws_iam_policy" "gitlab_ci_policy" {

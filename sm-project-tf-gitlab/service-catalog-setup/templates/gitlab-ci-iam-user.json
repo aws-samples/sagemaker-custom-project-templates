@@ -11,6 +11,13 @@
                 "sts:GetCallerIdentity"
             ],
             "Resource": "*"
-        }
+        },
+         {
+            "Effect": "Allow",
+            "Action": [
+                "iam:PassRole"
+            ],
+            "Resource": "${pass_role_arn}"
+        }       
     ]
 }
