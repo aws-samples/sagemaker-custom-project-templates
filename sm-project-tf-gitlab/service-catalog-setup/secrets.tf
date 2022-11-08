@@ -25,7 +25,7 @@ resource "aws_secretsmanager_secret" "git_iam_access_key_secret" {
 
 resource "aws_secretsmanager_secret_version" "git_iam_access_key_version" {
   secret_id     = aws_secretsmanager_secret.git_iam_access_key_secret.id
-  secret_string = var.gitlab_iam_access_key
+  secret_string = aws_iam_access_key.gitlab_ci_access_keys.id
 }
 
 #-------------------------------------------------#
@@ -39,6 +39,22 @@ resource "aws_secretsmanager_secret" "git_iam_secret_key_secret" {
 }
 
 resource "aws_secretsmanager_secret_version" "git_iam_secret_key_version" {
-  secret_id     = aws_secretsmanager_secret.git_iam_secret_key_secrett.id
-  secret_string = var.gitlab_iam_secret_key
+  secret_id     = aws_secretsmanager_secret.git_iam_secret_key_secret.id
+  secret_string = aws_iam_access_key.gitlab_ci_access_keys.secret
+}
+
+#-------------------------------------------------#
+# Create a Secrets Manager Secret
+# This is used to store for Gitlab User Creds
+#-------------------------------------------------#
+
+
+resource "aws_secretsmanager_secret" "gitlab_user_creds" {
+  name        = "${local.cmn_res_name}-gitlab-creds"
+  description = "Secret for ML Github repo creds"
+}
+
+resource "aws_secretsmanager_secret_version" "gitlab_user_creds_version" {
+  secret_id     = aws_secretsmanager_secret.gitlab_user_creds.id
+  secret_string = jsonencode({ username = var.gitlab_user_name, password = var.gitlab_private_token })
 }

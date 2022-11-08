@@ -21,19 +21,11 @@ resource "null_resource" "remove_lambda_zip" {
   }
 }
 
-data "template_file" "t_file" {
-  count    = length(local.source_files)
-  template = file(element(local.source_files, count.index))
-}
-
 data "archive_file" "update_lambda_zip" {
   depends_on  = [null_resource.remove_lambda_zip]
   type        = "zip"
   output_path = "${local.output_files}/${local.cmn_res_name}.zip"
-  source {
-    filename = basename(local.source_files[0])
-    content  = data.template_file.t_file.0.rendered
-  }
+  source_dir  = "${local.lambda_files}/"
 }
 
 
@@ -42,7 +34,7 @@ data "archive_file" "update_lambda_zip" {
 #--------------------------------------------------------------------------#
 
 resource "aws_lambda_function" "seed_code_checkin_build_trigger" {
-  depends_on       = [data.archive_file.update_lambda_zip, aws_codebuild_project.seed_code_checkin_build]
+  depends_on       = [data.archive_file.update_lambda_zip]
   function_name    = "${local.cmn_res_name}-seed-code-checkin"
   description      = "To trigger the codebuild project for the seedcode checkin"
   role             = "arn:aws:iam::${local.account_id}:${var.sagemaker_service_catalog_lambda_role}"
@@ -66,6 +58,7 @@ resource "aws_lambda_function" "seed_code_checkin_build_trigger" {
       SageMakerProjectId       = var.sagemaker_project_id
       IAMAccessKeySecretName   = var.secrets_manager_gitlab_iam_access_key
       IAMSecretKeySecretName   = var.secrets_manager_gitlab_secret_name
+      AccountId                = local.account_id
     }
   }
 }
@@ -86,10 +79,7 @@ resource "aws_lambda_invocation" "seed_code_lambda_trigger" {
   }
 
   input = jsonencode({
-    SEEDCODE_BUCKET_NAME          = var.seed_code_bucket_name
-    SEEDCODE_BUCKET_KEY           = var.seed_code_bucket_key
-    GIT_REPOSITORY_FULL_NAME      = var.git_repo_name
-    GIT_REPOSITORY_BRANCH         = var.git_repo_branch
-    GIT_REPOSITORY_CONNECTION_ARN = var.codestar_connection_arn
+    GIT_REPOSITORY_FULL_NAME = var.git_repo_name
+    GIT_REPOSITORY_BRANCH    = var.git_repo_branch
   })
 }

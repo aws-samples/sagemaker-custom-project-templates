@@ -21,13 +21,3 @@ data "aws_caller_identity" "current" {}
 output "s3_bucket_id" {
   value = aws_s3_bucket.terraform_data_source_s3.id
 }
-
-# Seed Code Checkin CodeBuild Project
-output "seed_code_checkin_codebuild_project" {
-  value = aws_codebuild_project.seed_code_checkin_build.id
-}
-
-# Model CodePipeline
-output "model_codepipeline_id" {
-  value = aws_codepipeline.model_pipeline.id
-}

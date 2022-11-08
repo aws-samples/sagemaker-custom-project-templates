@@ -5,14 +5,11 @@
             "Effect": "Allow",
             "Action": [
                 "s3:*",
-                "codebuild:*",
-                "codepipeline:*",
                 "lambda:*",
                 "sagemaker:*",
                 "logs:*",
                 "dynamodb:*",
-                "sts:GetCallerIdentity",
-                "codestar-connections:PassConnection"
+                "sts:GetCallerIdentity"
             ],
             "Resource": "*"
         },

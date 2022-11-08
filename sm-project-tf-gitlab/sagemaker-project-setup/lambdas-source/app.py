@@ -17,8 +17,7 @@ logger.setLevel(logging.INFO)
 logger.addHandler(logging.StreamHandler())
 
 
-def main():
-    # def lambda_handler(event, context):
+def lambda_handler(event, context):
 
     gitlab_server_uri = os.environ["GitLabServer"]
     region = os.environ["Region"]

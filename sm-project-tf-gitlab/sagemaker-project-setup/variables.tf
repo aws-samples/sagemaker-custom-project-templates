@@ -46,10 +46,6 @@ variable "sagemaker_project_id" {
   description = "Amazon Sagemaker Project Id"
 }
 
-variable "codestar_connection_arn" {
-  description = "AWS CodeStar connection arn for Github connection"
-}
-
 variable "gitlab_url" {
   description = "URL of the Git Repository that will have the model code"
 }
@@ -64,6 +60,10 @@ variable "git_repo_branch" {
 
 variable "secrets_manager_gitlab_secret_name" {
   description = "Secrets Manager Secret having the Gitlab Private Token"
+}
+
+variable "secrets_manager_gitlab_user_secret_arn" {
+  description = "Secrets Manager Secret ARN having the Gitlab User Creds"
 }
 
 variable "secrets_manager_gitlab_iam_access_key" {

@@ -26,11 +26,8 @@ cm_exec_pass_role_arn = "role/service-role/AmazonSageMakerServiceCatalog*"
 # Command Runner Exec Role
 command_runner_exec_role = "CommandRunnerExecRole"
 
+#Gitlab User
+gitlab_user_name = ""
+
 #Gitlab Private Token
 gitlab_private_token = ""
-
-#Gitlab IAM Access Key
-gitlab_iam_access_key = ""
-
-#Gitlab IAM Secret Key
-gitlab_iam_secret_key = ""

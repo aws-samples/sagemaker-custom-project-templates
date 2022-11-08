@@ -27,16 +27,20 @@ output "s3_bucket_id" {
 }
 
 #Secrets Manager Secret Name
-output "secrets_manager_gitlab_secret_name" {
+output "secrets_manager_gitlab_private_token" {
   value = aws_secretsmanager_secret.git_repo_secret.name
 }
 
-output "secrets_manager_gitlab_iam_access_key_name" {
+output "secrets_manager_gitlab_iam_access_key" {
   value = aws_secretsmanager_secret.git_iam_access_key_secret.name
 }
 
-output "secrets_manager_gitlab_iam_secret_key_name" {
+output "secrets_manager_gitlab_iam_secret_key" {
   value = aws_secretsmanager_secret.git_iam_secret_key_secret.name
+}
+
+output "secrets_manager_gitlab_user_creds" {
+  value = aws_secretsmanager_secret.gitlab_user_creds.arn
 }
 
 #Service Catalog Product Name

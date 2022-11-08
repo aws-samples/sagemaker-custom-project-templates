@@ -18,7 +18,7 @@ Parameters:
 
   GitRepoName:
     Type: String
-    Default: 'username/repo-name'
+    Default: 'repo-name'
     Description: Service generated Id of the project.
     
   GitBranchName:
@@ -28,7 +28,7 @@ Parameters:
 
   MLOpsS3Bucket:
     Type: String
-    Default: 'dev-machine-learning-ops'
+    Default: 'dev-machine-learning-ops-<acct-id>'
     Description: S3 Bucket containing the MLOps Terraform Code.  
 
   CommandRunnerIAMInstanceProfile:
@@ -38,23 +38,28 @@ Parameters:
 
   CommandRunnerCWLogGrp:
     Type: String
-    Default: 'dev-machine-learning-ops'
+    Default: 'dev-machine-learning-ops-gitlab'
     Description: CloudWatch Log Group for CommandRunner.
     
-  SecretsManagerGitlabSecretName:
+  SecretsManagerGitlabPrivateToken:
     Type: String
     Default: 'dev-machine-learning-ops-gitlab-token'
-    Description: ARN of the Secrets Manager Secret having the Gitlab private token.
+    Description: Name of the Secrets Manager Secret having the Gitlab private token.
+
+  SecretsManagerGitlabUserSecretARN:
+    Type: String
+    Default: 'arn:aws:secretsmanager:<region>:<acct>:secret:<secret_id>'
+    Description: ARN of the Secrets Manager Secret having the Gitlab User Creds.
 
   SecretsManagerGitlabIAMAccessKey:
     Type: String
     Default: 'dev-machine-learning-ops-gitlab-iam-access-key'
-    Description: ARN of the Secrets Manager Secret having the Gitlab IAM Access Key.
+    Description: Name of the Secrets Manager Secret having the Gitlab IAM Access Key.
     
   SecretsManagerGitlabIAMSecretKey:
     Type: String
     Default: 'dev-machine-learning-ops-gitlab-iam-secret-key'
-    Description: ARN of the Secrets Manager Secret having the Gitlab IAM Secret Key.   
+    Description: Name of the Secrets Manager Secret having the Gitlab IAM Secret Key.   
 
   TerraformAction:
     Type: String
@@ -96,9 +101,10 @@ Resources:
         export TF_VAR_gitlab_url=${GitlabURL}
         export TF_VAR_git_repo_name=${GitRepoName}
         export TF_VAR_git_repo_branch=${GitBranchName}
-        export TF_VAR_secrets_manager_gitlab_secret_name=${SecretsManagerGitlabSecretName}
+        export TF_VAR_secrets_manager_gitlab_secret_name=${SecretsManagerGitlabPrivateToken}
         export TF_VAR_secrets_manager_gitlab_iam_access_key=${SecretsManagerGitlabIAMAccessKey}
-        export TF_VAR_secrets_manager_gitlab_iam_secret_key=${SecretsManagerGitlabIAMSecretKey}        
+        export TF_VAR_secrets_manager_gitlab_iam_secret_key=${SecretsManagerGitlabIAMSecretKey}
+        export TF_VAR_secrets_manager_gitlab_user_secret_arn=${SecretsManagerGitlabUserSecretARN}
         terraform plan
         terraform ${TerraformAction} -auto-approve 
         echo "Terraform Apply Output : $?" 

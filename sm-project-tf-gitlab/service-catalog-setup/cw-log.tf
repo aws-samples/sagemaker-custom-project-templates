@@ -5,6 +5,6 @@
 #----------------------------------------------------------#
 
 resource "aws_cloudwatch_log_group" "command_runner_logs" {
-  name = local.cmn_res_name
+  name = "${local.cmn_res_name}-gitlab"
 
 }

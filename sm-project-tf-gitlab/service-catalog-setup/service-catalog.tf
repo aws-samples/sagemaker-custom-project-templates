@@ -18,8 +18,8 @@ resource "aws_servicecatalog_portfolio" "mlops_sc_portfolio" {
 
 resource "aws_servicecatalog_product" "mlops_tf_sc_product" {
   depends_on  = [aws_s3_object.sm_project_cfn]
-  description = "MLOps pipeline with GitHub and AWS CodePipeline deployed from Terraform"
-  name        = local.cmn_res_name
+  description = "MLOps pipeline with GitLab and AWS services deployed from Terraform"
+  name        = "${local.cmn_res_name}-gitlab"
   owner       = var.sc_product_owner
   type        = "CLOUD_FORMATION_TEMPLATE"
 

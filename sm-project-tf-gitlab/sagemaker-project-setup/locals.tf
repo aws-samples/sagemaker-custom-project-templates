@@ -12,7 +12,6 @@ locals {
 
   # SeedCode Lambda Files
   lambda_files = "lambdas-source"
-  source_files = ["${local.lambda_files}/app.py"]
 
   # Lambda Output Zip
   output_files = "lambdas-zip"

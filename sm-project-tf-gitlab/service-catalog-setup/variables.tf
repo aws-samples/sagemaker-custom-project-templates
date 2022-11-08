@@ -44,16 +44,10 @@ variable "command_runner_exec_role" {
   description = "IAM Role assumed by CloudFormation Command Runner"
 }
 
+variable "gitlab_user_name" {
+  description = "Gitlab User Name"
+}
+
 variable "gitlab_private_token" {
   description = "Gitlab Private Token"
 }
-
-variable "gitlab_iam_access_key" {
-  description = "Gitlab IAM Access Key"
-}
-
-
-variable "gitlab_iam_secret_key" {
-  description = "Gitlab IAM Secret Key"
-}
-

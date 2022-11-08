@@ -40,116 +40,6 @@
         {
             "Effect": "Allow",
             "Action": [
-                "codebuild:CreateProject",
-                "codebuild:DeleteProject",
-                "codebuild:UpdateProject"
-            ],
-            "Resource": [
-                "arn:aws:codebuild:*:*:project/sagemaker-*"
-            ]
-        },
-        {
-            "Effect": "Allow",
-            "Action": [
-                "codecommit:CreateCommit",
-                "codecommit:CreateRepository",
-                "codecommit:DeleteRepository",
-                "codecommit:GetRepository",
-                "codecommit:TagResource"
-            ],
-            "Resource": [
-                "arn:aws:codecommit:*:*:sagemaker-*"
-            ]
-        },
-        {
-            "Effect": "Allow",
-            "Action": [
-                "codecommit:ListRepositories"
-            ],
-            "Resource": "*"
-        },
-        {
-            "Effect": "Allow",
-            "Action": [
-                "codepipeline:CreatePipeline",
-                "codepipeline:DeletePipeline",
-                "codepipeline:GetPipeline",
-                "codepipeline:GetPipelineState",
-                "codepipeline:StartPipelineExecution",
-                "codepipeline:TagResource",
-                "codepipeline:UpdatePipeline"
-            ],
-            "Resource": [
-                "arn:aws:codepipeline:*:*:sagemaker-*"
-            ]
-        },
-        {
-            "Effect": "Allow",
-            "Action": [
-                "ecr:CreateRepository",
-                "ecr:DeleteRepository",
-                "ecr:TagResource"
-            ],
-            "Resource": [
-                "arn:aws:ecr:*:*:repository/sagemaker-*"
-            ]
-        },
-        {
-            "Effect": "Allow",
-            "Action": [
-                "events:DescribeRule",
-                "events:DeleteRule",
-                "events:DisableRule",
-                "events:EnableRule",
-                "events:PutRule",
-                "events:PutTargets",
-                "events:RemoveTargets"
-            ],
-            "Resource": [
-                "arn:aws:events:*:*:rule/sagemaker-*"
-            ]
-        },
-        {
-            "Effect": "Allow",
-            "Action": [
-                "iam:PassRole"
-            ],
-            "Resource": [
-                "arn:aws:iam::*:role/service-role/AmazonSageMakerServiceCatalog*"
-            ]
-        },
-        {
-            "Effect": "Allow",
-            "Action": [
-                "lambda:AddPermission",
-                "lambda:CreateFunction",
-                "lambda:DeleteFunction",
-                "lambda:GetFunction",
-                "lambda:GetFunctionConfiguration",
-                "lambda:InvokeFunction",
-                "lambda:RemovePermission"
-            ],
-            "Resource": [
-                "arn:aws:lambda:*:*:function:sagemaker-*"
-            ]
-        },
-        {
-            "Effect": "Allow",
-            "Action": "lambda:TagResource",
-            "Resource": [
-                "arn:aws:lambda:*:*:function:sagemaker-*"
-            ],
-            "Condition": {
-                "ForAllValues:StringLike": {
-                    "aws:TagKeys": [
-                        "sagemaker:*"
-                    ]
-                }
-            }
-        },
-        {
-            "Effect": "Allow",
-            "Action": [
                 "logs:CreateLogGroup",
                 "logs:CreateLogStream",
                 "logs:DeleteLogGroup",
@@ -159,7 +49,6 @@
                 "logs:PutRetentionPolicy"
             ],
             "Resource": [
-                "arn:aws:logs:*:*:log-group:/aws/apigateway/AccessLogs/*",
                 "arn:aws:logs:*:*:log-group::log-stream:*"
             ]
         },
@@ -198,74 +87,6 @@
                 "s3:PutObjectTagging"
             ],
             "Resource": "arn:aws:s3:::sagemaker-*"
-        },
-        {
-            "Effect": "Allow",
-            "Action": [
-                "sagemaker:CreateEndpoint",
-                "sagemaker:CreateEndpointConfig",
-                "sagemaker:CreateModel",
-                "sagemaker:CreateWorkteam",
-                "sagemaker:DeleteEndpoint",
-                "sagemaker:DeleteEndpointConfig",
-                "sagemaker:DeleteModel",
-                "sagemaker:DeleteWorkteam",
-                "sagemaker:DescribeModel",
-                "sagemaker:DescribeEndpointConfig",
-                "sagemaker:DescribeEndpoint",
-                "sagemaker:DescribeWorkteam",
-                "sagemaker:CreateCodeRepository",
-                "sagemaker:DescribeCodeRepository",
-                "sagemaker:UpdateCodeRepository",
-                "sagemaker:DeleteCodeRepository"
-            ],
-            "Resource": [
-                "arn:aws:sagemaker:*:*:*"
-            ]
-        },
-        {
-            "Effect": "Allow",
-            "Action": [
-                "sagemaker:AddTags"
-            ],
-            "Resource": [
-                "arn:aws:sagemaker:*:*:endpoint/*",
-                "arn:aws:sagemaker:*:*:endpoint-config/*",
-                "arn:aws:sagemaker:*:*:model/*",
-                "arn:aws:sagemaker:*:*:pipeline/*",
-                "arn:aws:sagemaker:*:*:project/*",
-                "arn:aws:sagemaker:*:*:model-package/*"
-            ],
-            "Condition": {
-                "ForAllValues:StringLike": {
-                    "aws:TagKeys": [
-                        "sagemaker:*"
-                    ]
-                }
-            }
-        },
-        {
-            "Effect": "Allow",
-            "Action": [
-                "sagemaker:CreateImage",
-                "sagemaker:DeleteImage",
-                "sagemaker:DescribeImage",
-                "sagemaker:UpdateImage",
-                "sagemaker:ListTags"
-            ],
-            "Resource": [
-                "arn:aws:sagemaker:*:*:image/*"
-            ]
-        },
-        {
-            "Effect": "Allow",
-            "Action": "codestar-connections:PassConnection",
-            "Resource": "arn:aws:codestar-connections:*:*:connection/*",
-            "Condition": {
-                "StringEquals": {
-                    "codestar-connections:PassedToService": "codepipeline.amazonaws.com"
-                }
-            }
         }
     ]
 }
