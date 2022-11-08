@@ -28,3 +28,9 @@ command_runner_exec_role = "CommandRunnerExecRole"
 
 #Gitlab Private Token
 gitlab_private_token = ""
+
+#Gitlab IAM Access Key
+gitlab_iam_access_key = ""
+
+#Gitlab IAM Secret Key
+gitlab_iam_secret_key = ""

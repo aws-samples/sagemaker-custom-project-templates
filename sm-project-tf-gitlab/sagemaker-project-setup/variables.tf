@@ -38,18 +38,6 @@ variable "sagemaker_service_catalog_lambda_role" {
   description = "AWS IAM role assigned for AWS Lambda Functions"
 }
 
-variable "seed_code_s3_location" {
-  description = "location of seed code used in codebuild that will copy model seed code to the git repo "
-}
-
-variable "seed_code_bucket_name" {
-  description = "s3 bucket name containing the model seed code to the git repo "
-}
-
-variable "seed_code_bucket_key" {
-  description = "s3 bucket key containing the model seed code to the git repo "
-}
-
 variable "sagemaker_project_name" {
   description = "Amazon Sagemaker Project Name"
 }

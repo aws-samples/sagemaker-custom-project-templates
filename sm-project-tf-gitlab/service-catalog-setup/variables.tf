@@ -48,3 +48,12 @@ variable "gitlab_private_token" {
   description = "Gitlab Private Token"
 }
 
+variable "gitlab_iam_access_key" {
+  description = "Gitlab IAM Access Key"
+}
+
+
+variable "gitlab_iam_secret_key" {
+  description = "Gitlab IAM Secret Key"
+}
+
