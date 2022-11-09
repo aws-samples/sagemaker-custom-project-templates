@@ -1,2 +1,2 @@
-# mlops-deployment-patterns
+# MLOps Deployment Patterns Pipeline
 
