@@ -1,0 +1,9 @@
+{
+  "Parameters": {
+    "StageName": "staging",
+    "EndpointInstanceCount": "3",
+    "EndpointInstanceType": "ml.m5.large",
+    "SamplingPercentage": "100",
+    "EnableDataCapture": "true"
+  }
+}

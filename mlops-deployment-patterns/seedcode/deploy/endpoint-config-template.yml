@@ -1,0 +1,119 @@
+Description:
+  This template is built and deployed by the infrastructure pipeline in various stages (staging/production) as required.
+  It specifies the resources that need to be created, like the SageMaker Endpoint. It uses a canary deployment in production
+  by default.
+Parameters:
+  SageMakerProjectName:
+    Type: String
+    Description: Name of the project
+    MinLength: 1
+    MaxLength: 32
+    AllowedPattern: ^[a-zA-Z](-*[a-zA-Z0-9])*
+  ModelExecutionRoleArn:
+    Type: String
+    Description: Execution role used for deploying the model.
+  ModelPackageName:
+    Type: String
+    Description: The trained Model Package Name
+  StageName:
+    Type: String
+    Description:
+      The name for a project pipeline stage, such as Staging or Prod, for
+      which resources are provisioned and deployed.
+  EndpointInstanceCount:
+    Type: Number
+    Description: Number of instances to launch for the endpoint.
+    MinValue: 3
+  EndpointInstanceType:
+    Type: String
+    Description: The ML compute instance type for the endpoint.
+  DataCaptureUploadPath:
+    Type: String
+    Description: The s3 path to which the captured data is uploaded.
+  SamplingPercentage:
+    Type: Number
+    Description: The sampling percentage
+    MinValue: 0
+    MaxValue: 100
+  EnableDataCapture:
+    Description: Enable Data capture.
+    Default: true
+    Type: String
+    AllowedValues: [true, false]   
+
+Conditions:
+  PerformCanaryDeployment: !Equals 
+    - !Ref StageName
+    - prod
+
+Resources:
+
+  Endpoint500Errors:
+    Type: AWS::CloudWatch::Alarm
+    Condition: PerformCanaryDeployment
+    Properties:
+      AlarmName: !Sub ${SageMakerProjectName}-${StageName}-Endpoint500Errors
+      AlarmDescription: Alarm for any 500 errors on the endpoint
+      ActionsEnabled: False
+      MetricName: Invocation5XXErrors
+      Namespace: AWS/SageMaker
+      Statistic: Sum
+      Period: '60'
+      EvaluationPeriods: '1'
+      Threshold: '1'
+      ComparisonOperator: GreaterThanOrEqualToThreshold
+      Dimensions:
+      - Name: EndpointName
+        Value: !Sub ${SageMakerProjectName}-${StageName}
+      - Name: VariantName
+        Value: AllTraffic
+
+  Model:
+    Type: AWS::SageMaker::Model
+    Properties:
+      Containers:
+         - ModelPackageName: !Ref ModelPackageName
+      ExecutionRoleArn: !Ref ModelExecutionRoleArn
+
+  EndpointConfig:
+    Type: AWS::SageMaker::EndpointConfig
+    Properties:
+      ProductionVariants:
+        - InitialInstanceCount: !Ref EndpointInstanceCount
+          InitialVariantWeight: 1.0
+          InstanceType: !Ref EndpointInstanceType
+          ModelName: !GetAtt Model.ModelName
+          VariantName: AllTraffic
+      DataCaptureConfig:
+          EnableCapture: !Ref EnableDataCapture 
+          InitialSamplingPercentage: !Ref SamplingPercentage
+          DestinationS3Uri: !Ref DataCaptureUploadPath
+          CaptureOptions:
+            - CaptureMode: Input
+            - CaptureMode: Output
+          CaptureContentTypeHeader:
+            CsvContentTypes:
+              - "text/csv"
+
+  Endpoint:
+    Type: AWS::SageMaker::Endpoint
+    Properties:
+      EndpointName: !Sub ${SageMakerProjectName}-${StageName}
+      EndpointConfigName: !GetAtt EndpointConfig.EndpointConfigName
+      DeploymentConfig:
+        !If
+        - PerformCanaryDeployment
+        - 
+          BlueGreenUpdatePolicy:
+            TrafficRoutingConfiguration:
+              Type: CANARY
+              CanarySize:
+                Type: CAPACITY_PERCENT
+                Value: 10 # add to parameter before push
+              WaitIntervalInSeconds: 300 # add to parameter before push
+            TerminationWaitInSeconds: 120 # add to parameter before push
+            MaximumExecutionTimeoutInSeconds: 1800 # add to parameter before push
+          AutoRollbackConfiguration:
+            Alarms:
+              - AlarmName: !Sub ${SageMakerProjectName}-${StageName}-Endpoint500Errors
+        - !Ref "AWS::NoValue"
