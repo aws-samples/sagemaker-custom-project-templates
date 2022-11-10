@@ -65,7 +65,7 @@ Part 2: Deploy the Project inside of SageMaker Studio
 
 Part 3: Update Necessary IAM Permissions for Using CloudWatch with Deployment Guardrails
 
-1. Navigate to the `AmazonSageMakerServiceCatalogProductsUseRole` role (or whichever role you are using for deployments) in the AWS console ![here](https://console.aws.amazon.com/iamv2/home?#/roles/details/AmazonSageMakerServiceCatalogProductsUseRole?section=permissions)
+1. Navigate to the `AmazonSageMakerServiceCatalogProductsUseRole` role (or whichever role you are using for deployments) in the AWS console [here](https://console.aws.amazon.com/iamv2/home?#/roles/details/AmazonSageMakerServiceCatalogProductsUseRole?section=permissions)
 
 1. Chose "Add Permissions" and "Attach Policy"
 
