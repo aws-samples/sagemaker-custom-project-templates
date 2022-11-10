@@ -4,11 +4,11 @@
 
 Use this template to automate the entire model lifecycle that includes both model building and deployment workflows. Ideally suited for continuous integration and continuous deployment (CI/CD) of ML models. Process data, extract features, train and test models, and register them in the model registry. The template provisions an AWS CodeCommit repository for checking in and managing code versions. Kick off the model deployment workflow by approving the model registered in the model registry for deployment either manually or automatically. You can customize the seed code and the configuration files to suit your requirements. AWS CodePipeline is used to orchestrate the model deployment. Model building pipeline: SageMaker Pipelines Code repository: AWS CodeCommit Orchestration: AWS CodePipeline
 
-This project is derived from the built-in [Build, Train, and Deploy Project](https://docs.aws.amazon.com/sagemaker/latest/dg/sagemaker-projects-templates-sm.html#sagemaker-projects-templates-code-commit) but provides the ability to use advanced deployment options including canary and linear deployments.
+This project is derived from the built-in [Build, Train, and Deploy Project](https://docs.aws.amazon.com/sagemaker/latest/dg/sagemaker-projects-templates-sm.html#sagemaker-projects-templates-code-commit) but provides the ability to use advanced deployment options including canary and linear deployments. Please reference [this blog](https://aws.amazon.com/blogs/machine-learning/take-advantage-of-advanced-deployment-strategies-using-amazon-sagemaker-deployment-guardrails/) for an overview about how canary and linear deployments are handled by deployment guardrails in Amazon SageMaker Endpoints.
 
 ## Instructions
 
-Part 1: Create initial Service Catalog Product
+### Part 1: Create initial Service Catalog Product
 
 1. To create the Service Catalog product for this project, download the `create-mlops-deployment-pattern-product.yaml` and upload it into your CloudFormation console: https://console.aws.amazon.com/cloudformation/home?#/stacks/create/template
 
@@ -36,7 +36,7 @@ Part 1: Create initial Service Catalog Product
 4. Your template should now be visible inside of SageMaker Studio.
 
 
-Part 2: Deploy the Project inside of SageMaker Studio
+### Part 2: Deploy the Project inside of SageMaker Studio
 
 1. Open SageMaker Studio and sign in to your user profile.
 
@@ -63,7 +63,7 @@ Part 2: Deploy the Project inside of SageMaker Studio
 8. After a few minutes, your example project should be deployed and ready to use.
 
 
-Part 3: Update Necessary IAM Permissions for Using CloudWatch with Deployment Guardrails
+### Part 3: Update Necessary IAM Permissions for Using CloudWatch with Deployment Guardrails
 
 1. Navigate to the `AmazonSageMakerServiceCatalogProductsUseRole` role (or whichever role you are using for deployments) in the AWS console [here](https://console.aws.amazon.com/iamv2/home?#/roles/details/AmazonSageMakerServiceCatalogProductsUseRole?section=permissions)
 
