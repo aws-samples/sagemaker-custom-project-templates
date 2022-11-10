@@ -22,7 +22,7 @@ Parameters:
       which resources are provisioned and deployed.
   EndpointInstanceCount:
     Type: Number
-    Description: Number of instances to launch for the endpoint.
+    Description: Number of instances to launch for the endpoint. # Note the minimum number of instances here is 3 to help support canary deployment.
     MinValue: 3
   EndpointInstanceType:
     Type: String
@@ -39,7 +39,27 @@ Parameters:
     Description: Enable Data capture.
     Default: true
     Type: String
-    AllowedValues: [true, false]   
+    AllowedValues: [true, false]
+    
+  ### CANARY PARAMETERS
+  CanaryPercentage:
+    Type: Number
+    Description: Percentage of traffic that will be sent to the canary model
+    Default: 10
+    MinValue: 0
+    MaxValue: 100
+  CanaryWaitIntervalInSeconds: 
+    Type: Number
+    Description: Seconds to wait before enabling traffic on the rest of fleet
+    Default: 300
+  CanaryTerminationWaitInSeconds: 
+    Type: Number
+    Description: Seconds to wait before terminating the old stack
+    Default: 120
+  CanaryMaximumExecutionTimeoutInSeconds: 
+    Type: Number
+    Description: Maximum timeout for deployment
+    Default: 1800
 
 Conditions:
   PerformCanaryDeployment: !Equals 
@@ -109,10 +129,10 @@ Resources:
               Type: CANARY
               CanarySize:
                 Type: CAPACITY_PERCENT
-                Value: 10 # add to parameter before push
-              WaitIntervalInSeconds: 300 # add to parameter before push
-            TerminationWaitInSeconds: 120 # add to parameter before push
-            MaximumExecutionTimeoutInSeconds: 1800 # add to parameter before push
+                Value: !Ref CanaryPercentage
+              WaitIntervalInSeconds: !Ref CanaryWaitIntervalInSeconds
+            TerminationWaitInSeconds: !Ref CanaryTerminationWaitInSeconds
+            MaximumExecutionTimeoutInSeconds: !Ref CanaryMaximumExecutionTimeoutInSeconds
           AutoRollbackConfiguration:
             Alarms:
               - AlarmName: !Sub ${SageMakerProjectName}-${StageName}-Endpoint500Errors

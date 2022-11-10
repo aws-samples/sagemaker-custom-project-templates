@@ -69,6 +69,6 @@ Part 3: Update Necessary IAM Permissions for Using CloudWatch with Deployment Gu
 
 1. Chose "Add Permissions" and "Attach Policy"
 
-1. Search for the "CloudWatchReadOnlyAccess" policy
+1. Search for the "CloudWatchFullAccess" policy
 
 1. Select this policy and click "Attach Policy"
