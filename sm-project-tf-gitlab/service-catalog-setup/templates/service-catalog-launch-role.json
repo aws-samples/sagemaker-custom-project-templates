@@ -1,0 +1,92 @@
+{
+    "Version": "2012-10-17",
+    "Statement": [
+        {
+            "Effect": "Allow",
+            "Action": [
+                "cloudformation:CreateStack",
+                "cloudformation:UpdateStack",
+                "cloudformation:DeleteStack",
+                "cloudformation:CreateChangeSet",
+                "cloudformation:ExecuteChangeSet",
+                "cloudformation:DeleteChangeSet"                  
+            ],
+            "Resource": "arn:aws:cloudformation:*:*:stack/SC-*",
+            "Condition": {
+                "ArnLikeIfExists": {
+                    "cloudformation:RoleArn": [
+                        "arn:aws:sts::*:assumed-role/AmazonSageMakerServiceCatalog*"
+                    ]
+                }
+            }
+        },
+        {
+            "Effect": "Allow",
+            "Action": [
+                "cloudformation:DescribeStackEvents",
+                "cloudformation:DescribeStacks",
+                "cloudformation:DescribeChangeSet*"
+            ],
+            "Resource": "arn:aws:cloudformation:*:*:stack/SC-*"
+        },
+        {
+            "Effect": "Allow",
+            "Action": [
+                "cloudformation:GetTemplateSummary",
+                "cloudformation:ValidateTemplate"
+            ],
+            "Resource": "*"
+        },
+        {
+            "Effect": "Allow",
+            "Action": [
+                "logs:CreateLogGroup",
+                "logs:CreateLogStream",
+                "logs:DeleteLogGroup",
+                "logs:DeleteLogStream",
+                "logs:DescribeLogGroups",
+                "logs:DescribeLogStreams",
+                "logs:PutRetentionPolicy"
+            ],
+            "Resource": [
+                "arn:aws:logs:*:*:log-group::log-stream:*"
+            ]
+        },
+        {
+            "Effect": "Allow",
+            "Action": "s3:GetObject",
+            "Resource": "*",
+            "Condition": {
+                "StringEquals": {
+                    "s3:ExistingObjectTag/servicecatalog:provisioning": "true"
+                }
+            }
+        },
+        {
+            "Effect": "Allow",
+            "Action": "s3:GetObject",
+            "Resource": [
+                "arn:aws:s3:::sagemaker-*"
+            ]
+        },
+        {
+            "Effect": "Allow",
+            "Action": [
+                "s3:CreateBucket",
+                "s3:DeleteBucket",
+                "s3:DeleteBucketPolicy",
+                "s3:GetBucketPolicy",
+                "s3:PutBucketAcl",
+                "s3:PutBucketNotification",
+                "s3:PutBucketPolicy",
+                "s3:PutBucketPublicAccessBlock",
+                "s3:PutBucketLogging",
+                "s3:PutEncryptionConfiguration",
+                "s3:PutBucketCORS",
+                "s3:PutBucketTagging",
+                "s3:PutObjectTagging"
+            ],
+            "Resource": "arn:aws:s3:::sagemaker-*"
+        }
+    ]
+}

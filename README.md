@@ -10,6 +10,8 @@ This repository contains an example SageMaker Project template. Each folder in t
 * [Batch Inference Endpoint Deployment Pipeline](../../tree/main/batch-inference)
 * [Multi Model Endpoint Deployment Pipeline](../../tree/main/multi-model-endpoint)
 * [Amazon SageMaker Project with Terraform and GitHub](../../tree/main/sm-project-tf-github)
+* [Amazon SageMaker Project with Terraform and GitLab](../../tree/main/sm-project-tf-gitlab)
+
 
 ## Adding the templates to SageMaker Studio Studio
 In order to add your custom SageMaker Projects into SageMaker studio and deploy them, you will need to complete 3 steps:
