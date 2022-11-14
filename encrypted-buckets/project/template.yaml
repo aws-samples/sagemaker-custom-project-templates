@@ -164,7 +164,7 @@ Resources:
           - SageMaker Model Package State Change
         detail:
           ModelPackageGroupName:
-            - !Sub '${SageMakerProjectName}'
+            - !Sub '${SageMakerProjectName}-${SageMakerProjectId}'
       State: ENABLED
       Targets:
         - Arn: !Join 
