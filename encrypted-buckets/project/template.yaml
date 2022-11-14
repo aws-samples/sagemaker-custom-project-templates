@@ -242,7 +242,7 @@ Resources:
           - Name: MODEL_EXECUTION_ROLE_ARN
             Value: !Ref UseRoleArn
           - Name: SOURCE_MODEL_PACKAGE_GROUP_NAME
-            Value: !Sub '${SageMakerProjectName}'
+            Value: !Sub '${SageMakerProjectName}-${SageMakerProjectId}'
           - Name: AWS_REGION
             Value: !Ref 'AWS::Region'
           - Name: EXPORT_TEMPLATE_NAME
