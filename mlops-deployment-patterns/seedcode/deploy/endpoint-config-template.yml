@@ -22,7 +22,7 @@ Parameters:
       which resources are provisioned and deployed.
   EndpointInstanceCount:
     Type: Number
-    Description: Number of instances to launch for the endpoint. # Note the minimum number of instances here is 3 to help support canary deployment.
+    Description: Number of instances to launch for the endpoint. # Note the minimum number of instances here is 3 to help support canary and linear deployment.
     MinValue: 3
   EndpointInstanceType:
     Type: String
@@ -40,8 +40,15 @@ Parameters:
     Default: true
     Type: String
     AllowedValues: [true, false]
-    
-  ### CANARY PARAMETERS
+  
+  ### Advanced deployment section
+  DeploymentStrategy:
+    Description: Type of guardrail deployment to use.
+    Default: CANARY
+    Type: String
+    AllowedValues: [CANARY, LINEAR, ALL_AT_ONCE]
+
+  ### CANARY PARAMETERS (Only used if DeploymentStrategy = Canary)
   CanaryPercentage:
     Type: Number
     Description: Percentage of traffic that will be sent to the canary model
@@ -60,17 +67,49 @@ Parameters:
     Type: Number
     Description: Maximum timeout for deployment
     Default: 1800
+    
+  ### LINEAR PARAMETERS (Only used if DeploymentStrategy = Linear)
+  LinearPercentage:
+    Type: Number
+    Description: Incremental percentage of traffic that will be sent to the linear model
+    Default: 33
+    MinValue: 0
+    MaxValue: 100
+  LinearWaitIntervalInSeconds: 
+    Type: Number
+    Description: Seconds to wait before enabling traffic on the rest of fleet
+    Default: 300
+  LinearTerminationWaitInSeconds: 
+    Type: Number
+    Description: Seconds to wait before terminating the old stack
+    Default: 120
+  LinearMaximumExecutionTimeoutInSeconds: 
+    Type: Number
+    Description: Maximum timeout for deployment
+    Default: 1800
 
 Conditions:
-  PerformCanaryDeployment: !Equals 
+  IsProduction: !Equals 
     - !Ref StageName
     - prod
+  CanarySelected: !Equals
+    - !Ref DeploymentStrategy
+    - CANARY
+  LinearSelected: !Equals
+    - !Ref DeploymentStrategy
+    - LINEAR
+  PerformCanaryDeployment: !And
+    - !Condition IsProduction
+    - !Condition CanarySelected
+  PerformLinearDeployment: !And
+    - !Condition IsProduction
+    - !Condition LinearSelected
 
 Resources:
 
   Endpoint500Errors:
     Type: AWS::CloudWatch::Alarm
-    Condition: PerformCanaryDeployment
+    Condition: IsProduction
     Properties:
       AlarmName: !Sub ${SageMakerProjectName}-${StageName}-Endpoint500Errors
       AlarmDescription: Alarm for any 500 errors on the endpoint
@@ -114,7 +153,7 @@ Resources:
           CaptureContentTypeHeader:
             CsvContentTypes:
               - "text/csv"
-
+  
   Endpoint:
     Type: AWS::SageMaker::Endpoint
     Properties:
@@ -122,18 +161,34 @@ Resources:
       EndpointConfigName: !GetAtt EndpointConfig.EndpointConfigName
       DeploymentConfig:
         !If
-        - PerformCanaryDeployment
+        - PerformLinearDeployment
         - 
           BlueGreenUpdatePolicy:
             TrafficRoutingConfiguration:
-              Type: CANARY
-              CanarySize:
+              Type: LINEAR
+              LinearStepSize:
                 Type: CAPACITY_PERCENT
-                Value: !Ref CanaryPercentage
-              WaitIntervalInSeconds: !Ref CanaryWaitIntervalInSeconds
-            TerminationWaitInSeconds: !Ref CanaryTerminationWaitInSeconds
-            MaximumExecutionTimeoutInSeconds: !Ref CanaryMaximumExecutionTimeoutInSeconds
+                Value: !Ref LinearPercentage
+              WaitIntervalInSeconds: !Ref LinearWaitIntervalInSeconds
+            TerminationWaitInSeconds: !Ref LinearTerminationWaitInSeconds
+            MaximumExecutionTimeoutInSeconds: !Ref LinearMaximumExecutionTimeoutInSeconds
           AutoRollbackConfiguration:
             Alarms:
               - AlarmName: !Sub ${SageMakerProjectName}-${StageName}-Endpoint500Errors
-        - !Ref "AWS::NoValue"
+        - !If
+          - PerformCanaryDeployment
+          - 
+            BlueGreenUpdatePolicy:
+              TrafficRoutingConfiguration:
+                Type: CANARY
+                CanarySize:
+                  Type: CAPACITY_PERCENT
+                  Value: !Ref CanaryPercentage
+                WaitIntervalInSeconds: !Ref CanaryWaitIntervalInSeconds
+              TerminationWaitInSeconds: !Ref CanaryTerminationWaitInSeconds
+              MaximumExecutionTimeoutInSeconds: !Ref CanaryMaximumExecutionTimeoutInSeconds
+            AutoRollbackConfiguration:
+              Alarms:
+                - AlarmName: !Sub ${SageMakerProjectName}-${StageName}-Endpoint500Errors
+          - !Ref "AWS::NoValue"
+      

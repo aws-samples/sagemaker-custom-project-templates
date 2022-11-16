@@ -33,3 +33,11 @@ A description of some of the artifacts is provided below:
 
 `test\test.py`
   - this python file contains code to describe and invoke the staging endpoint. You can customize to add more tests here.
+
+## Updating Deployment Strategies
+
+The `endpoint-config-template.yml` cloud formation template file contains the configuration for deployment strategy using SageMaker deployment guardrails. In this file you can...
+
+* Change the deployment strategy with the `DeploymentStrategy` parameter in this file. There are specific parameters to both linear and canary deployments that can be customized as well. See the comment "DEPLOYMENT PARAMETERS" for these parameters.
+
+* Change the CloudWatch alarms associated with deployment. In this template, there is only one alarm set up to monitor model invocation failures (500 errors). However, more model alarms can be added to the `AutoRollbackConfiguration` section. One example of a best practice here would be an alarm that monitors model latency suited to your model's specific requirements.
