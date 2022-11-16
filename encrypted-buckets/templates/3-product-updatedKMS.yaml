@@ -1,0 +1,860 @@
+---
+AWSTemplateFormatVersion: "2010-09-09"
+
+Description: >-
+  Template for creating a Service Catalog product based on the encrypted-buckets SageMaker Custom Example
+
+Parameters:
+
+  PortfolioIDParameter:
+    Type: String
+    Description: The ID of the Service Catalog Portfolio you wish you create the product inside. If using the Portfolio Stack example, the value will be found in the Outputs' tab of the stack under "CreatedPortfolioID".
+
+  ProductNameParameter:
+    Type: String
+    Default: Encrypted Bucket SageMaker Project Example
+    Description: The name of this product within the portfolio.
+
+  ProductDescriptionParameter:
+    Type: String
+    Default: 'The sample template was created using the first-party MLOps template for model building, training and deployment. The template is updated to have security best practices, i.e., encryption and versioning for S3 buckets. The template also requires the user to provide a customer managed key on KMS for bucket encryption, and uses custom roles as launch constraints for deploying the template with least-privilege permissions.'
+    Description: The description of this product within the portfolio.
+
+  ProductOwnerParameter:
+    Type: String
+    Default: Product Owner
+    Description: The owner of this product within the portfolio.
+
+  ProductDistributorParameter:
+    Type: String
+    Default: Product Distributor
+    Description: The distributor of this product within the portfolio.
+
+  ProductSupportDescriptionParameter:
+    Type: String
+    Default: Support Description
+    Description: The support description of this product within the portfolio.
+
+  ProductSupportEmailParameter:
+    Type: String
+    Default: support@example.com
+    Description: The support email of this product within the portfolio.
+
+  ProductSupportURLParameter:
+    Type: String
+    Default: 'https://github.com/aws-samples/sagemaker-custom-project-templates'
+    Description: The support url of this product within the portfolio.
+
+  SageMakerProjectRepoZipParameter:
+    Type: String
+    Default: 'https://github.com/aws-samples/sagemaker-custom-project-templates/archive/refs/heads/main.zip'
+    Description: 'URL for a Zip of the SageMaker Projects Examples GitHub Repo'
+
+  SageMakerProjectRepoNameBranchParameter:
+    Type: String
+    Default: 'sagemaker-custom-project-templates-main'
+    Description: 'Name/Branch of the SageMaker Projects Examples GitHub Repo'
+
+  SageMakerProjectsProjectNameParameter:
+    Type: String
+    Default: encrypted-buckets
+    Description: Project folder inside of the GitHub repo for this project
+
+
+Metadata:
+  AWS::CloudFormation::Interface:
+    ParameterGroups:
+      -
+        Label:
+          default: "Service Catalog Portfolio Information"
+        Parameters:
+          - PortfolioIDParameter
+      -
+        Label:
+          default: "Service Catalog Product Information"
+        Parameters:
+          - ProductNameParameter
+          - ProductDescriptionParameter
+          - ProductOwnerParameter
+          - ProductDistributorParameter
+      -
+        Label:
+          default: "Service Catalog Product Support Information"
+        Parameters:
+          - ProductSupportDescriptionParameter
+          - ProductSupportEmailParameter
+          - ProductSupportURLParameter
+      -
+        Label:
+          default: "Source Code Repository Configuration (leave defaults if not forking the repository)"
+        Parameters:
+          - SageMakerProjectRepoZipParameter
+          - SageMakerProjectRepoNameBranchParameter
+          - SageMakerProjectsProjectNameParameter
+
+    ParameterLabels:
+
+      PortfolioIDParameter:
+        default: 'Portfolio ID'
+
+      ProductNameParameter:
+        default: 'Product Name'
+
+      ProductDescriptionParameter:
+        default: 'Product Description'
+
+      ProductOwnerParameter:
+        default: 'Product Owner'
+
+      ProductDistributorParameter:
+        default: 'Product Distributor'
+
+      ProductSupportDescriptionParameter:
+        default: 'Product Support Description'
+
+      ProductSupportEmailParameter:
+        default: 'Product Support Email'
+
+      ProductSupportURLParameter:
+        default: 'Product Support URL'
+
+      SageMakerProjectRepoZipParameter:
+        default: 'URL to the zipped version of your GitHub Repository'
+
+      SageMakerProjectRepoNameBranchParameter:
+        default: 'Name and branch of your GitHub Repository, should match the root folder of the zip'
+
+      SageMakerProjectsProjectNameParameter:
+        default: 'Project folder inside of the main repository for this project.'
+
+Resources:
+  CustomProjectServiceCatalogLaunchRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: SM-custom-project-EncryptedBuckets-SCLaunchRole
+      Description: Role used for launching the encrypted-buckets SageMaker Custom Project Template example
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - servicecatalog.amazonaws.com
+            Action: 'sts:AssumeRole'
+
+  CustomProjectServiceCatalogUseRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: SM-custom-project-EncryptedBuckets-SCUseRole
+      Description: Role used for by components of the the encrypted-buckets SageMaker Custom Project Template example
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - cloudformation.amazonaws.com
+                - apigateway.amazonaws.com
+                - lambda.amazonaws.com
+                - sagemaker.amazonaws.com
+                - codebuild.amazonaws.com
+                - glue.amazonaws.com
+                - states.amazonaws.com
+                - events.amazonaws.com
+                - codepipeline.amazonaws.com
+                - firehose.amazonaws.com
+            Action: 'sts:AssumeRole'
+
+  CustomerManagedKMSKey:
+    Type: AWS::KMS::Key
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
+    Properties:
+      Description: String
+      Enabled: true
+      EnableKeyRotation: true
+      KeyPolicy:
+        Id: encrypted-buckets-key-policy
+        Version: '2012-10-17'
+        Statement:
+          - Sid: Enable IAM User Permissions
+            Effect: Allow
+            Principal:
+              AWS: !Sub 'arn:aws:iam::${AWS::AccountId}:root'
+            Action: 'kms:*'
+            Resource: '*'
+          - Sid: Allow access for Key Administrators
+            Effect: Allow
+            Principal:
+              AWS: !Sub 'arn:aws:iam::${AWS::AccountId}:role/TeamRole'
+            Action:
+              - 'kms:Create*'
+              - 'kms:Describe*'
+              - 'kms:Enable*'
+              - 'kms:List*'
+              - 'kms:Put*'
+              - 'kms:Update*'
+              - 'kms:Revoke*'
+              - 'kms:Disable*'
+              - 'kms:Get*'
+              - 'kms:Delete*'
+              - 'kms:TagResource'
+              - 'kms:UntagResource'
+              - 'kms:ScheduleKeyDeletion'
+              - 'kms:CancelKeyDeletion'
+            Resource: '*'
+          - Sid: Allow use of the key
+            Effect: Allow
+            Principal:
+              AWS: !Sub 'arn:aws:iam::${AWS::AccountId}:role/TeamRole'
+            Action:
+              - 'kms:Encrypt'
+              - 'kms:Decrypt'
+              - 'kms:ReEncrypt*'
+              - 'kms:GenerateDataKey*'
+              - 'kms:DescribeKey'
+            Resource: '*'
+          - Sid: Allow attachment of persistent resources
+            Effect: Allow
+            Principal:
+              AWS: !Sub 'arn:aws:iam::${AWS::AccountId}:role/TeamRole'
+            Action:
+              - 'kms:CreateGrant'
+              - 'kms:ListGrants'
+              - 'kms:RevokeGrant'
+            Resource: '*'
+            Condition:
+              Bool:
+                'kms:GrantIsForAWSResource': 'true'
+          - Sid: Enable encryption by role
+            Effect: Allow
+            Principal:
+              AWS: !GetAtt CustomProjectServiceCatalogUseRole.Arn
+            Action:
+              - 'kms:Encrypt'
+              - 'kms:Decrypt'
+            Resource: '*'
+
+  CustomProjectServiceCatalogLaunchPolicy:
+    Type: AWS::IAM::Policy
+    Properties:
+      PolicyName: SMCustomProject-EncryptedBuckets-SCLaunchPolicy
+      Roles:
+        - !Ref CustomProjectServiceCatalogLaunchRole
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Action:
+              - 'kms:Encrypt'
+              - 'kms:Decrypt'
+              - 'kms:ReEncrypt*'
+              - 'kms:GenerateDataKey*'
+              - 'kms:DescribeKey'
+            Resource: !GetAtt CustomerManagedKMSKey.Arn
+          - Effect: Allow
+            Action:
+              - 'cloudformation:CreateStack'
+              - 'cloudformation:UpdateStack'
+              - 'cloudformation:DeleteStack'
+            Resource: 'arn:aws:cloudformation:*:*:stack/SC-*'
+            Condition:
+              ArnLikeIfExists:
+                'cloudformation:RoleArn':
+                  - 'arn:aws:sts::*:assumed-role/*custom-project*'
+          - Effect: Allow
+            Action:
+              - 'cloudformation:DescribeStackEvents'
+              - 'cloudformation:DescribeStacks'
+            Resource: 'arn:aws:cloudformation:*:*:stack/SC-*'
+          - Effect: Allow
+            Action:
+              - 'cloudformation:GetTemplateSummary'
+              - 'cloudformation:ValidateTemplate'
+            Resource: '*'
+          - Effect: Allow
+            Action:
+              - 'codebuild:CreateProject'
+              - 'codebuild:DeleteProject'
+              - 'codebuild:UpdateProject'
+            Resource:
+              - 'arn:aws:codebuild:*:*:project/*custom-project*'
+              - 'arn:aws:codebuild:*:*:build/*custom-project*'
+          - Effect: Allow
+            Action:
+              - 'codecommit:CreateCommit'
+              - 'codecommit:CreateRepository'
+              - 'codecommit:DeleteRepository'
+              - 'codecommit:GetRepository'
+              - 'codecommit:TagResource'
+            Resource:
+              - 'arn:aws:codecommit:*:*:sagemaker*'
+          - Effect: Allow
+            Action:
+              - 'codecommit:ListRepositories'
+            Resource: '*'
+          - Effect: Allow
+            Action:
+              - 'codepipeline:CreatePipeline'
+              - 'codepipeline:DeletePipeline'
+              - 'codepipeline:GetPipeline'
+              - 'codepipeline:GetPipelineState'
+              - 'codepipeline:StartPipelineExecution'
+              - 'codepipeline:TagResource'
+              - 'codepipeline:UpdatePipeline'
+            Resource:
+              - 'arn:aws:codepipeline:*:*:sagemaker*'
+          - Action:
+              - 'ecr:CreateRepository'
+              - 'ecr:DeleteRepository'
+            Resource:
+              - 'arn:aws:ecr:*:*:repository/sagemaker*'
+            Effect: Allow
+          - Effect: Allow
+            Action:
+              - 'events:DescribeRule'
+              - 'events:DeleteRule'
+              - 'events:DisableRule'
+              - 'events:EnableRule'
+              - 'events:PutRule'
+              - 'events:PutTargets'
+              - 'events:RemoveTargets'
+            Resource:
+              - 'arn:aws:events:*:*:rule/sagemaker-*'
+          - Effect: Allow
+            Action:
+              - 'iam:PassRole'
+            Resource:
+              - !GetAtt CustomProjectServiceCatalogUseRole.Arn
+          - Effect: Allow
+            Action:
+              - 'lambda:AddPermission'
+              - 'lambda:CreateFunction'
+              - 'lambda:DeleteFunction'
+              - 'lambda:GetFunction'
+              - 'lambda:GetFunctionConfiguration'
+              - 'lambda:InvokeFunction'
+              - 'lambda:RemovePermission'
+            Resource:
+              - 'arn:aws:lambda:*:*:function:sagemaker-*'
+            Condition:
+              StringEquals:
+                'aws:RequestTag/project': custom-project
+          - Effect: Allow
+            Action:
+              - 'logs:CreateLogGroup'
+              - 'logs:CreateLogStream'
+              - 'logs:DeleteLogGroup'
+              - 'logs:DeleteLogStream'
+              - 'logs:DescribeLogGroups'
+              - 'logs:DescribeLogStreams'
+              - 'logs:PutRetentionPolicy'
+            Resource:
+              - 'arn:aws:logs:*:*:log-group:/aws/apigateway/AccessLogs/*'
+              - 'arn:aws:logs:*:*:log-group::log-stream:*'
+          - Effect: Allow
+            Action: 's3:GetObject'
+            Resource: '*'
+            Condition:
+              StringEquals:
+                's3:ExistingObjectTag/servicecatalog:provisioning': 'true'
+          - Effect: Allow
+            Action: 's3:GetObject'
+            Resource:
+              - 'arn:aws:s3:::*'
+          - Effect: Allow
+            Action:
+              - 's3:CreateBucket'
+              - 's3:DeleteBucket'
+              - 's3:DeleteBucketPolicy'
+              - 's3:GetBucketPolicy'
+              - 's3:PutBucketAcl'
+              - 's3:PutBucketNotification'
+              - 's3:PutBucketPolicy'
+              - 's3:PutBucketPublicAccessBlock'
+              - 's3:PutBucketLogging'
+              - 's3:PutEncryptionConfiguration'
+            Resource: 'arn:aws:s3:::*'
+          - Action:
+              - 'sagemaker:CreateEndpoint'
+              - 'sagemaker:CreateEndpointConfig'
+              - 'sagemaker:CreateModel'
+              - 'sagemaker:CreateWorkteam'
+              - 'sagemaker:DeleteEndpoint'
+              - 'sagemaker:DeleteEndpointConfig'
+              - 'sagemaker:DeleteModel'
+              - 'sagemaker:DeleteWorkteam'
+              - 'sagemaker:DescribeModel'
+              - 'sagemaker:DescribeEndpointConfig'
+              - 'sagemaker:DescribeEndpoint'
+              - 'sagemaker:DescribeWorkteam'
+            Resource:
+              - 'arn:aws:sagemaker:*:*:*/*custom-project*'
+            Effect: Allow
+          - Action:
+              - 'states:CreateStateMachine'
+              - 'states:DeleteStateMachine'
+              - 'states:UpdateStateMachine'
+            Resource:
+              - 'arn:aws:states:*:*:stateMachine:sagemaker-*'
+            Effect: Allow
+
+
+  CustomProjectServiceCatalogUsePolicy:
+    Type: AWS::IAM::Policy
+    Properties:
+      PolicyName: SMCustomProject-EncryptedBuckets-SCUsePolicy
+      Roles:
+        - !Ref CustomProjectServiceCatalogUseRole
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Action:
+            - 'kms:Encrypt'
+            - 'kms:Decrypt'
+            - 'kms:ReEncrypt*'
+            - 'kms:GenerateDataKey*'
+            - 'kms:DescribeKey'
+            Resource: !GetAtt CustomerManagedKMSKey.Arn
+            Effect: Allow
+          - Action:
+              - 'cloudformation:CreateChangeSet'
+              - 'cloudformation:CreateStack'
+              - 'cloudformation:DescribeChangeSet'
+              - 'cloudformation:DeleteChangeSet'
+              - 'cloudformation:DeleteStack'
+              - 'cloudformation:DescribeStacks'
+              - 'cloudformation:ExecuteChangeSet'
+              - 'cloudformation:SetStackPolicy'
+              - 'cloudformation:UpdateStack'
+            Resource: 'arn:aws:cloudformation:*:*:stack/*custom-project*'
+            Effect: Allow
+          - Action:
+              - 'cloudwatch:PutMetricData'
+            Resource: '*'
+            Effect: Allow
+          - Action:
+              - 'codebuild:BatchGetBuilds'
+              - 'codebuild:StartBuild'
+            Resource:
+              - 'arn:aws:codebuild:*:*:project/*custom-project*'
+              - 'arn:aws:codebuild:*:*:build/*custom-project*'
+            Effect: Allow
+          - Action:
+              - 'codecommit:CancelUploadArchive'
+              - 'codecommit:GetBranch'
+              - 'codecommit:GetCommit'
+              - 'codecommit:GetUploadArchiveStatus'
+              - 'codecommit:UploadArchive'
+              - 'codecommit:CreateRepository'
+            Resource: 'arn:aws:codecommit:*:*:*custom-project*'
+            Effect: Allow
+          - Action:
+              - 'codepipeline:StartPipelineExecution'
+            Resource: 'arn:aws:codepipeline:*:*:*custom-project*'
+            Effect: Allow
+          - Action:
+              - 'ec2:Describe*'
+              - 'ec2:CreateNetworkInterface'
+              - 'ec2:CreateNetworkInterfacePermission'
+              - 'ec2:DeleteNetworkInterface'
+              - 'ec2:DeleteNetworkInterfacePermission'
+            Resource: '*'
+            Effect: Allow
+          - Action:
+              - 'ecr:BatchCheckLayerAvailability'
+              - 'ecr:BatchGetImage'
+              - 'ecr:Describe*'
+              - 'ecr:GetAuthorizationToken'
+              - 'ecr:GetDownloadUrlForLayer'
+            Resource: '*'
+            Effect: Allow
+          - Effect: Allow
+            Action:
+              - 'ecr:BatchDeleteImage'
+              - 'ecr:CompleteLayerUpload'
+              - 'ecr:CreateRepository'
+              - 'ecr:DeleteRepository'
+              - 'ecr:InitiateLayerUpload'
+              - 'ecr:PutImage'
+              - 'ecr:UploadLayerPart'
+            Resource:
+              - 'arn:aws:ecr:*:*:repository/*custom-project*'
+          - Action:
+              - 'events:DeleteRule'
+              - 'events:DescribeRule'
+              - 'events:PutRule'
+              - 'events:PutTargets'
+              - 'events:RemoveTargets'
+            Resource:
+              - 'arn:aws:events:*:*:rule/*custom-project*'
+            Effect: Allow
+          - Action:
+              - 'iam:PassRole'
+            Resource:
+              - 'arn:aws:iam::*:role/*custom-project*'
+            Effect: Allow
+          - Effect: Allow
+            Action:
+              - 'lambda:InvokeFunction'
+            Resource:
+              - 'arn:aws:lambda:*:*:function:*custom-project*'
+          - Action:
+              - 'logs:CreateLogDelivery'
+              - 'logs:CreateLogGroup'
+              - 'logs:CreateLogStream'
+              - 'logs:DeleteLogDelivery'
+              - 'logs:Describe*'
+              - 'logs:GetLogDelivery'
+              - 'logs:GetLogEvents'
+              - 'logs:ListLogDeliveries'
+              - 'logs:PutLogEvents'
+              - 'logs:PutResourcePolicy'
+              - 'logs:UpdateLogDelivery'
+            Resource: '*'
+            Effect: Allow
+          - Effect: Allow
+            Action:
+              - 's3:CreateBucket'
+              - 's3:ListAllMyBuckets'
+              - 's3:ListBucket'
+            Resource: '*'
+          - Effect: Allow
+            Action:
+              - 's3:*'
+            Resource: 'arn:aws:s3:::*'
+          - Effect: Allow
+            Action:
+              - 'sagemaker:*'
+            NotResource:
+              - 'arn:aws:sagemaker:*:*:domain/*'
+              - 'arn:aws:sagemaker:*:*:user-profile/*'
+              - 'arn:aws:sagemaker:*:*:app/*'
+              - 'arn:aws:sagemaker:*:*:flow-definition/*'
+          - Sid: EnforceTagging
+            Effect: Deny
+            Action:
+              - 'sagemaker:CreateModel'
+              - 'sagemaker:CreateTrainingJob'
+              - 'sagemaker:CreateProcessingJob'
+              - 'sagemaker:CreateHyperParameterTuningJob'
+            Resource: '*'
+            Condition:
+              StringEquals:
+                'aws:ResourceTag/project': custom-project
+                'aws:ResourceTag/env': dev
+          - Action:
+              - 'states:*'
+            Resource:
+              - 'arn:aws:states:*:*:stateMachine:*custom-project*'
+              - 'arn:aws:states:*:*:execution:*custom-project*:*'
+            Effect: Allow
+          - Action:
+              - 'states:ListStateMachines'
+            Resource: '*'
+            Effect: Allow
+
+
+  BootstrapS3Bucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Join ['-',['sm-project-encbucket-example', !Select [4, !Split ['-', !Select [2, !Split ['/', !Ref 'AWS::StackId']]]]]]
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+
+  BootstrapS3BucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    Properties:
+      Bucket: !Ref BootstrapS3Bucket
+      PolicyDocument:
+          Version: "2012-10-17"
+          Statement:
+            - Effect: Allow
+              Principal:
+                AWS:
+                  - !Join [ ':', ['arn', !Ref 'AWS::Partition', 'iam:', !Ref 'AWS::AccountId', 'role/service-role/AmazonSageMakerServiceCatalogProductsLaunchRole']]
+              Action: 's3:GetObject'
+              Resource: !Join ['',[!GetAtt BootstrapS3Bucket.Arn,'/*']]
+
+  BootstrapLambdaExecutionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Join ['-', ['SM-custom-project-EncBucket-Bootstrap-Role', !Select [4, !Split ['-', !Select [2, !Split ['/', !Ref 'AWS::StackId']]]]]]
+      Description: Role used for launching the lambda function to bootstrap creation of the Encrypted Buckets SageMaker Custom Project Template example
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - lambda.amazonaws.com
+            Action: 'sts:AssumeRole'
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+      Policies:
+          - PolicyName: BootstrapLambdaExecutionPolicy
+            PolicyDocument:
+              Version: "2012-10-17"
+              Statement:
+                - Effect: Allow
+                  Action:
+                    - 's3:PutObject'
+                    - 's3:GetObject'
+                  Resource: !Join ['',[!GetAtt BootstrapS3Bucket.Arn,'/*']]
+
+  ServiceCatalogProduct:
+    Type: AWS::ServiceCatalog::CloudFormationProduct
+    Properties:
+      Description: !Ref ProductDescriptionParameter
+      Distributor: !Ref ProductDistributorParameter
+      Name: !Ref ProductNameParameter
+      Owner: !Ref ProductOwnerParameter
+      ProvisioningArtifactParameters:
+        -
+          Description: Base Version
+          DisableTemplateValidation: false
+          Info:
+            LoadTemplateFromURL: !GetAtt InvokeCustomLambda.template_url
+          Name: v1.0
+      SupportDescription: !Ref ProductSupportDescriptionParameter
+      SupportEmail: !Ref ProductSupportEmailParameter
+      SupportUrl: !Ref ProductSupportURLParameter
+      Tags:
+        -
+          Key: sagemaker:studio-visibility
+          Value: 'true'
+
+
+  ServiceCatalogProductAssociation:
+    Type: AWS::ServiceCatalog::PortfolioProductAssociation
+    Properties:
+      PortfolioId: !Ref PortfolioIDParameter
+      ProductId: !Ref ServiceCatalogProduct
+
+  ServiceCatalogProductRoleLaunchContstraint:
+    Type: AWS::ServiceCatalog::LaunchRoleConstraint
+    DependsOn:
+      - ServiceCatalogProductAssociation
+    Properties:
+      Description: Role for launching the encrypted-buckets product
+      PortfolioId: !Ref PortfolioIDParameter
+      ProductId: !Ref ServiceCatalogProduct
+      RoleArn: !GetAtt CustomProjectServiceCatalogLaunchRole.Arn
+
+  CustomBackedLambda:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: !Join ['-', ['aws-samples-encbucket-lambda-bootstrapper', !Select [4, !Split ['-', !Select [2, !Split ['/', !Ref 'AWS::StackId']]]]]]
+      Runtime: python3.9
+      Role: !GetAtt BootstrapLambdaExecutionRole.Arn
+      Handler: index.lambda_handler
+      Timeout: 300
+      Code:
+        ZipFile: |
+          import cfnresponse
+          import logging
+          import random
+          import json
+          import urllib3
+          import os
+          import zipfile
+          import pathlib
+          import boto3
+
+          logger = logging.getLogger()
+          logger.setLevel(logging.INFO)
+
+          s3_client = boto3.client('s3')
+
+          def lambda_handler(event, context):
+            try:
+                logger.info('Incoming Request:')
+                logger.info(json.dumps(event))
+
+                if event.get('RequestType') == 'Create':
+
+                        required_variables = ['BootStrapBucketName','SageMakerProjectRepoZip','SageMakerProjectRepoNameBranch', 'SageMakerProjectsProjectName']
+
+                        if not set(required_variables).issubset(set(event['ResourceProperties'])):
+                            raise Exception(f'Missing required input from: {required_variables}' )
+
+                        sagemaker_projects_repo = event['ResourceProperties']['SageMakerProjectRepoZip']
+                        sagemaker_projects_repo_root_folder_name = event['ResourceProperties']['SageMakerProjectRepoNameBranch']
+                        sagemaker_projects_project_name = event['ResourceProperties']['SageMakerProjectsProjectName']
+
+                        logger.info(f'begin fetch of zipped rep from github: {sagemaker_projects_repo}')
+
+                        chunk_size = 6 * 1024
+                        http = urllib3.PoolManager()
+
+                        r = http.request('GET', sagemaker_projects_repo, preload_content=False)
+
+                        with open('/tmp/sm_project_repo.zip', 'wb') as out:
+                            while True:
+                                data = r.read(chunk_size)
+                                if not data:
+                                    break
+                                out.write(data)
+
+                        r.release_conn()
+
+                        logger.info(f'github zip written to /tmp/sm_project_repo.zip')
+
+                        local_extracted_path_root = '/tmp/' + sagemaker_projects_repo_root_folder_name
+
+                        logger.info(f'extracting github zip to {local_extracted_path_root}')
+
+                        with zipfile.ZipFile('/tmp/sm_project_repo.zip', 'r') as zip_ref:
+                            zip_ref.extractall('/tmp')
+
+                        logger.info(f'github zip extracted to {local_extracted_path_root}')
+
+                        logger.info(f'begin project template customizations')
+
+                        bootstrap_bucket_name = event['ResourceProperties']['BootStrapBucketName']
+
+                        input_file_path = local_extracted_path_root + '/' + sagemaker_projects_project_name + '/project/template.yaml'
+                        output_file_path = local_extracted_path_root + '/' + sagemaker_projects_project_name + '/project/template_updated.yaml'
+                        s3_template_key = sagemaker_projects_project_name + '/templates/template.yaml'
+
+                        with open(input_file_path, 'r') as input_template_file:
+                            with open(output_file_path, 'w') as output_template_file:
+                                file_data = input_template_file.read()
+
+                                if 'TemplateSubstitutions' in event['ResourceProperties'].keys():
+                                  for replacement_key in event['ResourceProperties']['TemplateSubstitutions'].keys():
+                                      file_data = file_data.replace(replacement_key, event['ResourceProperties']['TemplateSubstitutions'][replacement_key])
+
+                                output_template_file.write(file_data)
+
+                        with open(output_file_path, 'rb') as file_data:
+                                s3_client.upload_fileobj(file_data, bootstrap_bucket_name, s3_template_key)
+
+                        logger.info(f'completed project template customizations')
+
+                        logger.info(f'begin building and uploading sub archives from seedcode and lambda folders')
+
+                        archive_info_list = []
+
+                        if 'Archives' in event['ResourceProperties'].keys():
+                              for archive in event['ResourceProperties']['Archives']:
+                                  archive_info_list.append([archive[0], pathlib.Path(local_extracted_path_root + '/' + sagemaker_projects_project_name + archive[1])])
+
+                        for archive_info in archive_info_list:
+
+                            target_filename = '/tmp/' + archive_info[0]
+                            s3_object_key = sagemaker_projects_project_name + '/seedcode/' + archive_info[0]
+                            source_dir = archive_info[1]
+
+                            logger.info(f'source folder: {(source_dir)}')
+                            logger.info(f'begin creating archive: {target_filename}')
+
+                            with zipfile.ZipFile(target_filename, mode='w') as archive:
+                                for file_path in source_dir.rglob('*'):
+                                    archive.write(
+                                    file_path,
+                                    arcname=file_path.relative_to(source_dir)
+                                    )
+
+                            archive.close()
+
+                            logger.info(f'completed creating zip file: {target_filename}')
+
+                            logger.info(f'uploading zip file: {target_filename} as s3 object: {bootstrap_bucket_name}/{s3_object_key}')
+
+                            with open(target_filename, 'rb') as file_data:
+                                s3_client.upload_fileobj(file_data, bootstrap_bucket_name, s3_object_key)
+
+                            logger.info(f'upload for s3 object: {bootstrap_bucket_name}/{s3_object_key} complete')
+
+                        logger.info(f'completed building and uploading sub archives from seedcode and lambda folders')
+
+                        logger.info(f'generating presigned url for template')
+
+                        signed_template_url = s3_client.generate_presigned_url('get_object',
+                          Params={'Bucket': bootstrap_bucket_name,'Key': s3_template_key},
+                          ExpiresIn=6000)
+
+                        logger.info(f"generated presigned url for template successfully: {signed_template_url}")
+
+                        message = 'Create Invoked Successfully'
+                        responseData = {}
+                        responseData['message'] = message
+                        responseData['template_url'] = signed_template_url
+                        logger.info('Sending %s to cloudformation', responseData['message'])
+                        cfnresponse.send(event, context, cfnresponse.SUCCESS, responseData)
+                elif event.get('RequestType') == 'Delete':
+                    responseData = {}
+                    responseData['message'] = "Invoking Delete"
+                    logger.info('Sending %s to cloudformation', responseData['message'])
+                    cfnresponse.send(event, context, cfnresponse.SUCCESS, responseData)
+                else:
+                    logger.error('Unknown operation: %s', event.get('RequestType'))
+
+            except Exception as e:
+                logger.exception(e)
+                responseData = {}
+                responseData['message'] = 'exception caught'
+                cfnresponse.send(event, context, cfnresponse.FAILED, responseData)
+      Description: Cloudformation Custom Lambda to bootstrap the Encrypted Bucket SageMaker Project example
+
+  InvokeCustomLambda:
+    Type: Custom::InvokeCustomLambda
+    Properties:
+      ServiceToken: !GetAtt CustomBackedLambda.Arn
+      BootStrapBucketName: !Ref BootstrapS3Bucket
+      SageMakerProjectRepoZip: !Ref SageMakerProjectRepoZipParameter
+      SageMakerProjectRepoNameBranch: !Ref SageMakerProjectRepoNameBranchParameter
+      SageMakerProjectsProjectName: !Ref SageMakerProjectsProjectNameParameter
+      TemplateSubstitutions:
+        AWSDEFAULT___CODE_STAGING_BUCKET___: !Ref BootstrapS3Bucket
+        AWSDEFAULT___PROJECT_NAME___: !Ref SageMakerProjectsProjectNameParameter
+        AWSDEFAULT___KMS_KEY_ARN___: !GetAtt CustomerManagedKMSKey.Arn
+        AWSDEFAULT___PROJECT_USE_ROLE_ARN___: !GetAtt CustomProjectServiceCatalogUseRole.Arn
+
+
+Outputs:
+  CreatedServiceCatalogProductName:
+    Description: Name of the newly created product.
+    Value: !GetAtt ServiceCatalogProduct.ProductName
+    Export:
+      Name: !Join [':', [!Ref 'AWS::StackName', 'CreatedServiceCatalogProductName'] ]
+
+  CreatedServiceCatalogProductId:
+    Description: Id of the newly created product.
+    Value: !Ref ServiceCatalogProduct
+    Export:
+      Name: !Join [':', [!Ref 'AWS::StackName', 'CreatedServiceCatalogProductId'] ]
+
+  AssociatedServiceCatalogPortfolioID:
+    Description: ID of the associated Service Catalog Portfolio.
+    Value: !Ref PortfolioIDParameter
+    Export:
+      Name: !Join [':', [!Ref 'AWS::StackName', 'AssociatedServiceCatalogPortfolioID'] ]
+
+  CustomerManagedKeyARN:
+    Description: ARN of the Customer Managed Key
+    Value: !GetAtt CustomerManagedKMSKey.Arn
+    Export:
+      Name: !Join [':', [!Ref 'AWS::StackName', 'CustomerManagedKeyARN']]
+
+  ServiceCatalogProductLaunchRoleARN:
+    Description: ARN of the Role used to launch this product
+    Value: !GetAtt CustomProjectServiceCatalogLaunchRole.Arn
+    Export:
+      Name: !Join [':', [!Ref 'AWS::StackName', 'ServiceCatalogProductLaunchRoleARN']]
+
+  ServiceCatalogProductUseRoleARN:
+    Description: ARN of the Role used by components of this product
+    Value: !GetAtt CustomProjectServiceCatalogUseRole.Arn
+    Export:
+      Name: !Join [':', [!Ref 'AWS::StackName', 'ServiceCatalogProductUseRoleARN']]
+
+  CodeStagingBucketName:
+    Description: Name of the S3 Bucket containing the staging code for the repository.
+    Value: !Ref BootstrapS3Bucket
+    Export:
+      Name: !Join [':', [!Ref 'AWS::StackName', 'CodeStagingBucketName']]
