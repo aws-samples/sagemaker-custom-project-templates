@@ -40,12 +40,13 @@ class BuildPipelineConstruct(Construct):
         model_package_group_name: str,
         repo_s3_bucket_name: str,
         repo_s3_object_key: str,
+        config_set: dict,
         **kwargs,
     ) -> None:
         super().__init__(scope, construct_id, **kwargs)
 
         # Define resource names
-        pipeline_name = f"{project_name}-{construct_id}"
+        pipeline_name = f"{project_name}-{construct_id}-{config_set['SET_NAME']}"
         pipeline_description = f"{project_name} Model Build Pipeline"
 
         # Create source repo from seed bucket/key

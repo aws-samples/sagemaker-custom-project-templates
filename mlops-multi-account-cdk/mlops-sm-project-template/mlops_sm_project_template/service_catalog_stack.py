@@ -54,6 +54,7 @@ class ServiceCatalogStack(Stack):
         self,
         scope: Construct,
         construct_id: str,
+        config_set: dict,
         **kwargs,
     ) -> None:
         super().__init__(scope, construct_id, **kwargs)
@@ -130,7 +131,7 @@ class ServiceCatalogStack(Stack):
         )
 
         products_launch_role.add_managed_policy(
-            iam.ManagedPolicy.from_aws_managed_policy_name("AWSCodePipelineFullAccess")
+            iam.ManagedPolicy.from_aws_managed_policy_name("AWSCodePipeline_FullAccess")
         )
 
         products_launch_role.add_managed_policy(iam.ManagedPolicy.from_aws_managed_policy_name("AmazonS3FullAccess"))
@@ -199,51 +200,54 @@ class ServiceCatalogStack(Stack):
             principal_type="IAM",
         )
 
-        # product = servicecatalog.CloudFormationProduct(
-        #     self,
-        #     "DeployProduct",
-        #     owner=portfolio_owner,
-        #     product_name=MLOpsStack.TEMPLATE_NAME,
-        #     product_versions=[
-        #         servicecatalog.CloudFormationProductVersion(
-        #             cloud_formation_template=servicecatalog.CloudFormationTemplate.from_asset(
-        #                 self.generate_template(MLOpsStack, f"MLOpsApp-{stage_name}", **kwargs)
-        #             ),
-        #             product_version_name=product_version,
-        #         )
-        #     ],
-        #     description=MLOpsStack.DESCRIPTION,
-        # )
+        # TODO: change other templates than "basic_project_stack" to support config_set
+        product = servicecatalog.CloudFormationProduct(
+            self,
+            "DeployProduct",
+            owner=portfolio_owner,
+            product_name=MLOpsStack.TEMPLATE_NAME,
+            product_versions=[
+                servicecatalog.CloudFormationProductVersion(
+                    cloud_formation_template=servicecatalog.CloudFormationTemplate.from_asset(
+                        self.generate_template(MLOpsStack, f"MLOpsApp-{stage_name}", config_set, **kwargs)
+                    ),
+                    product_version_name=product_version,
+                )
+            ],
+            description=MLOpsStack.DESCRIPTION,
+        )
 
-        # portfolio_association.node.add_dependency(product)
+        portfolio_association.node.add_dependency(product)
 
-        # # Add product tags, and create role constraint for each product
+        # Add product tags, and create role constraint for each product
 
-        # portfolio.add_product(product)
+        portfolio.add_product(product)
 
-        # Tags.of(product).add(key="sagemaker:studio-visibility", value="true")
+        Tags.of(product).add(key="sagemaker:studio-visibility", value="true")
 
-        # role_constraint = servicecatalog.CfnLaunchRoleConstraint(
-        #     self,
-        #     f"LaunchRoleConstraint",
-        #     portfolio_id=portfolio.portfolio_id,
-        #     product_id=product.product_id,
-        #     role_arn=products_launch_role.role_arn,
-        #     description=f"Launch as {products_launch_role.role_arn}",
-        # )
-        # role_constraint.add_depends_on(portfolio_association)
+        role_constraint = servicecatalog.CfnLaunchRoleConstraint(
+            self,
+            f"LaunchRoleConstraint",
+            portfolio_id=portfolio.portfolio_id,
+            product_id=product.product_id,
+            role_arn=products_launch_role.role_arn,
+            description=f"Launch as {products_launch_role.role_arn}",
+        )
+        role_constraint.add_depends_on(portfolio_association)
 
+        # TODO: change other templates than "basic_project_stack" to support config_set
         # uncomment this block if you want to create service catalog products based on all templates
         # make sure you comment out lines 202-234
-        products = self.deploy_all_products(
-            portfolio_association,
-            portfolio,
-            products_launch_role,
-            portfolio_owner,
-            product_version,
-            stage_name,
-            **kwargs,
-        )
+        # products = self.deploy_all_products(
+        #     portfolio_association,
+        #     portfolio,
+        #     products_launch_role,
+        #     portfolio_owner,
+        #     product_version,
+        #     stage_name,
+        #     config_set,
+        #     **kwargs,
+        # )
 
         # Create the build and deployment asset as an output to pass to pipeline stack
         zip_image = DockerImage.from_build("mlops_sm_project_template/cdk_helper_scripts/zip-image")
@@ -319,7 +323,7 @@ class ServiceCatalogStack(Stack):
             deploy_app_asset.s3_object_key,
         )
 
-        SSMConstruct(self, "MLOpsSSM")
+        SSMConstruct(self, "MLOpsSSM", config_set)
 
     def deploy_all_products(
         self,
@@ -329,6 +333,7 @@ class ServiceCatalogStack(Stack):
         portfolio_owner: str,
         product_version: str,
         stage_name: str,
+        config_set: dict,
         templates_directory: str = "mlops_sm_project_template/templates",
         **kwargs,
     ):
@@ -355,6 +360,7 @@ class ServiceCatalogStack(Stack):
                                 self.generate_template(
                                     template_module.MLOpsStack,
                                     f"{template_py_file}-{stage_name}",
+                                    config_set,
                                     **kwargs,
                                 )
                             ),
@@ -387,7 +393,7 @@ class ServiceCatalogStack(Stack):
     def export_ssm(self, key: str, param_name: str, value: str):
         param = ssm.StringParameter(self, key, parameter_name=param_name, string_value=value)
 
-    def generate_template(self, stack: Stack, stack_name: str, **kwargs):
+    def generate_template(self, stack: Stack, stack_name: str, config_set: dict, **kwargs):
         """Create a CFN template from a stack
 
         Args:
@@ -398,7 +404,8 @@ class ServiceCatalogStack(Stack):
             [str]: path of the CFN template
         """
         stage = aws_cdk.App()
-        stack = stack(stage, stack_name, synthesizer=aws_cdk.BootstraplessSynthesizer(), **kwargs)
+        stack_name += f"-{config_set['SET_NAME']}"
+        stack = stack(stage, stack_name, synthesizer=aws_cdk.BootstraplessSynthesizer(), config_set=config_set, **kwargs)
         assembly = stage.synth()
         template_full_path = assembly.stacks[0].template_full_path
 

@@ -1,0 +1,14 @@
+[
+    {
+        "SET_NAME": "first-example",
+        "DEV_ACCOUNT": "",
+        "PREPROD_ACCOUNT": "",
+        "PROD_ACCOUNT": ""
+    },
+    {
+        "SET_NAME": "second-example",
+        "DEV_ACCOUNT": "",
+        "PREPROD_ACCOUNT": "",
+        "PROD_ACCOUNT": ""
+    }
+]

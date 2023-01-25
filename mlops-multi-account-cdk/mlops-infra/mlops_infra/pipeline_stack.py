@@ -29,10 +29,7 @@ from constructs import Construct
 from mlops_infra.config.constants import (
     APP_PREFIX,
     CODE_COMMIT_REPO_NAME,
-    DEV_ACCOUNT,
     PIPELINE_BRANCH,
-    PREPROD_ACCOUNT,
-    PROD_ACCOUNT,
     DEFAULT_DEPLOYMENT_REGION,
 )
 
@@ -72,6 +69,7 @@ class PipelineStack(Stack):
         scope: Construct,
         id: str,
         # cloud_assembly_artifact: codepipeline.Artifact,
+        config_set: dict,
         **kwargs,
     ):
         super().__init__(scope, id, **kwargs)
@@ -90,7 +88,7 @@ class PipelineStack(Stack):
             "Pipeline",
             self_mutation=True,
             cross_account_keys=True,
-            pipeline_name=f"{APP_PREFIX}-infra-{PIPELINE_BRANCH}",
+            pipeline_name=f"{APP_PREFIX}-infra-{PIPELINE_BRANCH}-{config_set['SET_NAME']}",
             docker_enabled_for_synth=True,
             docker_enabled_for_self_mutation=True,
             synth=pipelines.ShellStep(  # build stage in code pipeline
@@ -156,7 +154,8 @@ class PipelineStack(Stack):
             CoreStage(
                 self,
                 "dev",
-                env=Environment(account=DEV_ACCOUNT, region=DEFAULT_DEPLOYMENT_REGION),
+                deploy_sm_domain=config_set["CREATE_SM_DOMAIN"] == "True",
+                env=Environment(account=config_set["DEV_ACCOUNT"], region=DEFAULT_DEPLOYMENT_REGION),
             )
         )
         # add preprod stage for resources that we want to deploy in this account and potentially in other accounts as well
@@ -165,7 +164,7 @@ class PipelineStack(Stack):
                 self,
                 "preprod",
                 deploy_sm_domain=False,
-                env=Environment(account=PREPROD_ACCOUNT, region=DEFAULT_DEPLOYMENT_REGION),
+                env=Environment(account=config_set["PREPROD_ACCOUNT"], region=DEFAULT_DEPLOYMENT_REGION),
             )
         )
         # add prod stage for resources that we want to deploy in this account and potentially in other accounts as well
@@ -174,6 +173,6 @@ class PipelineStack(Stack):
                 self,
                 "prod",
                 deploy_sm_domain=False,
-                env=Environment(account=PROD_ACCOUNT, region=DEFAULT_DEPLOYMENT_REGION),
+                env=Environment(account=config_set["PROD_ACCOUNT"], region=DEFAULT_DEPLOYMENT_REGION),
             )
         )

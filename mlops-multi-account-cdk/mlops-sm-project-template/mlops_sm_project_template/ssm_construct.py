@@ -21,26 +21,23 @@ from aws_cdk import (
 
 from constructs import Construct
 
-from mlops_sm_project_template.config.constants import (
-    DEV_ACCOUNT,
-    PREPROD_ACCOUNT,
-    PROD_ACCOUNT,
-    DEFAULT_DEPLOYMENT_REGION,
-)
+from mlops_sm_project_template.config.constants import DEFAULT_DEPLOYMENT_REGION
 
 
 class SSMConstruct(Construct):
-    def __init__(self, scope: Construct, construct_id: str, **kwargs) -> None:
+    def __init__(self, scope: Construct, construct_id: str, config_set: dict, **kwargs) -> None:
         super().__init__(scope, construct_id, **kwargs)
 
         ## SSM parameters for the project
+        
+        # TODO: if sets of accounts have overlapping accounts (eg same dev or preprod), the parameter names need to be "parametrized" as well
 
         # DEV parameters
         dev_account_id_param = ssm.StringParameter(
             self,
             "DevAccountIDParameter",
             parameter_name="/mlops/dev/account_id",
-            string_value=DEV_ACCOUNT,
+            string_value=config_set["DEV_ACCOUNT"],
         )
 
         # PREPROD parameters
@@ -48,7 +45,7 @@ class SSMConstruct(Construct):
             self,
             "PreProdAccountIDParameter",
             parameter_name="/mlops/preprod/account_id",
-            string_value=PREPROD_ACCOUNT,
+            string_value=config_set["PREPROD_ACCOUNT"],
         )
 
         PREPROD_REGION_param = ssm.StringParameter(
@@ -63,7 +60,7 @@ class SSMConstruct(Construct):
             self,
             "ProdAccountIDParameter",
             parameter_name="/mlops/prod/account_id",
-            string_value=PROD_ACCOUNT,
+            string_value=config_set["PROD_ACCOUNT"],
         )
 
         prod_region_param = ssm.StringParameter(

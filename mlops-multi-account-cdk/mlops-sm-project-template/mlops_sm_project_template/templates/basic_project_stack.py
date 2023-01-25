@@ -38,14 +38,14 @@ from mlops_sm_project_template.templates.pipeline_constructs.deploy_pipeline_con
     DeployPipelineConstruct,
 )
 
-from mlops_sm_project_template.config.constants import PREPROD_ACCOUNT, PROD_ACCOUNT, DEFAULT_DEPLOYMENT_REGION
+from mlops_sm_project_template.config.constants import DEFAULT_DEPLOYMENT_REGION
 
 
 class MLOpsStack(Stack):
     DESCRIPTION: str = "This template includes a model building pipeline that includes a workflow to pre-process, train, evaluate and register a model. The deploy pipeline creates a dev,preprod and production endpoint. The target DEV/PREPROD/PROD accounts are predefined in the template."
     TEMPLATE_NAME: str = "Basic MLOps template for real-time deployment"
 
-    def __init__(self, scope: Construct, construct_id: str, **kwargs) -> None:
+    def __init__(self, scope: Construct, construct_id: str, config_set: dict, **kwargs) -> None:
         super().__init__(scope, construct_id, **kwargs)
 
         # Define required parmeters
@@ -102,8 +102,8 @@ class MLOpsStack(Stack):
                     "*",
                 ],
                 principals=[
-                    iam.ArnPrincipal(f"arn:aws:iam::{PREPROD_ACCOUNT}:root"),
-                    iam.ArnPrincipal(f"arn:aws:iam::{PROD_ACCOUNT}:root"),
+                    iam.ArnPrincipal(f"arn:aws:iam::{config_set['PREPROD_ACCOUNT']}:root"),
+                    iam.ArnPrincipal(f"arn:aws:iam::{config_set['PROD_ACCOUNT']}:root"),
                 ],
             )
         )
@@ -111,7 +111,7 @@ class MLOpsStack(Stack):
         s3_artifact = s3.Bucket(
             self,
             "S3Artifact",
-            bucket_name=f"mlops-{project_name}-{project_id}-{Aws.REGION}",
+            bucket_name=f"mlops-{project_name}-{project_id}-{config_set['SET_NAME']}-{Aws.REGION}-{Aws.ACCOUNT_ID}",
             encryption_key=kms_key,
             versioned=True,
             removal_policy=aws_cdk.RemovalPolicy.DESTROY,
@@ -157,8 +157,8 @@ class MLOpsStack(Stack):
                     s3_artifact.bucket_arn,
                 ],
                 principals=[
-                    iam.ArnPrincipal(f"arn:aws:iam::{PREPROD_ACCOUNT}:root"),
-                    iam.ArnPrincipal(f"arn:aws:iam::{PROD_ACCOUNT}:root"),
+                    iam.ArnPrincipal(f"arn:aws:iam::{config_set['PREPROD_ACCOUNT']}:root"),
+                    iam.ArnPrincipal(f"arn:aws:iam::{config_set['PROD_ACCOUNT']}:root"),
                 ],
             )
         )
@@ -177,8 +177,8 @@ class MLOpsStack(Stack):
                         f"arn:aws:sagemaker:{Aws.REGION}:{Aws.ACCOUNT_ID}:model-package-group/{model_package_group_name}"
                     ],
                     principals=[
-                        iam.ArnPrincipal(f"arn:aws:iam::{PREPROD_ACCOUNT}:root"),
-                        iam.ArnPrincipal(f"arn:aws:iam::{PROD_ACCOUNT}:root"),
+                        iam.ArnPrincipal(f"arn:aws:iam::{config_set['PREPROD_ACCOUNT']}:root"),
+                        iam.ArnPrincipal(f"arn:aws:iam::{config_set['PROD_ACCOUNT']}:root"),
                     ],
                 ),
                 iam.PolicyStatement(
@@ -193,8 +193,8 @@ class MLOpsStack(Stack):
                         f"arn:aws:sagemaker:{Aws.REGION}:{Aws.ACCOUNT_ID}:model-package/{model_package_group_name}/*"
                     ],
                     principals=[
-                        iam.ArnPrincipal(f"arn:aws:iam::{PREPROD_ACCOUNT}:root"),
-                        iam.ArnPrincipal(f"arn:aws:iam::{PROD_ACCOUNT}:root"),
+                        iam.ArnPrincipal(f"arn:aws:iam::{config_set['PREPROD_ACCOUNT']}:root"),
+                        iam.ArnPrincipal(f"arn:aws:iam::{config_set['PROD_ACCOUNT']}:root"),
                     ],
                 ),
             ]
@@ -236,7 +236,7 @@ class MLOpsStack(Stack):
         pipeline_artifact_bucket = s3.Bucket(
             self,
             "PipelineBucket",
-            bucket_name=f"pipeline-{project_id}-{Aws.REGION}",
+            bucket_name=f"pipeline-{project_id}-{config_set['SET_NAME']}-{Aws.REGION}-{Aws.ACCOUNT_ID}",
             encryption_key=kms_key,
             versioned=True,
             removal_policy=aws_cdk.RemovalPolicy.DESTROY,
@@ -252,6 +252,7 @@ class MLOpsStack(Stack):
             model_package_group_name,
             seed_bucket,
             build_app_key,
+            config_set=config_set,
         )
 
         DeployPipelineConstruct(
@@ -263,7 +264,6 @@ class MLOpsStack(Stack):
             model_package_group_name,
             seed_bucket,
             deploy_app_key,
-            PREPROD_ACCOUNT,
-            PROD_ACCOUNT,
             DEFAULT_DEPLOYMENT_REGION,
+            config_set=config_set,
         )
