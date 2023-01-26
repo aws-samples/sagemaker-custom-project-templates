@@ -49,7 +49,7 @@ class DeployPipelineConstruct(Construct):
         super().__init__(scope, construct_id, **kwargs)
 
         # Define resource names
-        pipeline_name = f"{project_name}-{construct_id}-{config_set['SET_NAME']}"
+        pipeline_name = f"{project_name}-{construct_id}"
 
         # Create source repo from seed bucket/key
         deploy_app_cfnrepository = codecommit.CfnRepository(

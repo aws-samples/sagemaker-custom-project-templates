@@ -46,7 +46,7 @@ class BuildPipelineConstruct(Construct):
         super().__init__(scope, construct_id, **kwargs)
 
         # Define resource names
-        pipeline_name = f"{project_name}-{construct_id}-{config_set['SET_NAME']}"
+        pipeline_name = f"{project_name}-{construct_id}"
         pipeline_description = f"{project_name} Model Build Pipeline"
 
         # Create source repo from seed bucket/key
@@ -193,7 +193,7 @@ class BuildPipelineConstruct(Construct):
         source_artifact = codepipeline.Artifact(artifact_name="GitSource")
 
         build_pipeline = codepipeline.Pipeline(
-            self, "Pipeline", pipeline_name=f"{project_name}-{construct_id}", artifact_bucket=pipeline_artifact_bucket
+            self, "Pipeline", pipeline_name=pipeline_name, artifact_bucket=pipeline_artifact_bucket
         )
 
         # add a source stage
