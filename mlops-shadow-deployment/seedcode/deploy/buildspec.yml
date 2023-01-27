@@ -19,12 +19,14 @@ phases:
       - aws cloudformation package --template endpoint-config-template.yml --s3-bucket $ARTIFACT_BUCKET --output-template $EXPORT_TEMPLATE_NAME
 
       # Print the files to verify contents
-      - cat template-export.yml
       - cat $EXPORT_TEMPLATE_STAGING_CONFIG
+      # - cat $EXPORT_TEMPLATE_SHADOW_CONFIG
+      - cat shadow-config-export.json
       - cat $EXPORT_TEMPLATE_PROD_CONFIG
 
 artifacts:
   files:
     - $EXPORT_TEMPLATE_NAME
     - $EXPORT_TEMPLATE_STAGING_CONFIG
+    - shadow-config-export.json
     - $EXPORT_TEMPLATE_PROD_CONFIG

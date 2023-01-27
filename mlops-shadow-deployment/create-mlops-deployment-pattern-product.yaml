@@ -57,7 +57,7 @@ Parameters:
   
   SageMakerProjectsProjectNameParameter:
     Type: String
-    Default: mlops-deployment-patterns
+    Default: mlops-shadow-deployment
     Description: Project folder inside of the GitHub repo for this project
 
 Metadata: 
@@ -420,8 +420,8 @@ Resources:
         AWSDEFAULT___CODE_STAGING_BUCKET___ : !Ref BootstrapS3Bucket
         AWSDEFAULT___PROJECT_NAME___ : !Ref SageMakerProjectsProjectNameParameter
       Archives:
-        - ['mlops-deployment-patterns-build.zip','/seedcode/build']
-        - ['mlops-deployment-patterns-deploy.zip','/seedcode/deploy']
+        - ['mlops-shadow-deployment-build.zip','/seedcode/build']
+        - ['mlops-shadow-deployment-deploy.zip','/seedcode/deploy']
 
 
 Outputs:

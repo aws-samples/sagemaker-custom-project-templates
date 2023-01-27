@@ -1,7 +1,7 @@
 Description:
   This template is built and deployed by the infrastructure pipeline in various stages (staging/production) as required.
-  It specifies the resources that need to be created, like the SageMaker Endpoint. It uses a canary deployment in production
-  by default.
+  It specifies the resources that need to be created, like the SageMaker Endpoint. It can be extended to include resources like
+  AutoScalingPolicy, API Gateway, etc,. as required.
 Parameters:
   SageMakerProjectName:
     Type: String
@@ -15,15 +15,22 @@ Parameters:
   ModelPackageName:
     Type: String
     Description: The trained Model Package Name
+  CurrentProdModelPackageName:
+    Type: String
+    Description: Name of the current production model package (if exists)
   StageName:
     Type: String
     Description:
       The name for a project pipeline stage, such as Staging or Prod, for
       which resources are provisioned and deployed.
+  DeployShadow:
+    Type: String
+    Description:
+      Designates if there should be a shadow variant deployed.
   EndpointInstanceCount:
     Type: Number
-    Description: Number of instances to launch for the endpoint. # Note the minimum number of instances here is 3 to help support canary and linear deployment.
-    MinValue: 3
+    Description: Number of instances to launch for the endpoint.
+    MinValue: 1
   EndpointInstanceType:
     Type: String
     Description: The ML compute instance type for the endpoint.
@@ -39,95 +46,22 @@ Parameters:
     Description: Enable Data capture.
     Default: true
     Type: String
-    AllowedValues: [true, false]
-  
-  ### Advanced deployment section
-  DeploymentStrategy:
-    Description: Type of guardrail deployment to use.
-    Default: CANARY
-    Type: String
-    AllowedValues: [CANARY, LINEAR, ALL_AT_ONCE]
-
-  ### CANARY PARAMETERS (Only used if DeploymentStrategy = Canary)
-  CanaryPercentage:
-    Type: Number
-    Description: Percentage of traffic that will be sent to the canary model
-    Default: 10
-    MinValue: 0
-    MaxValue: 100
-  CanaryWaitIntervalInSeconds: 
-    Type: Number
-    Description: Seconds to wait before enabling traffic on the rest of fleet
-    Default: 300
-  CanaryTerminationWaitInSeconds: 
-    Type: Number
-    Description: Seconds to wait before terminating the old stack
-    Default: 120
-  CanaryMaximumExecutionTimeoutInSeconds: 
-    Type: Number
-    Description: Maximum timeout for deployment
-    Default: 1800
-    
-  ### LINEAR PARAMETERS (Only used if DeploymentStrategy = Linear)
-  LinearPercentage:
-    Type: Number
-    Description: Incremental percentage of traffic that will be sent to the linear model
-    Default: 33
-    MinValue: 0
-    MaxValue: 100
-  LinearWaitIntervalInSeconds: 
-    Type: Number
-    Description: Seconds to wait before enabling traffic on the rest of fleet
-    Default: 300
-  LinearTerminationWaitInSeconds: 
-    Type: Number
-    Description: Seconds to wait before terminating the old stack
-    Default: 120
-  LinearMaximumExecutionTimeoutInSeconds: 
-    Type: Number
-    Description: Maximum timeout for deployment
-    Default: 1800
+    AllowedValues: [true, false]   
 
 Conditions:
-  IsProduction: !Equals 
-    - !Ref StageName
-    - prod
-  CanarySelected: !Equals
-    - !Ref DeploymentStrategy
-    - CANARY
-  LinearSelected: !Equals
-    - !Ref DeploymentStrategy
-    - LINEAR
-  PerformCanaryDeployment: !And
-    - !Condition IsProduction
-    - !Condition CanarySelected
-  PerformLinearDeployment: !And
-    - !Condition IsProduction
-    - !Condition LinearSelected
+  IsShadow: !Equals
+    - !Ref DeployShadow
+    - true
 
 Resources:
-
-  Endpoint500Errors:
-    Type: AWS::CloudWatch::Alarm
-    Condition: IsProduction
+  CurrentModel:
+    Type: AWS::SageMaker::Model
     Properties:
-      AlarmName: !Sub ${SageMakerProjectName}-${StageName}-Endpoint500Errors
-      AlarmDescription: Alarm for any 500 errors on the endpoint
-      ActionsEnabled: False
-      MetricName: Invocation5XXErrors
-      Namespace: AWS/SageMaker
-      Statistic: Sum
-      Period: '60'
-      EvaluationPeriods: '1'
-      Threshold: '1'
-      ComparisonOperator: GreaterThanOrEqualToThreshold
-      Dimensions:
-      - Name: EndpointName
-        Value: !Sub ${SageMakerProjectName}-${StageName}
-      - Name: VariantName
-        Value: AllTraffic
-
-  Model:
+      Containers:
+         - ModelPackageName: !Ref CurrentProdModelPackageName
+      ExecutionRoleArn: !Ref ModelExecutionRoleArn
+  
+  ShadowModel:
     Type: AWS::SageMaker::Model
     Properties:
       Containers:
@@ -137,58 +71,51 @@ Resources:
   EndpointConfig:
     Type: AWS::SageMaker::EndpointConfig
     Properties:
-      ProductionVariants:
-        - InitialInstanceCount: !Ref EndpointInstanceCount
-          InitialVariantWeight: 1.0
-          InstanceType: !Ref EndpointInstanceType
-          ModelName: !GetAtt Model.ModelName
-          VariantName: AllTraffic
-      DataCaptureConfig:
-          EnableCapture: !Ref EnableDataCapture 
-          InitialSamplingPercentage: !Ref SamplingPercentage
-          DestinationS3Uri: !Ref DataCaptureUploadPath
-          CaptureOptions:
-            - CaptureMode: Input
-            - CaptureMode: Output
-          CaptureContentTypeHeader:
-            CsvContentTypes:
-              - "text/csv"
-  
+      !If
+      - IsShadow
+      - 
+        ProductionVariants:
+          - InitialInstanceCount: !Ref EndpointInstanceCount
+            InitialVariantWeight: 1.0
+            InstanceType: !Ref EndpointInstanceType
+            ModelName: !GetAtt CurrentModel.ModelName
+            VariantName: ProductionTraffic
+        DataCaptureConfig:
+            EnableCapture: !Ref EnableDataCapture 
+            InitialSamplingPercentage: !Ref SamplingPercentage
+            DestinationS3Uri: !Ref DataCaptureUploadPath
+            CaptureOptions:
+              - CaptureMode: Input
+              - CaptureMode: Output
+            CaptureContentTypeHeader:
+              CsvContentTypes:
+                - "text/csv"
+        ShadowProductionVariants:
+          - InitialInstanceCount: !Ref EndpointInstanceCount
+            InitialVariantWeight: 1.0
+            InstanceType: !Ref EndpointInstanceType
+            ModelName: !GetAtt ShadowModel.ModelName
+            VariantName: ShadowTraffic
+      - 
+        ProductionVariants:
+          - InitialInstanceCount: !Ref EndpointInstanceCount
+            InitialVariantWeight: 1.0
+            InstanceType: !Ref EndpointInstanceType
+            ModelName: !GetAtt ShadowModel.ModelName
+            VariantName: ProductionTraffic
+        DataCaptureConfig:
+            EnableCapture: !Ref EnableDataCapture 
+            InitialSamplingPercentage: !Ref SamplingPercentage
+            DestinationS3Uri: !Ref DataCaptureUploadPath
+            CaptureOptions:
+              - CaptureMode: Input
+              - CaptureMode: Output
+            CaptureContentTypeHeader:
+              CsvContentTypes:
+                - "text/csv"
+
   Endpoint:
     Type: AWS::SageMaker::Endpoint
     Properties:
       EndpointName: !Sub ${SageMakerProjectName}-${StageName}
       EndpointConfigName: !GetAtt EndpointConfig.EndpointConfigName
-      DeploymentConfig:
-        !If
-        - PerformLinearDeployment
-        - 
-          BlueGreenUpdatePolicy:
-            TrafficRoutingConfiguration:
-              Type: LINEAR
-              LinearStepSize:
-                Type: CAPACITY_PERCENT
-                Value: !Ref LinearPercentage
-              WaitIntervalInSeconds: !Ref LinearWaitIntervalInSeconds
-            TerminationWaitInSeconds: !Ref LinearTerminationWaitInSeconds
-            MaximumExecutionTimeoutInSeconds: !Ref LinearMaximumExecutionTimeoutInSeconds
-          AutoRollbackConfiguration:
-            Alarms:
-              - AlarmName: !Sub ${SageMakerProjectName}-${StageName}-Endpoint500Errors
-        - !If
-          - PerformCanaryDeployment
-          - 
-            BlueGreenUpdatePolicy:
-              TrafficRoutingConfiguration:
-                Type: CANARY
-                CanarySize:
-                  Type: CAPACITY_PERCENT
-                  Value: !Ref CanaryPercentage
-                WaitIntervalInSeconds: !Ref CanaryWaitIntervalInSeconds
-              TerminationWaitInSeconds: !Ref CanaryTerminationWaitInSeconds
-              MaximumExecutionTimeoutInSeconds: !Ref CanaryMaximumExecutionTimeoutInSeconds
-            AutoRollbackConfiguration:
-              Alarms:
-                - AlarmName: !Sub ${SageMakerProjectName}-${StageName}-Endpoint500Errors
-          - !Ref "AWS::NoValue"
-      
