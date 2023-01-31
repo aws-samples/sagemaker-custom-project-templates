@@ -58,7 +58,7 @@ Resources:
       Code:
         S3:
           Bucket: AWSDEFAULT___CODE_STAGING_BUCKET___
-          Key: AWSDEFAULT___PROJECT_NAME___/seedcode/mlops-deployment-patterns-build.zip
+          Key: AWSDEFAULT___PROJECT_NAME___/seedcode/mlops-shadow-deployment-build.zip
         BranchName: main
 
   SageMakerModelPipelineBuildProject:
@@ -202,7 +202,7 @@ Resources:
       Code:
         S3:
           Bucket: AWSDEFAULT___CODE_STAGING_BUCKET___
-          Key: AWSDEFAULT___PROJECT_NAME___/seedcode/mlops-deployment-patterns-deploy.zip
+          Key: AWSDEFAULT___PROJECT_NAME___/seedcode/mlops-shadow-deployment-deploy.zip
         BranchName: main
 
   ModelDeployBuildProject:
