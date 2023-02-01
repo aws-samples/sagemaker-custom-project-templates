@@ -131,7 +131,7 @@ Resources:
   BootstrapS3Bucket:
     Type: AWS::S3::Bucket
     Properties: 
-      BucketName: !Join ['-',['sm-project-mlopsdeploy-example', !Select [4, !Split ['-', !Select [2, !Split ['/', !Ref 'AWS::StackId']]]]]]
+      BucketName: !Join ['-',['sm-project-mlopsshadow-example', !Select [4, !Split ['-', !Select [2, !Split ['/', !Ref 'AWS::StackId']]]]]]
       PublicAccessBlockConfiguration:
         BlockPublicAcls: true
         BlockPublicPolicy: true
@@ -159,7 +159,7 @@ Resources:
   BootstrapLambdaExecutionRole:
     Type: AWS::IAM::Role
     Properties: 
-      RoleName: !Join ['-', ['SMCustomProject-MLOpsDeploy-Bootstrap-Role', !Select [4, !Split ['-', !Select [2, !Split ['/', !Ref 'AWS::StackId']]]]]]
+      RoleName: !Join ['-', ['SMCustomProject-mlopsshadow-Bootstrap-Role', !Select [4, !Split ['-', !Select [2, !Split ['/', !Ref 'AWS::StackId']]]]]]
       Description: Role used for launching the lambda function to bootstrap creation of the MLOps deployment patterns Endpoint SageMaker Custom Project Template example
       AssumeRolePolicyDocument:
         Version: '2012-10-17'
@@ -239,7 +239,7 @@ Resources:
                     - 'iam:PassRole'
                   Resource:
                     - !Join [ ':', [ 'arn', !Ref 'AWS::Partition', 'iam:', !Ref 'AWS::AccountId', 'role/service-role/AmazonSageMakerServiceCatalogProductsUseRole'] ]
-        RoleName: !Join ['-', ['SM-MLOpsDeploy-Example-Launch-Role', !Select [4, !Split ['-', !Select [2, !Split ['/', !Ref 'AWS::StackId']]]]]]
+        RoleName: !Join ['-', ['SM-mlopsshadow-Example-Launch-Role', !Select [4, !Split ['-', !Select [2, !Split ['/', !Ref 'AWS::StackId']]]]]]
 
   ServiceCatalogProductRoleLaunchContstraint:
     Type: AWS::ServiceCatalog::LaunchRoleConstraint
@@ -254,7 +254,7 @@ Resources:
   CustomBackedLambda:
     Type: AWS::Lambda::Function
     Properties:
-      FunctionName: !Join ['-', ['aws-samples-mlopsdeploy-lambda-bootstrapper', !Select [4, !Split ['-', !Select [2, !Split ['/', !Ref 'AWS::StackId']]]]]]
+      FunctionName: !Join ['-', ['aws-samples-mlopsshadow-lambda-bootstrapper', !Select [4, !Split ['-', !Select [2, !Split ['/', !Ref 'AWS::StackId']]]]]]
       Runtime: python3.9
       Role: !GetAtt BootstrapLambdaExecutionRole.Arn
       Handler: index.lambda_handler

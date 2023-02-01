@@ -10,11 +10,12 @@ logger = logging.getLogger(__name__)
 sm_client = boto3.client("sagemaker")
 
 
-def get_approved_package(model_package_group_name):
+def get_approved_package(model_package_group_name, sagemaker_project_name):
     """Gets the latest approved model package for a model package group.
 
     Args:
         model_package_group_name: The model package group name.
+        sagemaker_project_name: SageMaker project name 
 
     Returns:
         The SageMaker Model Package ARN.
@@ -54,11 +55,10 @@ def get_approved_package(model_package_group_name):
         logger.info(f"Identified the latest approved model package: {model_package_arn}")
         
         # find the current prod model to use for shadow testing
-        project_name = 'shadow'
-        prod_endpoint_name = f'{project_name}-prod'
+        prod_endpoint_name = f'{sagemaker_project_name}-prod'
         if prod_endpoint_name in [i['EndpointName'] for i in sm_client.list_endpoints()['Endpoints']]:
             logger.info('production endpoint exists')
-            conf = sm_client.describe_endpoint(EndpointName=f'{project_name}-prod')['EndpointConfigName']
+            conf = sm_client.describe_endpoint(EndpointName=prod_endpoint_name)['EndpointConfigName']
             model = sm_client.describe_endpoint_config(EndpointConfigName=conf)['ProductionVariants'][0]['ModelName']
             current_prod_model = sm_client.describe_model(ModelName=model)['Containers'][0]['ModelPackageName']
         else:
@@ -173,7 +173,7 @@ if __name__ == "__main__":
     logging.basicConfig(format=log_format, level=args.log_level)
 
     # Get the latest approved package
-    model_package_arn, current_prod_model = get_approved_package(args.model_package_group_name)
+    model_package_arn, current_prod_model = get_approved_package(args.model_package_group_name, args.sagemaker_project_name)
 
     # Write the staging config
     with open(args.import_staging_config, "r") as f:
