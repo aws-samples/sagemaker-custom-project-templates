@@ -31,7 +31,7 @@ Resources:
         BlockPublicPolicy: True
         IgnorePublicAcls: True
         RestrictPublicBuckets: True
-      BucketName: !Sub 'sagemaker-${SageMakerProjectName}-artifacts'
+      BucketName: !Sub 'sagemaker-${SageMakerProjectName}-${SageMakerProjectId}-artifacts'
       BucketEncryption:
         ServerSideEncryptionConfiguration: 
         - ServerSideEncryptionByDefault:
@@ -164,7 +164,7 @@ Resources:
           - SageMaker Model Package State Change
         detail:
           ModelPackageGroupName:
-            - !Sub '${SageMakerProjectName}'
+            - !Sub '${SageMakerProjectName}-${SageMakerProjectId}'
       State: ENABLED
       Targets:
         - Arn: !Join 
@@ -242,7 +242,7 @@ Resources:
           - Name: MODEL_EXECUTION_ROLE_ARN
             Value: !Ref UseRoleArn
           - Name: SOURCE_MODEL_PACKAGE_GROUP_NAME
-            Value: !Sub '${SageMakerProjectName}'
+            Value: !Sub '${SageMakerProjectName}-${SageMakerProjectId}'
           - Name: AWS_REGION
             Value: !Ref 'AWS::Region'
           - Name: EXPORT_TEMPLATE_NAME
