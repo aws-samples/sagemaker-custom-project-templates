@@ -44,7 +44,7 @@ class SSMConstruct(Construct):
             self,
             "DevRegionParameter",
             # parameter_name="/mlops/dev/account_id",
-            parameter_name=f"/mlops/{project_name}/dev/account_id",
+            parameter_name=f"/mlops/{project_name}/dev/region",
             string_value=Aws.REGION,
             simple_name=False,
         )
