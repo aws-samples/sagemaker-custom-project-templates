@@ -45,7 +45,7 @@ class MLOpsStack(Stack):
     DESCRIPTION: str = "This template includes a model building pipeline that includes a workflow to pre-process, train, evaluate and register a model. The deploy pipeline creates a dev,preprod and production endpoint. The target DEV/PREPROD/PROD accounts are predefined in the template."
     TEMPLATE_NAME: str = "Basic MLOps template for real-time deployment"
 
-    def __init__(self, scope: Construct, construct_id: str, config_set: dict, **kwargs) -> None:
+    def __init__(self, scope: Construct, construct_id: str, preprod_account: int, prod_account: int, **kwargs) -> None:
         super().__init__(scope, construct_id, **kwargs)
 
         # Define required parmeters
@@ -102,8 +102,8 @@ class MLOpsStack(Stack):
                     "*",
                 ],
                 principals=[
-                    iam.ArnPrincipal(f"arn:aws:iam::{config_set['PREPROD_ACCOUNT']}:root"),
-                    iam.ArnPrincipal(f"arn:aws:iam::{config_set['PROD_ACCOUNT']}:root"),
+                    iam.ArnPrincipal(f"arn:aws:iam::{preprod_account}:root"),
+                    iam.ArnPrincipal(f"arn:aws:iam::{prod_account}:root"),
                 ],
             )
         )
@@ -157,8 +157,8 @@ class MLOpsStack(Stack):
                     s3_artifact.bucket_arn,
                 ],
                 principals=[
-                    iam.ArnPrincipal(f"arn:aws:iam::{config_set['PREPROD_ACCOUNT']}:root"),
-                    iam.ArnPrincipal(f"arn:aws:iam::{config_set['PROD_ACCOUNT']}:root"),
+                    iam.ArnPrincipal(f"arn:aws:iam::{preprod_account}:root"),
+                    iam.ArnPrincipal(f"arn:aws:iam::{prod_account}:root"),
                 ],
             )
         )
@@ -177,8 +177,8 @@ class MLOpsStack(Stack):
                         f"arn:aws:sagemaker:{Aws.REGION}:{Aws.ACCOUNT_ID}:model-package-group/{model_package_group_name}"
                     ],
                     principals=[
-                        iam.ArnPrincipal(f"arn:aws:iam::{config_set['PREPROD_ACCOUNT']}:root"),
-                        iam.ArnPrincipal(f"arn:aws:iam::{config_set['PROD_ACCOUNT']}:root"),
+                        iam.ArnPrincipal(f"arn:aws:iam::{preprod_account}:root"),
+                        iam.ArnPrincipal(f"arn:aws:iam::{prod_account}:root"),
                     ],
                 ),
                 iam.PolicyStatement(
@@ -193,8 +193,8 @@ class MLOpsStack(Stack):
                         f"arn:aws:sagemaker:{Aws.REGION}:{Aws.ACCOUNT_ID}:model-package/{model_package_group_name}/*"
                     ],
                     principals=[
-                        iam.ArnPrincipal(f"arn:aws:iam::{config_set['PREPROD_ACCOUNT']}:root"),
-                        iam.ArnPrincipal(f"arn:aws:iam::{config_set['PROD_ACCOUNT']}:root"),
+                        iam.ArnPrincipal(f"arn:aws:iam::{preprod_account}:root"),
+                        iam.ArnPrincipal(f"arn:aws:iam::{prod_account}:root"),
                     ],
                 ),
             ]
@@ -236,7 +236,7 @@ class MLOpsStack(Stack):
         pipeline_artifact_bucket = s3.Bucket(
             self,
             "PipelineBucket",
-            bucket_name=f"codepipeline-{project_name}-{Aws.ACCOUNT_ID}", # Bucket name has a limit of 63 characters
+            bucket_name=f"pipeline-{project_name}-{Aws.ACCOUNT_ID}", # Bucket name has a limit of 63 characters
             encryption_key=kms_key,
             versioned=True,
             removal_policy=aws_cdk.RemovalPolicy.DESTROY,
@@ -252,7 +252,6 @@ class MLOpsStack(Stack):
             model_package_group_name,
             seed_bucket,
             build_app_key,
-            config_set=config_set,
         )
 
         DeployPipelineConstruct(
@@ -264,6 +263,7 @@ class MLOpsStack(Stack):
             model_package_group_name,
             seed_bucket,
             deploy_app_key,
+            preprod_account,
+            prod_account,
             DEFAULT_DEPLOYMENT_REGION,
-            config_set=config_set,
         )

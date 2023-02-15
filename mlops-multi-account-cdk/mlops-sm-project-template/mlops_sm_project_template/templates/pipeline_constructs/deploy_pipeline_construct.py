@@ -42,8 +42,9 @@ class DeployPipelineConstruct(Construct):
         model_package_group_name: str,
         repo_s3_bucket_name: str,
         repo_s3_object_key: str,
+        preprod_account: int,
+        prod_account: int,
         deployment_region: str,
-        config_set: dict,
         **kwargs,
     ) -> None:
         super().__init__(scope, construct_id, **kwargs)
@@ -283,12 +284,12 @@ class DeployPipelineConstruct(Construct):
                     role=iam.Role.from_role_arn(
                         self,
                         "PreProdActionRole",
-                        f"arn:{Aws.PARTITION}:iam::{config_set['PREPROD_ACCOUNT']}:role/cdk-hnb659fds-deploy-role-{config_set['PREPROD_ACCOUNT']}-{deployment_region}",
+                        f"arn:{Aws.PARTITION}:iam::{preprod_account}:role/cdk-hnb659fds-deploy-role-{preprod_account}-{deployment_region}",
                     ),
                     deployment_role=iam.Role.from_role_arn(
                         self,
                         "PreProdDeploymentRole",
-                        f"arn:{Aws.PARTITION}:iam::{config_set['PREPROD_ACCOUNT']}:role/cdk-hnb659fds-cfn-exec-role-{config_set['PREPROD_ACCOUNT']}-{deployment_region}",
+                        f"arn:{Aws.PARTITION}:iam::{preprod_account}:role/cdk-hnb659fds-cfn-exec-role-{preprod_account}-{deployment_region}",
                     ),
                     cfn_capabilities=[
                         CfnCapabilities.AUTO_EXPAND,
@@ -316,12 +317,12 @@ class DeployPipelineConstruct(Construct):
                     role=iam.Role.from_role_arn(
                         self,
                         "ProdActionRole",
-                        f"arn:{Aws.PARTITION}:iam::{config_set['PROD_ACCOUNT']}:role/cdk-hnb659fds-deploy-role-{config_set['PROD_ACCOUNT']}-{deployment_region}",
+                        f"arn:{Aws.PARTITION}:iam::{prod_account}:role/cdk-hnb659fds-deploy-role-{prod_account}-{deployment_region}",
                     ),
                     deployment_role=iam.Role.from_role_arn(
                         self,
                         "ProdDeploymentRole",
-                        f"arn:{Aws.PARTITION}:iam::{config_set['PROD_ACCOUNT']}:role/cdk-hnb659fds-cfn-exec-role-{config_set['PROD_ACCOUNT']}-{deployment_region}",
+                        f"arn:{Aws.PARTITION}:iam::{prod_account}:role/cdk-hnb659fds-cfn-exec-role-{prod_account}-{deployment_region}",
                     ),
                     cfn_capabilities=[
                         CfnCapabilities.AUTO_EXPAND,

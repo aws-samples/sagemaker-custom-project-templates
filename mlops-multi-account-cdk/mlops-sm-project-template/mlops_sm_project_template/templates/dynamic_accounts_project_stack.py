@@ -136,7 +136,7 @@ class MLOpsStack(Stack):
         s3_artifact = s3.Bucket(
             self,
             "S3Artifact",
-            bucket_name=f"mlops-{project_name}-{project_id}-{Aws.REGION}",
+            bucket_name=f"mlops-{project_name}-{Aws.ACCOUNT_ID}",
             encryption_key=kms_key,
             versioned=True,
             removal_policy=aws_cdk.RemovalPolicy.DESTROY,
@@ -261,7 +261,7 @@ class MLOpsStack(Stack):
         pipeline_artifact_bucket = s3.Bucket(
             self,
             "PipelineBucket",
-            bucket_name=f"pipeline-{project_id}-{Aws.REGION}",
+            bucket_name=f"pipeline-{project_name}-{Aws.ACCOUNT_ID}",
             encryption_key=kms_key,
             versioned=True,
             removal_policy=aws_cdk.RemovalPolicy.DESTROY,

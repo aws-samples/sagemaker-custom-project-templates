@@ -40,7 +40,6 @@ class BuildPipelineConstruct(Construct):
         model_package_group_name: str,
         repo_s3_bucket_name: str,
         repo_s3_object_key: str,
-        config_set: dict,
         **kwargs,
     ) -> None:
         super().__init__(scope, construct_id, **kwargs)
