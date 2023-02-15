@@ -37,8 +37,6 @@ import aws_cdk
 
 from constructs import Construct
 
-from mlops_sm_project_template.ssm_construct import SSMConstruct
-
 # Get environment variables
 LOG_LEVEL = os.getenv("LOG_LEVEL", "INFO").upper()
 
@@ -328,7 +326,6 @@ class ServiceCatalogStack(Stack):
             deploy_app_asset.s3_object_key,
         )
 
-        SSMConstruct(self, "MLOpsSSM", config_set)
 
     def deploy_all_products(
         self,
@@ -366,6 +363,7 @@ class ServiceCatalogStack(Stack):
                         f"{template_py_file}-{stage_name}",
                         preprod_account=config_set["PREPROD_ACCOUNT"],
                         prod_account=config_set["PROD_ACCOUNT"],
+                        deployment_region=config_set["DEPLOYMENT_REGION"],
                         **kwargs,
                     )
 
