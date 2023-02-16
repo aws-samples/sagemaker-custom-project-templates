@@ -172,7 +172,9 @@ class ServiceCatalogStack(Stack):
 
         products_launch_role.add_to_policy(
             iam.PolicyStatement(
-                actions=["ssm:PutParameter"],
+                actions=[
+                    "ssm:*",
+                ],
                 effect=iam.Effect.ALLOW,
                 resources=[
                     f"arn:aws:ssm:*:{Aws.ACCOUNT_ID}:parameter/mlops/*",
