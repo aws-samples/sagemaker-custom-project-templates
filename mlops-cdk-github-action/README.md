@@ -43,7 +43,6 @@ This repository contains the resources that are required to deploy the MLOps Sag
 ├── requirements-dev.txt
 ├── requirements.txt                          <--- cdk packages used in the stacks (must be installed)
 ├── scripts                                   <--- shell scripts to automate part of the deployments
-│   ├── cdk-account-setup.sh
 │   └── install-prerequisites-brew.sh
 └── seed_code                                 <--- code samples to be used to setup the build and deploy repositories of the sagemaker project
     ├── build_app
@@ -65,13 +64,95 @@ Register the SageMaker Project Template through GitHub Action Pipeline CI/CD ( P
 
 Follow below steps:
 
-1. Create AWS GitHub OpenId connect IAM role, follow the below process : https://docs.github.com/en/actions/deployment/security-hardening-your-deployments/configuring-openid-connect-in-amazon-web-services
+1. Create a GitHub repository with the content of this folder.
+2. Make sure you have the SageMaker domain ready with a user profile, if you don’t have a SageMaker Domain created yet. Follow the steps to create it: [Create SageMaker Domain](https://docs.aws.amazon.com/sagemaker/latest/dg/onboard-quick-start.html)
+3. Once you have the domain created. Navigate to Domain, Click on your Domain, Click on User Profile, on the right-hand side pane copy the “Execution Role”.
+![screenshot1](diagrams/domain_execution_role.png)
+4. Ensure that the above identified Execution role has the following SageMaker project IAM permissions:
+    ```commandline
+    {
+    "Version": "2012-10-17",
+    "Statement": [
+        {
+        "Sid": "VisualEditor0",
+        "Effect": "Allow",
+        "Action": [
+            "sagemaker:DescribeProject",
+            "sagemaker:CreateProject",
+            "sagemaker:DeleteProject",
+            "sagemaker:ListProjects",
+            "sagemaker:UpdateProject "
+        ],
+            "Resource": "*"
+        }
+       ]
+    }
+    ```
+5. Go to AWS Systems Manager, then go to the Parameter Store, and create a String Parameter of Data Type text named “/sagemaker/execution/role/” and provide the value as the SageMaker Execution Role ARN.
 
-2. Create following GitHub secrets : AWS_ACCOUNT_OPENID_IAM_ROLE, AWS_REGION, AWS_ACCOUNT
+![screenshot2](diagrams/sagemaker_parameter.png)
 
-3. GitHub Action deployment workflow CI/CD pipeline (.github/workflows/sm_template_register_service_catalog.yml) will now handle all deployments.
+6. Create an IAM OpenID Connect (OIDC) identity provider. Follow the steps outlined in [AWS Documentation](https://docs.aws.amazon.com/IAM/latest/UserGuide/id_roles_providers_create_oidc.html#manage-oidc-provider-console) to create an IAM OIDC identity provider. In the Provider URL field enter `https://token.actions.githubusercontent.com`, and click Get Thumbprint. In the Audience filed, enter `sts.amazonaws.com`
 
+![screenshot3](diagrams/github_identity_provider.png)
 
+7. Create an IAM role using OIDC identify provider. OIDC allows your GitHub Actions workflows to access resources in Amazon Web Services (AWS), without needing to store the AWS credentials as long-lived GitHub secrets. [follow more](https://docs.github.com/en/actions/deployment/security-hardening-your-deployments/configuring-openid-connect-in-amazon-web-services) 
+
+![screenshot4](diagrams/github_iam_role_create.png)
+
+Assign below permissions to this role (_Note: For setup we are providing broad permission to those services, later you need to trim down the permissions to only required one_)
+```
+    AmazonEC2ContainerRegistryFullAccess
+    AmazonS3FullAccess
+    AWSServiceCatalogAdminFullAccess
+    AWSCloudFormationFullAccess
+    IAMFullAccessAmazon
+    SageMakerFullAccess
+```
+Create the role and post creation, open the newly created role and update the Trust Relationship to this(update aws account and GitHub repo details)
+    
+```
+{
+        "Version": "2012-10-17",
+        "Statement": [
+            {
+                "Effect": "Allow",
+                "Principal": {
+                    "Federated": "arn:aws:iam::<your_aws_account_id>:oidc-provider/token.actions.githubusercontent.com"
+                },
+                "Action": "sts:AssumeRoleWithWebIdentity",
+                "Condition": {
+                    "StringEquals": {
+                        "token.actions.githubusercontent.com:aud": "sts.amazonaws.com"
+                    },
+                    "StringLike": {
+                        "token.actions.githubusercontent.com:sub": "repo:<github_user_name_casesensetive>/<newly_created_github_repo_name>:*"
+                    }
+                }
+            }
+        ]
+    }
+```
+   
+8. Create GitHub secrets: If you haven't yet cloned the repository mentioned in this blog, now is the time to do so. GitHub Secrets are encrypted variables that can be created within your GitHub organization or repository. These secrets can then be utilized in your GitHub Actions workflows. In order to run your GitHub Actions pipelines successfully, you must create the following three required secrets in your cloned repository.
+       ```
+       AWS_ACCOUNT_OPENID_IAM_ROLE - The ARN of the IAM role created in the previous step.
+       AWS_REGION - The AWS region where you will be deploying the SageMaker Project Template.
+       AWS_ACCOUNT - The AWS account where you will be deploying the SageMaker Project Template
+      ```
+   
+9. In the cloned repository, you will see the "Sagemaker Project Template Registration in Service Catalog" workflow in your GitHub Actions. Run this workflow to deploy the SageMaker organizational template to AWS Service Catalog.
+
+![screenshot5](diagrams/github_action_trigger.png)
+
+10. When the above GitHub workflow completes successfully, you will be able to view the custom SageMaker Project template from your SageMaker Studio, as depicted in the following screenshot.
+
+![screenshot6](diagrams/sagemaker_custom_project.png)
+
+11. Follow the project creation, and on the project creation details page provide project name (lower case only), your GitHub username (case-sensitive) and GitHub [personal access token](https://docs.github.com/en/enterprise-server@3.4/authentication/keeping-your-account-and-data-secure/creating-a-personal-access-token). 
+_Make sure while creating personal access token has minimum those permissions:_   **repo, workflow, delete_repo**
+
+![screenshot7](diagrams/project_create_page.png)
 
 
 ### Manual Deployment of Service Catalog Stack
@@ -99,6 +180,35 @@ Register the SageMaker Project Template from local development.
     aws_secret_access_key = YOUR_SECRET_ACCESS_KEY
     aws_session_token = YOUR_SESSION_TOKEN  # this token is generated if you are using an IAM Role to assume into the account
     ```
+3. Make sure you have the SageMaker domain ready with a user profile, if you don’t have a SageMaker Domain created yet. Follow the steps to create it: [Create SageMaker Domain](https://docs.aws.amazon.com/sagemaker/latest/dg/onboard-quick-start.html)
+4. Once you have the domain created. Navigate to Domain, Click on your Domain, Click on User Profile, on the right-hand side pane copy the “Execution Role”.
+
+![screenshot1](diagrams/domain_execution_role.png)
+
+4. Ensure that the above identified Execution role has the following SageMaker project IAM permissions:
+    ```
+    {
+    "Version": "2012-10-17",
+    "Statement": [
+        {
+        "Sid": "VisualEditor0",
+        "Effect": "Allow",
+        "Action": [
+            "sagemaker:DescribeProject",
+            "sagemaker:CreateProject",
+            "sagemaker:DeleteProject",
+            "sagemaker:ListProjects",
+            "sagemaker:UpdateProject "
+        ],
+            "Resource": "*"
+        }
+       ]
+    }
+    ```
+5. Go to AWS Systems Manager, then go to the Parameter Store, and create a String Parameter of Data Type text named “/sagemaker/execution/role/” and provide the value as the SageMaker Execution Role ARN.
+
+![screenshot2](diagrams/sagemaker_parameter.png)
+
 
 #### Project Build and Deploy
 
