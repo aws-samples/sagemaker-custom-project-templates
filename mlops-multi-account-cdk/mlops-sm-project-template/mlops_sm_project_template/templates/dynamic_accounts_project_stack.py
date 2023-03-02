@@ -31,6 +31,8 @@ import aws_cdk
 
 from constructs import Construct
 
+from mlops_sm_project_template.templates.ssm_construct import SSMConstruct
+
 from mlops_sm_project_template.templates.pipeline_constructs.build_pipeline_construct import (
     BuildPipelineConstruct,
 )
@@ -95,6 +97,15 @@ class MLOpsStack(Stack):
         Tags.of(self).add("sagemaker:project-id", project_id)
         Tags.of(self).add("sagemaker:project-name", project_name)
 
+        SSMConstruct(
+            self,
+            "MLOpsSSM",
+            project_name=project_name,
+            preprod_account=preprod_account,
+            prod_account=prod_account,
+            deployment_region=deployment_region,
+        )
+
         # create kms key to be used by the assets bucket
         kms_key = kms.Key(
             self,
@@ -136,7 +147,7 @@ class MLOpsStack(Stack):
         s3_artifact = s3.Bucket(
             self,
             "S3Artifact",
-            bucket_name=f"mlops-{project_name}-{project_id}-{Aws.REGION}",
+            bucket_name=f"mlops-{project_name}-{Aws.ACCOUNT_ID}",
             encryption_key=kms_key,
             versioned=True,
             removal_policy=aws_cdk.RemovalPolicy.DESTROY,
@@ -261,7 +272,7 @@ class MLOpsStack(Stack):
         pipeline_artifact_bucket = s3.Bucket(
             self,
             "PipelineBucket",
-            bucket_name=f"pipeline-{project_id}-{Aws.REGION}",
+            bucket_name=f"pipeline-{project_name}-{Aws.ACCOUNT_ID}",
             encryption_key=kms_key,
             versioned=True,
             removal_policy=aws_cdk.RemovalPolicy.DESTROY,

@@ -29,7 +29,6 @@ from constructs import Construct
 from mlops_sm_project_template.config.constants import (
     APP_PREFIX,
     CODE_COMMIT_REPO_NAME,
-    DEV_ACCOUNT,
     DEFAULT_DEPLOYMENT_REGION,
     PIPELINE_BRANCH,
 )
@@ -44,11 +43,11 @@ class CoreStage(Stage):
     - ServiceCatalogStack: handles the creation of service catalog related resources and deploy product for sagemaker projects
     """
 
-    def __init__(self, scope: Construct, id: str, **kwargs) -> None:
+    def __init__(self, scope: Construct, id: str, config_set: dict, **kwargs) -> None:
 
         super().__init__(scope, id, **kwargs)
 
-        service_catalog_stack = ServiceCatalogStack(self, "MLOpsServiceCatalog", **kwargs)
+        service_catalog_stack = ServiceCatalogStack(self, "MLOpsServiceCatalog", config_set=config_set, **kwargs)
 
 
 class PipelineStack(Stack):
@@ -61,6 +60,7 @@ class PipelineStack(Stack):
         self,
         scope: Construct,
         id: str,
+        config_set: dict,
         # cloud_assembly_artifact: codepipeline.Artifact,
         **kwargs,
     ):
@@ -80,7 +80,7 @@ class PipelineStack(Stack):
             "Pipeline",
             self_mutation=True,
             cross_account_keys=True,
-            pipeline_name=f"{APP_PREFIX}-service-catalog-{PIPELINE_BRANCH}",
+            pipeline_name=f"{APP_PREFIX}-service-catalog-{PIPELINE_BRANCH}-{config_set['SET_NAME']}",
             docker_enabled_for_synth=True,
             docker_enabled_for_self_mutation=True,
             synth=pipelines.ShellStep(  # build stage in code pipeline
@@ -146,6 +146,7 @@ class PipelineStack(Stack):
             CoreStage(
                 self,
                 "DEV",
-                env=Environment(account=DEV_ACCOUNT, region=DEFAULT_DEPLOYMENT_REGION),
+                config_set=config_set,
+                env=Environment(account=config_set["DEV_ACCOUNT"], region=DEFAULT_DEPLOYMENT_REGION),
             )
         )

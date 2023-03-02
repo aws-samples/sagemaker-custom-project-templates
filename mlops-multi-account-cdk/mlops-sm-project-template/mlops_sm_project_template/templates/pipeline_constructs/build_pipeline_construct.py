@@ -192,7 +192,7 @@ class BuildPipelineConstruct(Construct):
         source_artifact = codepipeline.Artifact(artifact_name="GitSource")
 
         build_pipeline = codepipeline.Pipeline(
-            self, "Pipeline", pipeline_name=f"{project_name}-{construct_id}", artifact_bucket=pipeline_artifact_bucket
+            self, "Pipeline", pipeline_name=pipeline_name, artifact_bucket=pipeline_artifact_bucket
         )
 
         # add a source stage
