@@ -302,4 +302,5 @@ class MLOpsStack(Stack):
             preprod_account,
             prod_account,
             deployment_region,
+            create_model_event_rule=True,
         )

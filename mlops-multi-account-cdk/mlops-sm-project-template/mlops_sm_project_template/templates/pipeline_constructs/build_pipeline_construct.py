@@ -163,7 +163,7 @@ class BuildPipelineConstruct(Construct):
             self,
             "SMPipelineBuild",
             project_name=f"{project_name}-{construct_id}",
-            role=codebuild_role,  # figure out what actually this role would need
+            role=codebuild_role,
             build_spec=codebuild.BuildSpec.from_source_filename("buildspec.yml"),
             environment=codebuild.BuildEnvironment(
                 build_image=codebuild.LinuxBuildImage.STANDARD_5_0,

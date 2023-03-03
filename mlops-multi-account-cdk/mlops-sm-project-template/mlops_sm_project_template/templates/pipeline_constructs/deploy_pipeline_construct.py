@@ -45,6 +45,7 @@ class DeployPipelineConstruct(Construct):
         preprod_account: int,
         prod_account: int,
         deployment_region: str,
+        create_model_event_rule: bool,
         **kwargs,
     ) -> None:
         super().__init__(scope, construct_id, **kwargs)
@@ -120,21 +121,22 @@ class DeployPipelineConstruct(Construct):
             self,
             "CDKSynthBuild",
             role=cdk_synth_build_role,
-            build_spec=codebuild.BuildSpec.from_object(
-                {
-                    "version": "0.2",
-                    "phases": {
-                        "build": {
-                            "commands": [
-                                "npm install -g aws-cdk",
-                                "pip install -r requirements.txt",
-                                "cdk synth --no-lookups",
-                            ]
-                        }
-                    },
-                    "artifacts": {"base-directory": "cdk.out", "files": "**/*"},
-                }
-            ),
+            build_spec=codebuild.BuildSpec.from_source_filename("buildspec.yml"),
+            # build_spec=codebuild.BuildSpec.from_object(
+            #     {
+            #         "version": "0.2",
+            #         "phases": {
+            #             "build": {
+            #                 "commands": [
+            #                     "npm install -g aws-cdk",
+            #                     "pip install -r requirements.txt",
+            #                     "cdk synth --no-lookups",
+            #                 ]
+            #             }
+            #         },
+            #         "artifacts": {"base-directory": "cdk.out", "files": "**/*"},
+            #     }
+            # ),
             environment=codebuild.BuildEnvironment(
                 build_image=codebuild.LinuxBuildImage.STANDARD_5_0,
                 environment_variables={
@@ -332,17 +334,18 @@ class DeployPipelineConstruct(Construct):
             ],
         )
 
-        # CloudWatch rule to trigger model pipeline when a status change event happens to the model package group
-        model_event_rule = events.Rule(
-            self,
-            "ModelEventRule",
-            event_pattern=events.EventPattern(
-                source=["aws.sagemaker"],
-                detail_type=["SageMaker Model Package State Change"],
-                detail={
-                    "ModelPackageGroupName": [model_package_group_name],
-                    "ModelApprovalStatus": ["Approved", "Rejected"],
-                },
-            ),
-            targets=[targets.CodePipeline(deploy_code_pipeline)],
-        )
+        if create_model_event_rule:
+            # CloudWatch rule to trigger model pipeline when a status change event happens to the model package group
+            model_event_rule = events.Rule(
+                self,
+                "ModelEventRule",
+                event_pattern=events.EventPattern(
+                    source=["aws.sagemaker"],
+                    detail_type=["SageMaker Model Package State Change"],
+                    detail={
+                        "ModelPackageGroupName": [model_package_group_name],
+                        "ModelApprovalStatus": ["Approved", "Rejected"],
+                    },
+                ),
+                targets=[targets.CodePipeline(deploy_code_pipeline)],
+            )
