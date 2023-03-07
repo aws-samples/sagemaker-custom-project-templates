@@ -217,6 +217,7 @@ Resources:
                 - servicecatalog.amazonaws.com
             Action: 'sts:AssumeRole'
       ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/AmazonS3ReadOnlyAccess
         - arn:aws:iam::aws:policy/AmazonSageMakerAdmin-ServiceCatalogProductsServiceRolePolicy
         - arn:aws:iam::aws:policy/AmazonSageMakerFullAccess
 
