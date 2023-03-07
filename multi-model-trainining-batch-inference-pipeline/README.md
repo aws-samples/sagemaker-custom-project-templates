@@ -59,5 +59,3 @@ Part 2: Deploy the Project inside of SageMaker Studio
     ![](images/batch-create-project-2.png)
 
 8. After a few minutes, your example project should be deployed.
-
-9. Follow the [README](./seedcode/README.md) file for using the code example
