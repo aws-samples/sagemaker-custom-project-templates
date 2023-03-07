@@ -1,0 +1,7 @@
+{
+  "Parameters": {
+    "StageName": "prod",
+    "InputPath": "s3://sagemaker-project-p-ypcnnfv6l5mn/e2e-base/data/input",
+    "OutputPath": "s3://sagemaker-project-p-ypcnnfv6l5mn/e2e-base/data/output"
+  }
+}

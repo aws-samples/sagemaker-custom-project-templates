@@ -1,0 +1,18 @@
+version: 0.2
+
+phases:
+  install:
+    runtime-versions:
+      python: 3.8
+  build:
+    commands:
+      # Get the model created in the deployment CFN
+      - export MODEL_NAME=`aws cloudformation describe-stacks --stack-name sagemaker-${SAGEMAKER_PROJECT_NAME}-${SAGEMAKER_PROJECT_ID}-deploy-staging --region ${AWS_REGION} --query "Stacks[0].Outputs[0].OutputValue" | tr -d '"'`
+      # Call the test python code
+      - python test/test.py --import-build-config $CODEBUILD_SRC_DIR_BuildArtifact/staging-config-export.json --export-test-results $EXPORT_TEST_RESULTS
+      # Show the test results file
+      - cat $EXPORT_TEST_RESULTS
+
+artifacts:
+  files:
+    - $EXPORT_TEST_RESULTS

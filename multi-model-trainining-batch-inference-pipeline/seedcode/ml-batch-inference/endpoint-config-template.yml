@@ -1,0 +1,67 @@
+Description:
+  This template is built and deployed by the infrastructure pipeline in various stages (staging/production) as required.
+  It specifies the resources that need to be created. In this case, an EventBridge Rule, a SageMaker Pipelines and a
+  SageMake Model.
+Parameters:
+  SageMakerProjectName:
+    Type: String
+    Description: Name of the project (lower case)
+    MinLength: 1
+    MaxLength: 32
+    AllowedPattern: ^[a-z](-*[a-z0-9])*
+  SageMakerProjectId:
+    Type: String
+    Description: Id of the project
+    MinLength: 1
+    MaxLength: 32
+  ModelExecutionRoleArn:
+    Type: String
+    Description: Execution role used for deploying the model.
+  InputPath:
+    Type: String
+    Description: The S3 path where data is stored on which to run inference.
+  OutputPath:
+    Type: String
+    Description: The S3 path where predictions will be output.
+  ScheduleExpressionforPipeline:
+    Type: String
+    Description: The rate of execution of your pipeline (default 30 minutes)
+    Default: 30 minutes
+  StageName:
+    Type: String
+    Description:
+      The name for a project pipeline stage, such as dev or prod, for
+      which resources are provisioned and deployed.
+  PipelineDefinitionBody1:
+    Type: String
+    Description:
+      The body of the SageMaker Pipeline.
+Resources:
+  BatchPipeline1:
+    Type: AWS::SageMaker::Pipeline
+    Properties: 
+      PipelineDescription: The SM Pipeline that executes the batch inference for model 1
+      PipelineName: !Sub ${SageMakerProjectName}-${StageName}-BatchPipeline-1
+      RoleArn: !Ref ModelExecutionRoleArn
+      PipelineDefinition: 
+        PipelineDefinitionBody: !Ref PipelineDefinitionBody1
+      Tags:
+        - Key: sagemaker:project-name
+          Value: !Ref SageMakerProjectName
+        - Key: sagemaker:project-id
+          Value: !Ref SageMakerProjectId
+  EventRule1:
+    Type: AWS::Events::Rule
+    Properties:
+      Name: !Sub sagemaker-${SageMakerProjectName}-${StageName}-SchedExecRule1
+      ScheduleExpression: !Sub rate(${ScheduleExpressionforPipeline})
+      Targets:
+        - Arn: !Sub arn:aws:sagemaker:${AWS::Region}:${AWS::AccountId}:pipeline/${SageMakerProjectName}-${StageName}-BatchPipeline-1
+          Id: MyBatchInferenceTarget1
+          RoleArn: !Ref ModelExecutionRoleArn
+          SageMakerPipelineParameters:
+            PipelineParameterList:
+              - Name: InputPath
+                Value: !Ref InputPath
+              - Name: OutputPath
+                Value: !Ref OutputPath
