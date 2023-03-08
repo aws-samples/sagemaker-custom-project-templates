@@ -1,0 +1,12 @@
+aws-cdk-lib
+awscli
+boto3
+constructs
+
+jupyter
+pre-commit
+yamldataclassconfig
+
+aws_cdk.aws_lambda_python_alpha
+
+python-dotenv
