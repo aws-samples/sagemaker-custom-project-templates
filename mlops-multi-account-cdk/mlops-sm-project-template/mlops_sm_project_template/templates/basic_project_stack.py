@@ -267,6 +267,7 @@ class MLOpsStack(Stack):
             "deploy",
             project_name,
             project_id,
+            s3_artifact,
             pipeline_artifact_bucket,
             model_package_group_name,
             seed_bucket,

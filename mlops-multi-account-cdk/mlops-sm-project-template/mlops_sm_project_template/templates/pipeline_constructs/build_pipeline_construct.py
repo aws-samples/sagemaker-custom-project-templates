@@ -78,6 +78,18 @@ class BuildPipelineConstruct(Construct):
             assumed_by=iam.ServicePrincipal("codebuild.amazonaws.com"),
             path="/service-role/",
         )
+        
+        codebuild_role.add_to_policy(
+            iam.PolicyStatement(
+                actions=[
+                    "ssm:*",
+                ],
+                effect=iam.Effect.ALLOW,
+                resources=[
+                    f"arn:aws:ssm:*:{Aws.ACCOUNT_ID}:parameter/mlops/{project_name}*",
+                ],
+            ),
+        )
 
         sagemaker_execution_role = iam.Role(
             self,

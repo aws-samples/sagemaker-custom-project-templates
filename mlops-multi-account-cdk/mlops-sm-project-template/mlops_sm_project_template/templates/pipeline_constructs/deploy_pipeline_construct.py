@@ -38,6 +38,7 @@ class DeployPipelineConstruct(Construct):
         construct_id: str,
         project_name: str,
         project_id: str,
+        s3_artifact: s3.IBucket,
         pipeline_artifact_bucket: s3.IBucket,
         model_package_group_name: str,
         repo_s3_bucket_name: str,
@@ -114,6 +115,29 @@ class DeployPipelineConstruct(Construct):
                 ],
                 effect=iam.Effect.ALLOW,
                 resources=[f"arn:aws:kms:{Aws.REGION}:{Aws.ACCOUNT_ID}:key/*"],
+            ),
+        )
+        
+        cdk_synth_build_role.add_to_policy(
+            iam.PolicyStatement(
+                actions=[
+                    "ssm:*",
+                ],
+                effect=iam.Effect.ALLOW,
+                resources=[
+                    f"arn:aws:ssm:{Aws.REGION}:{Aws.ACCOUNT_ID}:parameter/mlops/{project_name}*",
+                ],
+            ),
+        )
+        
+        cdk_synth_build_role.add_to_policy(
+            iam.PolicyStatement(
+                actions=[
+                    "s3:GetObject",
+                    "s3:GetObjectVersion"
+                ],
+                effect=iam.Effect.ALLOW,
+                resources=[f"{s3_artifact.bucket_arn}/*"],
             ),
         )
 
@@ -345,6 +369,21 @@ class DeployPipelineConstruct(Construct):
                     detail={
                         "ModelPackageGroupName": [model_package_group_name],
                         "ModelApprovalStatus": ["Approved", "Rejected"],
+                    },
+                ),
+                targets=[targets.CodePipeline(deploy_code_pipeline)],
+            )
+        else:
+            # CloudWatch rule to trigger the deploy CodePipeline when the build CodePipeline has succeeded
+            codepipeline_event_rule = events.Rule(
+                self,
+                "BuildCodePipelineEventRule",
+                event_pattern=events.EventPattern(
+                    source=["aws.codepipeline"],
+                    detail_type=["CodePipeline Pipeline Execution State Change"],
+                    detail={
+                        "pipeline": [f"{project_name}-build"],
+                        "state": ["SUCCEEDED"]
                     },
                 ),
                 targets=[targets.CodePipeline(deploy_code_pipeline)],
