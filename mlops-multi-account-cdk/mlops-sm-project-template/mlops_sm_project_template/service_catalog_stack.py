@@ -307,10 +307,43 @@ class ServiceCatalogStack(Stack):
                 output_type=BundlingOutput.ARCHIVED,
             ),
         )
+        
+        batch_build_app_asset = s3_assets.Asset(
+            self,
+            "BatchBuildAsset",
+            path="seed_code/batch_build_app/",
+            bundling=BundlingOptions(
+                image=zip_image,
+                command=[
+                    "sh",
+                    "-c",
+                    """zip -r /asset-output/batch_build_app.zip .""",
+                ],
+                output_type=BundlingOutput.ARCHIVED,
+            ),
+        )
+        
+        batch_deploy_app_asset = s3_assets.Asset(
+            self,
+            "BatchDeployAsset",
+            path="seed_code/batch_deploy_app/",
+            bundling=BundlingOptions(
+                image=zip_image,
+                command=[
+                    "sh",
+                    "-c",
+                    """zip -r /asset-output/batch_deploy_app.zip .""",
+                ],
+                output_type=BundlingOutput.ARCHIVED,
+            ),
+        )
 
         build_app_asset.grant_read(grantee=products_launch_role)
         deploy_app_asset.grant_read(grantee=products_launch_role)
         byoc_build_app_asset.grant_read(grantee=products_launch_role)
+        batch_build_app_asset.grant_read(grantee=products_launch_role)
+        batch_deploy_app_asset.grant_read(grantee=products_launch_role)
+
 
         # Output the deployment bucket and key, for input into pipeline stack
         self.export_ssm(
@@ -333,6 +366,16 @@ class ServiceCatalogStack(Stack):
             "/mlops/code/deploy",
             deploy_app_asset.s3_object_key,
         )
+        self.export_ssm(
+            "BatchCodeBuildKey",
+            "/mlops/code/batch_build",
+            batch_build_app_asset.s3_object_key,
+        )
+        self.export_ssm(
+            "BatchCodeDeployKey",
+            "/mlops/code/batch_deploy",
+            batch_deploy_app_asset.s3_object_key,
+        )
 
 
     def deploy_all_products(
@@ -348,7 +391,7 @@ class ServiceCatalogStack(Stack):
         **kwargs,
     ):
 
-        i = 0  # used as a counter for the products
+        # i = 0  # used as a counter for the products
 
         for file in os.listdir(templates_directory):
             filename = os.fsdecode(file)
@@ -359,7 +402,7 @@ class ServiceCatalogStack(Stack):
 
                 template_py_file = template_py_file.replace("_", "-")
 
-                if template_py_file == "dynamic-accounts-project-stack":
+                if 'dynamic' in template_py_file:
                     generated_template = self.generate_template(
                         template_module.MLOpsStack,
                         f"{template_py_file}-{stage_name}",
@@ -399,7 +442,7 @@ class ServiceCatalogStack(Stack):
 
                 role_constraint = servicecatalog.CfnLaunchRoleConstraint(
                     self,
-                    f"LaunchRoleConstraint{i}",
+                    f"LaunchRoleConstraint-{template_py_file}",
                     portfolio_id=portfolio.portfolio_id,
                     product_id=product.product_id,
                     role_arn=products_launch_role.role_arn,
@@ -407,7 +450,7 @@ class ServiceCatalogStack(Stack):
                 )
                 role_constraint.add_depends_on(portfolio_association)
 
-                i += 1
+                # i += 1
 
     def export_ssm(self, key: str, param_name: str, value: str):
         param = ssm.StringParameter(self, key, parameter_name=param_name, string_value=value)
