@@ -8,7 +8,5 @@ phases:
       - cdk synth --no-lookups
 
 artifacts:
-  base-directory:
-    - cdk.out
-  files:
-    - **/*
+  base-directory: "cdk.out"
+  files: "**/*"
