@@ -1,0 +1,53 @@
+# This workflow will get the approved model from model registry and deploy to dev, pre-prod and prod
+
+name: Model Deploy Pipeline
+
+on:
+  workflow_dispatch:
+    inputs:
+      logLevel:
+        description: 'Log level'
+        required: true
+        default: 'warning'
+        type: choice
+        options:
+          - info
+          - warning
+          - debug
+
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  build:
+
+    runs-on: ubuntu-latest
+    env:
+      AWS_REGION: ${{ secrets.AWS_REGION }}
+      MODEL_PACKAGE_GROUP_NAME: ${{ secrets.MODEL_PACKAGE_GROUP_NAME }}
+      SAGEMAKER_PROJECT_ID: ${{ secrets.SAGEMAKER_PROJECT_ID }}
+      SAGEMAKER_PROJECT_NAME: ${{ secrets.SAGEMAKER_PROJECT_NAME }}
+    steps:
+    - uses: actions/checkout@v3
+    - name: Set up Python 3.10
+      uses: actions/setup-python@v3
+      with:
+        python-version: "3.10"
+    - name: Configure Dev Account AWS Credentials
+      uses: aws-actions/configure-aws-credentials@v1
+      with:
+          role-to-assume: ${{secrets.PIPELINE_EXECUTION_IAM_ROLE}}
+          aws-region: ${{secrets.AWS_REGION}}
+    - name: Install dependencies
+      run: |
+        sh install-prerequisites-brew.sh
+        python -m pip install --upgrade pip
+        if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+    - name: CDK Synth
+      run: |
+        cdk synth --no-lookups
+    - name: Model Deploy of Dev Account
+      run: |
+        cdk deploy dev-${{ secrets.SAGEMAKER_PROJECT_NAME }}-${{ secrets.SAGEMAKER_PROJECT_ID }} --require-approval never

@@ -1,0 +1,60 @@
+# This workflow will install Python dependencies, AWS account 
+
+name: Sagemaker Project Template Register in Service Catalog
+
+on:
+  workflow_dispatch:
+    inputs:
+      logLevel:
+        description: 'Log level'
+        required: true
+        default: 'warning'
+        type: choice
+        options:
+          - info
+          - warning
+          - debug
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  build:
+
+    runs-on: ubuntu-latest
+    env:
+      AWS_REGION: ${{ secrets.AWS_REGION }}
+      AWS_ACCOUNT: ${{ secrets.AWS_ACCOUNT }}
+    steps:
+    - uses: actions/checkout@v3
+    - name: Configure Dev Account AWS Credentials
+      uses: aws-actions/configure-aws-credentials@v1
+      with:
+          role-to-assume: ${{secrets.AWS_ACCOUNT_OPENID_IAM_ROLE}}
+          aws-region: ${{secrets.AWS_REGION}}
+          # role-skip-session-tagging: true
+          # role-duration-seconds: 1200
+    - name: Set up Python 3.10
+      uses: actions/setup-python@v3
+      with:
+        python-version: "3.10"
+    - name: Install dependencies
+      run: |
+        sh scripts/install-prerequisites-brew.sh
+        python -m pip install --upgrade pip
+        pip install flake8 pytest
+        if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+    - name: AWS CDK Bootstrap of Dev Account
+      run: |
+        cdk bootstrap aws://${{secrets.AWS_ACCOUNT}}/${{secrets.AWS_REGION}} --cloudformation-execution-policies 'arn:aws:iam::aws:policy/AdministratorAccess'
+    - name: Synth
+      run: |
+        cdk synth
+    - name: Infrastructure Deploy of Dev Account
+      run: |
+        cdk --app ./cdk.out/assembly-dev deploy --all --require-approval never
