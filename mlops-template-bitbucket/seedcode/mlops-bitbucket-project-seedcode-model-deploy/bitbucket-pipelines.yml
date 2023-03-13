@@ -1,0 +1,56 @@
+image: python:latest
+
+definitions:
+  caches:
+    pip-cache: ~/.cache/pip
+# Workflow Configuration
+pipelines:
+  default:
+    - step:
+        name: Setup
+        caches:
+          - pip-cache
+        script:
+          - echo "export EXPORT_TEMPLATE_NAME=template-export.yml;export EXPORT_TEMPLATE_STAGING_CONFIG=staging-config-export.json;export EXPORT_TEMPLATE_STAGING_PARAMS=staging-params-export.json;export EXPORT_TEMPLATE_STAGING_TAGS=staging-tags-export.json;export EXPORT_TEMPLATE_PROD_CONFIG=prod-config-export.json;export EXPORT_TEMPLATE_PROD_PARAMS=prod-params-export.json;export EXPORT_TEMPLATE_PROD_TAGS=prod-tags-export.json;export EXPORT_TEST_RESULTS=test-results.json;export STACK_NAME_DEPLOY_STAGING=sagemaker-${SAGEMAKER_PROJECT_NAME}-${SAGEMAKER_PROJECT_ID}-deploy-staging;export STACK_NAME_DEPLOY_PROD=sagemaker-${SAGEMAKER_PROJECT_NAME}-${SAGEMAKER_PROJECT_ID}-deploy-prod;export PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION=python;export PYTHONUNBUFFERED=TRUE;export SAGEMAKER_PROJECT_NAME_ID=$SAGEMAKER_PROJECT_NAME-$SAGEMAKER_PROJECT_ID">>setup_env.sh
+        artifacts:
+          - setup_env.sh
+    - step:
+        name: Build
+        caches:
+          - pip-cache
+        script:
+          - pip install --upgrade --force-reinstall "botocore>1.21.30" "boto3>1.18.30" "awscli>1.20.30"
+          - source setup_env.sh
+          - python build.py --region "$AWS_REGION" --model-execution-role "$MODEL_EXECUTION_ROLE_ARN" --model-package-group-name "$SAGEMAKER_PROJECT_NAME_ID" --sagemaker-project-id "$SAGEMAKER_PROJECT_ID" --sagemaker-project-name "$SAGEMAKER_PROJECT_NAME" --export-staging-config $EXPORT_TEMPLATE_STAGING_CONFIG --export-prod-config $EXPORT_TEMPLATE_PROD_CONFIG --sagemaker-project-arn "$SAGEMAKER_PROJECT_ARN"
+          - export PATH="$HOME/.local/bin:$PATH" && aws cloudformation package --template endpoint-config-template.yml --s3-bucket $ARTIFACT_BUCKET --output-template $EXPORT_TEMPLATE_NAME
+          - cat $EXPORT_TEMPLATE_STAGING_CONFIG
+          - cat $EXPORT_TEMPLATE_PROD_CONFIG
+          - echo "Build Complete"
+        artifacts:
+          paths:
+            - setup_env.sh
+            - endpoint-config-template.yml
+            - staging-config-export.json
+            - staging-params-export.json
+            - staging-tags-export.json
+            - prod-config-export.json
+            - prod-params-export.json
+            - prod-tags-export.json
+    - parallel:
+      - step:
+          name: Staging Deploy
+          caches:
+            - pip-cache
+          script: 
+            - source setup_env.sh
+            - pip install --upgrade --force-reinstall "botocore>1.21.30" "boto3>1.18.30" "awscli>1.20.30"
+            - python deploy-stack.py --region $AWS_REGION --stack-name bitbucket-stg --param-file $EXPORT_TEMPLATE_STAGING_CONFIG --project-id $SAGEMAKER_PROJECT_NAME_ID
+      - step:
+          name: Prod Deploy
+          caches:
+            - pip-cache
+          trigger: manual
+          script:
+            - source setup_env.sh
+            - pip install --upgrade --force-reinstall "botocore>1.21.30" "boto3>1.18.30" "awscli>1.20.30"
+            - python deploy-stack.py --region $AWS_REGION --stack-name bitbucket-prd --param-file $EXPORT_TEMPLATE_PROD_CONFIG --project-id $SAGEMAKER_PROJECT_NAME_ID
