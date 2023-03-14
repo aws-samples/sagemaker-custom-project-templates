@@ -1,0 +1,781 @@
+---
+AWSTemplateFormatVersion: "2010-09-09"
+
+Description: >-
+  Template for creating a Service Catalog product based on the Bitbucket SageMaker Custom Project Example
+
+Parameters:
+
+  PortfolioIDParameter:
+    Type: String
+    Description: The ID of the Service Catalog Portfolio you wish you create the product inside. If using the Portfolio Stack example, the value will be found in the Outputs' tab of the stack under "CreatedPortfolioID".
+
+  ProductNameParameter:
+    Type: String
+    Default: MLOps with Bitbucket SageMaker Project Example
+    Description: The name of this product within the portfolio.
+
+  ProductDescriptionParameter:
+    Type: String
+    Default: 'The MLOps template in this repo can be used to setup a SageMaker Project for model training and deployment using Bitbucket for SVC and Bitbucket Pipelines for CI/CD.'
+    Description: The description of this product within the portfolio.
+
+  ProductOwnerParameter:
+    Type: String
+    Default: Product Owner
+    Description: The owner of this product within the portfolio.
+
+  ProductDistributorParameter:
+    Type: String
+    Default: Product Distributor
+    Description: The distributor of this product within the portfolio.
+
+  ProductSupportDescriptionParameter:
+    Type: String
+    Default: Support Description
+    Description: The support description of this product within the portfolio.
+
+  ProductSupportEmailParameter:
+    Type: String
+    Default: support@example.com
+    Description: The support email of this product within the portfolio.
+
+  ProductSupportURLParameter:
+    Type: String
+    Default: 'https://github.com/tchattha/sm-bitbucket-mlops'
+    Description: The support url of this product within the portfolio.
+
+  SageMakerProjectRepoZipParameter:
+    Type: String
+    Default: 'https://github.com/tchattha/sm-bitbucket-mlops/archive/main.zip'
+    Description: 'URL for a Zip of the SageMaker Projects Examples GitHub Repo'
+  
+  RepositoryFolderNameParameter:
+    Type: String
+    Default: ''
+    Description: '[Optional] Name of the folder inside the repository (if the source code is not on the root of the repository)'
+
+  SageMakerProjectsProjectNameParameter:
+    Type: String
+    Default: mlops_template_bitbucket
+    AllowedPattern: ^[a-zA-Z][a-zA-Z0-9_]*$
+    Description: Project folder inside of the GitHub repo for this project
+
+  BitbucketServerURIParameter:
+    Type: String
+    Default: 'https://api.bitbucket.org/2.0'
+    Description: Bitbucket Server URI, or the API URI to use for creating resources
+
+  BitbucketUsernameParameter:
+    Type: String
+    Description: Bitbucket Username to be used for creating resources
+    NoEcho: True
+  
+  BitbucketAppPasswordParameter:
+    Type: String
+    Description: Bitbucket App Password to be used for creating resources
+    NoEcho: True
+
+Metadata: 
+  AWS::CloudFormation::Interface: 
+    ParameterGroups: 
+      - 
+        Label: 
+          default: "Service Catalog Portfolio Information"
+        Parameters: 
+          - PortfolioIDParameter
+      - 
+        Label: 
+          default: "Service Catalog Product Information"
+        Parameters: 
+          - ProductNameParameter
+          - ProductDescriptionParameter
+          - ProductOwnerParameter
+          - ProductDistributorParameter
+      - 
+        Label: 
+          default: "Service Catalog Product Support Information"
+        Parameters: 
+          - ProductSupportDescriptionParameter
+          - ProductSupportEmailParameter
+          - ProductSupportURLParameter
+      - 
+        Label: 
+          default: "Source Code Repository Configuration (leave defaults if not forking the repository)"
+        Parameters: 
+          - SageMakerProjectRepoZipParameter
+          - SageMakerProjectsProjectNameParameter
+          - RepositoryFolderNameParameter
+      - 
+        Label: 
+          default: "Bitbucket Configuration"
+        Parameters: 
+          - BitbucketServerURIParameter
+          - BitbucketUsernameParameter
+          - BitbucketAppPasswordParameter
+
+    ParameterLabels: 
+       
+      PortfolioIDParameter:
+        default: 'Portfolio ID'
+
+      ProductNameParameter:
+        default: 'Product Name'
+
+      ProductDescriptionParameter:
+        default: 'Product Description'
+
+      ProductOwnerParameter:
+        default: 'Product Owner'
+
+      ProductDistributorParameter:
+        default: 'Product Distributor'
+
+      ProductSupportDescriptionParameter:
+        default: 'Product Support Description'
+
+      ProductSupportEmailParameter:
+        default: 'Product Support Email'
+
+      ProductSupportURLParameter:
+        default: 'Product Support URL'
+
+      SageMakerProjectRepoZipParameter:
+        default: 'URL to the zipped version of your GitHub Repository'
+      
+      RepositoryFolderNameParameter:
+        default: 'Folder name inside repository where the seedcode is placed'
+
+      SageMakerProjectsProjectNameParameter:
+        default: 'Project folder inside of the main repository for this project'
+      
+      BitbucketServerURIParameter:
+        default: 'Server/API URI to bitbucket'
+
+      BitbucketUsernameParameter:
+        default: 'Bitbucket Admin Username'
+
+      BitbucketAppPasswordParameter:
+        default: 'Bitbucket App Password'
+
+Resources:
+  BitbucketAppPasswordTokenSecret:
+    Type: AWS::SecretsManager::Secret
+    Properties:
+      Name: !Join ['-',['SMP-Bitbucket-App-Password-Token', !Select [4, !Split ['-', !Select [2, !Split ['/', !Ref 'AWS::StackId']]]]]]
+      SecretString: !Ref BitbucketAppPasswordParameter
+
+  BitbucketUsernameTokenSecret:
+    Type: AWS::SecretsManager::Secret
+    Properties:
+      Name: !Join ['-',['SMP-Bitbucket-Username-Token', !Select [4, !Split ['-', !Select [2, !Split ['/', !Ref 'AWS::StackId']]]]]]
+      SecretString: !Ref BitbucketUsernameParameter
+  
+  BitbucketIAMUser:
+    Type: AWS::IAM::User
+    Properties: 
+      UserName: !Join ['-',['SMP-Bitbucket-User', !Select [4, !Split ['-', !Select [2, !Split ['/', !Ref 'AWS::StackId']]]]]]
+
+  BitbucketIAMUserPolicy:
+    Type: AWS::IAM::Policy
+    Properties: 
+      PolicyName: !Join ['-',['SMP-Bitbucket-User-Policy', !Select [4, !Split ['-', !Select [2, !Split ['/', !Ref 'AWS::StackId']]]]]]
+      Users:
+       - !Ref BitbucketIAMUser
+      PolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Action:
+              - 'cloudformation:CreateChangeSet'
+              - 'cloudformation:CreateStack'
+              - 'cloudformation:DescribeChangeSet'
+              - 'cloudformation:DeleteChangeSet'
+              - 'cloudformation:DeleteStack'
+              - 'cloudformation:DescribeStacks'
+              - 'cloudformation:ExecuteChangeSet'
+              - 'cloudformation:SetStackPolicy'
+              - 'cloudformation:UpdateStack'
+            Resource: 
+              - 'arn:aws:cloudformation:*:*:stack/bitbucket-stg-*'
+              - 'arn:aws:cloudformation:*:*:stack/bitbucket-prd-*'
+            Effect: Allow
+          - Effect: Allow
+            Action:
+              - 'sagemaker:*'
+            NotResource:
+              - 'arn:aws:sagemaker:*:*:domain/*'
+              - 'arn:aws:sagemaker:*:*:user-profile/*'
+              - 'arn:aws:sagemaker:*:*:app/*'
+              - 'arn:aws:sagemaker:*:*:flow-definition/*'
+          - Effect: Allow
+            Action:
+              - 's3:CreateBucket'
+              - 's3:DeleteBucket'
+              - 's3:GetBucketAcl'
+              - 's3:GetBucketCors'
+              - 's3:GetBucketLocation'
+              - 's3:ListAllMyBuckets'
+              - 's3:ListBucket'
+              - 's3:ListBucketMultipartUploads'
+              - 's3:PutBucketCors'
+            Resource:
+              - 'arn:aws:s3:::sagemaker-*'
+          - Effect: Allow
+            Action:
+              - 's3:AbortMultipartUpload'
+              - 's3:DeleteObject'
+              - 's3:GetObject'
+              - 's3:GetObjectVersion'
+              - 's3:PutObject'
+            Resource:
+              - 'arn:aws:s3:::sagemaker-*'
+          - Effect: Allow
+            Action:
+              - 'iam:PassRole'
+            Resource:
+              - !GetAtt ServiceCatalogProductUseRole.Arn
+
+  BitbucketIAMUserAccessKey:
+    Type: AWS::IAM::AccessKey
+    Properties: 
+      Status: Active
+      UserName: !Ref BitbucketIAMUser
+
+  BitbucketIAMUserAccessKeySecret:
+    Type: AWS::SecretsManager::Secret
+    Properties: 
+      Description: String
+      Name: !Join ['-',['SMP-Bitbucket-UserAccessKey', !Select [4, !Split ['-', !Select [2, !Split ['/', !Ref 'AWS::StackId']]]]]]
+      SecretString: !Ref BitbucketIAMUserAccessKey
+
+  BitbucketIAMUserSecretKeySecret:
+    Type: AWS::SecretsManager::Secret
+    Properties: 
+      Description: String
+      Name: !Join ['-',['SMP-Bitbucket-UserSecretKey', !Select [4, !Split ['-', !Select [2, !Split ['/', !Ref 'AWS::StackId']]]]]]
+      SecretString: !GetAtt BitbucketIAMUserAccessKey.SecretAccessKey
+
+  BootstrapS3Bucket:
+    Type: AWS::S3::Bucket
+    Properties: 
+      BucketName: !Join ['-',['smp-mlopsbitbucket-example', !Select [4, !Split ['-', !Select [2, !Split ['/', !Ref 'AWS::StackId']]]]]]
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault:
+              SSEAlgorithm: 'AES256'
+  
+  BootstrapS3BucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    Properties: 
+      Bucket: !Ref BootstrapS3Bucket
+      PolicyDocument:
+          Version: "2012-10-17"
+          Statement:
+            - Effect: Allow
+              Principal: 
+                AWS:
+                  - !GetAtt ServiceCatalogProductLaunchRole.Arn
+              Action: 's3:GetObject'
+              Resource: !Join ['',[!GetAtt BootstrapS3Bucket.Arn,'/*']]
+
+  BootstrapLambdaExecutionRole:
+    Type: AWS::IAM::Role
+    Properties: 
+      RoleName: !Join ['-', ['SMCustomProject-MLOpsBitbucket-Bootstrap-Role', !Select [4, !Split ['-', !Select [2, !Split ['/', !Ref 'AWS::StackId']]]]]]
+      Description: Role used for launching the lambda function to bootstrap creation of the MLOps Bitbucket SageMaker Custom Project Template example
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - lambda.amazonaws.com
+            Action: 'sts:AssumeRole'
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+      Policies:
+          - PolicyName: BootstrapLambdaExecutionPolicy
+            PolicyDocument:
+              Version: "2012-10-17"
+              Statement:
+                - Effect: Allow
+                  Action: 
+                    - 's3:PutObject'
+                    - 's3:GetObject'
+                    - 's3:ListBucket'
+                    - 's3:ListObjects'
+                    - 's3:DeleteObject'
+                  Resource: 
+                    - !Join ['',[!GetAtt BootstrapS3Bucket.Arn,'/*']]
+                    - !GetAtt BootstrapS3Bucket.Arn
+
+  ServiceCatalogProduct:
+    Type: AWS::ServiceCatalog::CloudFormationProduct
+    Properties: 
+      Description: !Ref ProductDescriptionParameter
+      Distributor: !Ref ProductDistributorParameter
+      Name: !Ref ProductNameParameter
+      Owner: !Ref ProductOwnerParameter
+      ProvisioningArtifactParameters:
+        -
+          Description: Base Version
+          DisableTemplateValidation: false
+          Info:
+            LoadTemplateFromURL: !GetAtt InvokeCustomLambda.template_url
+          Name: v1.0
+      SupportDescription: !Ref ProductSupportDescriptionParameter
+      SupportEmail: !Ref ProductSupportEmailParameter
+      SupportUrl: !Ref ProductSupportURLParameter
+      Tags:
+        -
+          Key: sagemaker:studio-visibility
+          Value: 'true'
+
+
+  ServiceCatalogProductAssociation:
+    Type: AWS::ServiceCatalog::PortfolioProductAssociation
+    Properties: 
+      PortfolioId: !Ref PortfolioIDParameter
+      ProductId: !Ref ServiceCatalogProduct
+
+  ServiceCatalogProductLaunchRole:
+    Type: AWS::IAM::Role
+    Properties: 
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - servicecatalog.amazonaws.com
+            Action: 'sts:AssumeRole'
+      Description: Role to use for launching the Bitbucket SageMaker Project example.
+      ManagedPolicyArns: 
+        - arn:aws:iam::aws:policy/AmazonSageMakerAdmin-ServiceCatalogProductsServiceRolePolicy
+      Policies: 
+        - PolicyName: SM-Bitbucket-Example-Launch-Policy
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action: 
+                  - 's3:PutObject'
+                  - 's3:GetObject'
+                Resource: !Join ['',[!GetAtt BootstrapS3Bucket.Arn,'/*']]
+              - Effect: Allow
+                Action:
+                  - 'iam:PassRole'
+                Resource:
+                  - !Join ['', ['arn:aws:iam::', !Ref AWS::AccountId, ':role/SM-Bitbucket-Example-Use-Role-*']]
+              - Effect: Allow
+                Action:
+                  - 'sagemaker:AddTags'
+                  - 'sagemaker:CreateModelPackageGroup'
+                  - 'sagemaker:DescribeModelPackageGroup'
+                  - 'sagemaker:DeleteModelPackageGroup'
+                  - 'sagemaker:GetModelPackageGroupPolicy'
+                  - 'sagemaker:DeleteModelPackageGroupPolicy'
+                  - 'sagemaker:PutModelPackageGroupPolicy'
+                  - 'sagemaker:ListModelPackageGroups'
+                  - 'sagemaker:ListTags'
+                Resource: '*'
+      RoleName: !Join ['-', ['SM-Bitbucket-Example-Launch-Role', !Select [4, !Split ['-', !Select [2, !Split ['/', !Ref 'AWS::StackId']]]]]]
+
+  ServiceCatalogProductUseRole:
+    Type: AWS::IAM::Role
+    Properties: 
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - codepipeline.amazonaws.com
+                - firehose.amazonaws.com
+                - glue.amazonaws.com
+                - apigateway.amazonaws.com
+                - events.amazonaws.com
+                - states.amazonaws.com
+                - cloudformation.amazonaws.com
+                - sagemaker.amazonaws.com
+                - lambda.amazonaws.com
+                - codebuild.amazonaws.com
+            Action: 'sts:AssumeRole'
+      Description: Role to use for launching the Bitbucket SageMaker Project example.
+      Policies: 
+        - PolicyName: SM-Bitbucket-Example-Use-Policy
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action: 
+                  - 's3:GetObject'
+                Resource: !Join ['',[!GetAtt BootstrapS3Bucket.Arn,'/*']]
+              - Effect: Allow
+                Action: 
+                  - 'secretsmanager:GetSecretValue'
+                Resource: 
+                  - !Ref BitbucketUsernameTokenSecret
+                  - !Ref BitbucketAppPasswordTokenSecret
+              - Action:
+                  - 'cloudformation:CreateChangeSet'
+                  - 'cloudformation:CreateStack'
+                  - 'cloudformation:DescribeChangeSet'
+                  - 'cloudformation:DeleteChangeSet'
+                  - 'cloudformation:DeleteStack'
+                  - 'cloudformation:DescribeStacks'
+                  - 'cloudformation:ExecuteChangeSet'
+                  - 'cloudformation:SetStackPolicy'
+                  - 'cloudformation:UpdateStack'
+                Resource: 
+                  - 'arn:aws:cloudformation:*:*:stack/bitbucket-stg-*'
+                  - 'arn:aws:cloudformation:*:*:stack/bitbucket-prd-*'
+                Effect: Allow
+              - Action:
+                  - 'cloudwatch:PutMetricData'
+                Resource: '*'
+                Effect: Allow
+              - Action:
+                  - 'ecr:BatchCheckLayerAvailability'
+                  - 'ecr:BatchGetImage'
+                  - 'ecr:Describe*'
+                  - 'ecr:GetAuthorizationToken'
+                  - 'ecr:GetDownloadUrlForLayer'
+                Resource: '*'
+                Effect: Allow
+              - Effect: Allow
+                Action:
+                  - 'ecr:BatchDeleteImage'
+                  - 'ecr:CompleteLayerUpload'
+                  - 'ecr:CreateRepository'
+                  - 'ecr:DeleteRepository'
+                  - 'ecr:InitiateLayerUpload'
+                  - 'ecr:PutImage'
+                  - 'ecr:UploadLayerPart'
+                Resource:
+                  - 'arn:aws:ecr:*:*:repository/sagemaker-*'
+              - Action:
+                  - 'events:DeleteRule'
+                  - 'events:DescribeRule'
+                  - 'events:PutRule'
+                  - 'events:PutTargets'
+                  - 'events:RemoveTargets'
+                Resource:
+                  - 'arn:aws:events:*:*:rule/sagemaker-*'
+                Effect: Allow
+              - Action:
+                  - 'iam:PassRole'
+                Resource:
+                  - !Join ['', ['arn:aws:iam::', !Ref AWS::AccountId, ':role/SM-Bitbucket-Example-Use-Role-*']]
+                Effect: Allow
+              - Effect: Allow
+                Action:
+                  - 'lambda:InvokeFunction'
+                Resource:
+                  - 'arn:aws:lambda:*:*:function:sagemaker-*'
+              - Action:
+                  - 'logs:CreateLogDelivery'
+                  - 'logs:CreateLogGroup'
+                  - 'logs:CreateLogStream'
+                  - 'logs:DeleteLogDelivery'
+                  - 'logs:Describe*'
+                  - 'logs:GetLogDelivery'
+                  - 'logs:GetLogEvents'
+                  - 'logs:ListLogDeliveries'
+                  - 'logs:PutLogEvents'
+                  - 'logs:PutResourcePolicy'
+                  - 'logs:UpdateLogDelivery'
+                Resource: '*'
+                Effect: Allow
+              - Effect: Allow
+                Action:
+                  - 's3:CreateBucket'
+                  - 's3:DeleteBucket'
+                  - 's3:GetBucketAcl'
+                  - 's3:GetBucketCors'
+                  - 's3:GetBucketLocation'
+                  - 's3:ListAllMyBuckets'
+                  - 's3:ListBucket'
+                  - 's3:ListBucketMultipartUploads'
+                  - 's3:PutBucketCors'
+                Resource:
+                  - 'arn:aws:s3:::aws-glue-*'
+                  - 'arn:aws:s3:::sagemaker-*'
+              - Effect: Allow
+                Action:
+                  - 's3:AbortMultipartUpload'
+                  - 's3:DeleteObject'
+                  - 's3:GetObject'
+                  - 's3:GetObjectVersion'
+                  - 's3:PutObject'
+                Resource:
+                  - 'arn:aws:s3:::aws-glue-*'
+                  - 'arn:aws:s3:::sagemaker-*'
+              - Effect: Allow
+                Action:
+                  - 'sagemaker:*'
+                NotResource:
+                  - 'arn:aws:sagemaker:*:*:domain/*'
+                  - 'arn:aws:sagemaker:*:*:user-profile/*'
+                  - 'arn:aws:sagemaker:*:*:app/*'
+                  - 'arn:aws:sagemaker:*:*:flow-definition/*'
+              - Effect: Allow
+                Action:
+                  - 'secretsmanager:GetSecretValue'
+                Resource:
+                  - !Ref BitbucketIAMUserSecretKeySecret
+                  - !Ref BitbucketIAMUserAccessKeySecret
+      RoleName: !Join ['-', ['SM-Bitbucket-Example-Use-Role', !Select [4, !Split ['-', !Select [2, !Split ['/', !Ref 'AWS::StackId']]]]]]
+
+  ServiceCatalogProductRoleLaunchContstraint:
+    Type: AWS::ServiceCatalog::LaunchRoleConstraint
+    DependsOn: 
+      - ServiceCatalogProductAssociation
+    Properties: 
+      Description: Role for launching the mlops Bitbucket endpoint product
+      PortfolioId: !Ref PortfolioIDParameter
+      ProductId: !Ref ServiceCatalogProduct
+      RoleArn: !GetAtt ServiceCatalogProductLaunchRole.Arn
+
+  CustomBackedLambda:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: !Join ['-', ['mlopsbitbucket-lambda-bootstrapper', !Select [4, !Split ['-', !Select [2, !Split ['/', !Ref 'AWS::StackId']]]]]]
+      Runtime: python3.9
+      Role: !GetAtt BootstrapLambdaExecutionRole.Arn
+      Handler: index.lambda_handler
+      Timeout: 900
+      Code:
+        ZipFile: |
+          import cfnresponse
+          import logging
+          import random
+          import json
+          import urllib3
+          import os
+          import zipfile
+          import pathlib
+          import boto3
+          from urllib.request import urlretrieve
+
+          logger = logging.getLogger()
+          logger.setLevel(logging.INFO)
+
+          s3_client = boto3.client('s3')
+
+          def lambda_handler(event, context):
+              try:
+                  logger.info('Incoming Request:')
+                  logger.info(json.dumps(event))
+                  
+                  if event.get('RequestType') == 'Delete':
+                      if 'BootStrapBucketName' not in event['ResourceProperties']:
+                          raise Exception(f'Missing required S3 Bucket Name' )
+                      
+                      bucket_name = event['ResourceProperties']['BootStrapBucketName']
+                      s3 = boto3.resource('s3')
+                      bucket = s3.Bucket(bucket_name)
+                      for obj in bucket.objects.filter():
+                          s3.Object(bucket.name, obj.key).delete()
+                      responseData = {}
+                      responseData['message'] = "Invoking Delete"
+                      logger.info('Sending %s to cloudformation', responseData['message'])
+                      cfnresponse.send(event, context, cfnresponse.SUCCESS, responseData)
+                  
+                  elif event.get('RequestType') == 'Create':
+                          
+                      required_variables = ['BootStrapBucketName','SageMakerProjectRepoZip', 'SageMakerProjectsProjectName']
+              
+                      if not set(required_variables).issubset(set(event['ResourceProperties'])):
+                          raise Exception(f'Missing required input from: {required_variables}' )
+              
+                      sagemaker_projects_repo = event['ResourceProperties']['SageMakerProjectRepoZip']
+                      sagemaker_projects_project_name = event['ResourceProperties']['SageMakerProjectsProjectName']
+                      repo_folder_name = event['ResourceProperties']['RepositoryFolderName']
+                      
+                      logger.info(f'begin fetch of zipped rep from github: {sagemaker_projects_repo}')
+              
+                      urlretrieve(sagemaker_projects_repo, '/tmp/sm_project_repo.zip')
+                      
+                      logger.info(f'github zip written to /tmp/sm_project_repo.zip')
+                      
+                      with zipfile.ZipFile('/tmp/sm_project_repo.zip', 'r') as zip_ref:
+                          zip_ref.extractall('/tmp')
+                      
+                      parent, child, files = next(os.walk('/tmp/'))
+                      local_extracted_path_root = os.path.join(parent, child[0], repo_folder_name)
+                      
+                      if not os.path.exists(local_extracted_path_root):
+                          message = f'Incorrect path, {repo_folder_name} does not exist'
+                          logger.error(message)
+                          raise Exception(message)
+
+                      logger.info(f'github zip extracted to {local_extracted_path_root}')
+              
+                      logger.info(f'begin project template customizations')
+              
+                      bootstrap_bucket_name = event['ResourceProperties']['BootStrapBucketName']
+              
+                      input_file_path = os.path.join(local_extracted_path_root, 'project', 'template.yaml')
+                      output_file_path = os.path.join(local_extracted_path_root, 'project', 'template_updated.yaml')
+                      s3_template_key = sagemaker_projects_project_name + '/templates/template.yaml'
+                      
+                      with open(input_file_path, 'r') as input_template_file:
+                          with open(output_file_path, 'w') as output_template_file:
+                              file_data = input_template_file.read()
+                              
+                              if 'TemplateSubstitutions' in event['ResourceProperties'].keys():
+                                for replacement_key in event['ResourceProperties']['TemplateSubstitutions'].keys():
+                                    file_data = file_data.replace(replacement_key, event['ResourceProperties']['TemplateSubstitutions'][replacement_key])
+              
+                              output_template_file.write(file_data)
+              
+                      with open(output_file_path, 'rb') as file_data:
+                              s3_client.upload_fileobj(file_data, bootstrap_bucket_name, s3_template_key)
+              
+                      logger.info(f'completed project template customizations')
+                      
+                      logger.info(f'begin building and uploading sub archives from seedcode and lambda folders')
+                      
+                      archive_info_list = []
+              
+                      if 'Archives' in event['ResourceProperties'].keys():
+                            for archive in event['ResourceProperties']['Archives']:
+                                archive_info_list.append([archive[0], pathlib.Path(os.path.join(local_extracted_path_root, archive[1]))])
+                      
+                      for archive_info in archive_info_list:
+                          
+                          target_filename = '/tmp/' + archive_info[0]
+                          s3_object_key = sagemaker_projects_project_name + '/seedcode/' + archive_info[0]
+                          source_dir = archive_info[1]
+                          
+                          logger.info(f'source folder: {(source_dir)}')
+                          logger.info(f'begin creating archive: {target_filename}')
+                          
+                          with zipfile.ZipFile(target_filename, mode='w') as archive:
+                              for file_path in source_dir.rglob('*'):
+                                  archive.write(
+                                  file_path,
+                                  arcname=file_path.relative_to(source_dir)
+                                  )
+                          
+                          archive.close()
+                          
+                          logger.info(f'completed creating zip file: {target_filename}')
+                          
+                          logger.info(f'uploading zip file: {target_filename} as s3 object: {bootstrap_bucket_name}/{s3_object_key}')
+              
+                          with open(target_filename, 'rb') as file_data:
+                              s3_client.upload_fileobj(file_data, bootstrap_bucket_name, s3_object_key)
+              
+                          logger.info(f'upload for s3 object: {bootstrap_bucket_name}/{s3_object_key} complete')
+                      
+                      logger.info(f'completed building and uploading sub archives from seedcode and lambda folders')
+                      
+                      logger.info(f'generating presigned url for template')
+                      
+                      signed_template_url = s3_client.generate_presigned_url('get_object',
+                        Params={'Bucket': bootstrap_bucket_name,'Key': s3_template_key},
+                        ExpiresIn=6000)
+                        
+                      logger.info(f"generated presigned url for template successfully: {signed_template_url}")
+                      
+                      message = 'Create Invoked Successfully'
+                      responseData = {}
+                      responseData['message'] = message
+                      responseData['template_url'] = signed_template_url
+                      logger.info('Sending %s to cloudformation', responseData['message'])
+                      cfnresponse.send(event, context, cfnresponse.SUCCESS, responseData)
+                  else:
+                      logger.error('Unknown operation: %s', event.get('RequestType'))
+              
+              except Exception as e:
+                  logger.exception(e)
+                  responseData = {}
+                  responseData['message'] = 'exception caught'
+                  cfnresponse.send(event, context, cfnresponse.FAILED, responseData)
+      Description: Cloudformation Custom Lambda to bootstrap the MLOps Bitbucket SageMaker Project example
+
+  InvokeCustomLambda:
+    Type: Custom::InvokeCustomLambda
+    Properties:
+      ServiceToken: !GetAtt CustomBackedLambda.Arn
+      BootStrapBucketName: !Ref BootstrapS3Bucket
+      SageMakerProjectRepoZip: !Ref SageMakerProjectRepoZipParameter
+      RepositoryFolderName: !Ref RepositoryFolderNameParameter
+      SageMakerProjectsProjectName: !Ref SageMakerProjectsProjectNameParameter
+      TemplateSubstitutions:
+        AWSDEFAULT___BITBUCKET_SERVER_URI___: !Ref BitbucketServerURIParameter
+        AWSDEFAULT___BITBUCKET_USERNAME_TOKEN_SECRET_NAME___: !Join ['-',['SMP-Bitbucket-Username-Token', !Select [4, !Split ['-', !Select [2, !Split ['/', !Ref 'AWS::StackId']]]]]]
+        AWSDEFAULT___BITBUCKET_APP_PASSWORD_TOKEN_SECRET_NAME___: !Join ['-',['SMP-Bitbucket-App-Password-Token', !Select [4, !Split ['-', !Select [2, !Split ['/', !Ref 'AWS::StackId']]]]]]
+        AWSDEFAULT___CODE_STAGING_BUCKET___: !Ref BootstrapS3Bucket
+        AWSDEFAULT___PROJECT_NAME___: !Ref SageMakerProjectsProjectNameParameter
+        AWSDEFAULT___IAM_ACCESS_KEY_SECRET_NAME___: !Join ['-',['SMP-Bitbucket-UserAccessKey', !Select [4, !Split ['-', !Select [2, !Split ['/', !Ref 'AWS::StackId']]]]]]
+        AWSDEFAULT___IAM_SECRET_KEY_SECRET_NAME___: !Join ['-',['SMP-Bitbucket-UserSecretKey', !Select [4, !Split ['-', !Select [2, !Split ['/', !Ref 'AWS::StackId']]]]]]
+        AWSDEFAULT___USE_ROLE___: !GetAtt ServiceCatalogProductUseRole.Arn
+      Archives:
+        - ['mlops-bitbucket-project-seedcode-model-deploy.zip', 'seedcode/mlops-bitbucket-project-seedcode-model-deploy']
+        - ['mlops-bitbucket-project-seedcode-model-build.zip', 'seedcode/mlops-bitbucket-project-seedcode-model-build']
+        - ['lambda-bitbucket-pipeline-trigger.zip', 'lambda_functions/lambda-bitbucket-pipeline-trigger']
+        - ['lambda-seedcode-checkin-bitbucket.zip', 'lambda_functions/lambda-seedcode-checkin-bitbucket']
+
+
+Outputs:
+  CreatedServiceCatalogProductName:
+    Description: Name of the newly created product.
+    Value: !GetAtt ServiceCatalogProduct.ProductName
+    Export:
+      Name: !Join [':', [!Ref 'AWS::StackName', 'CreatedServiceCatalogProductName'] ]
+
+  CreatedServiceCatalogProductId:
+    Description: Id of the newly created product.
+    Value: !Ref ServiceCatalogProduct
+    Export:
+      Name: !Join [':', [!Ref 'AWS::StackName', 'CreatedServiceCatalogProductId'] ]
+
+  AssociatedServiceCatalogPortfolioID:
+    Description: ID of the associated Service Catalog Portfolio.
+    Value: !Ref PortfolioIDParameter
+    Export:
+      Name: !Join [':', [!Ref 'AWS::StackName', 'AssociatedServiceCatalogPortfolioID'] ]
+
+  ServiceCatalogProductLaunchRoleARN:
+    Description: ARN of the Role used to launch this product
+    Value: !Join [ ':', [ 'arn', !Ref 'AWS::Partition', 'iam:', !Ref 'AWS::AccountId', 'role/service-role/AmazonSageMakerServiceCatalogProductsLaunchRole'] ]
+    Export:
+      Name: !Join [':', [!Ref 'AWS::StackName', 'ServiceCatalogProductLaunchRoleARN'] ]
+  
+  CodeStagingBucketName:
+    Description: Name of the S3 Bucket containing the staging code for the repository.
+    Value: !Ref BootstrapS3Bucket
+    Export:
+      Name: !Join [':', [!Ref 'AWS::StackName', 'CodeStagingBucketName']]
+  
+  BitbucketUsernameTokenSecretARN:
+    Description: ARN of Secrets Manager Secret for the Bitbucket Username token
+    Value: !Ref BitbucketUsernameTokenSecret
+    Export:
+      Name: !Join [':', [!Ref 'AWS::StackName', 'BitbucketUsernameTokenSecretARN'] ]
+
+  BitbucketAppPasswordTokenSecret:
+    Description: ARN of Secrets Manager Secret for the Bitbucket Username token
+    Value: !Ref BitbucketAppPasswordTokenSecret
+    Export:
+      Name: !Join [':', [!Ref 'AWS::StackName', 'BitbucketAppPasswordTokenSecretARN'] ]
+
+  BitbucketIAMUserAccessKeySecretARN:
+    Description: ARN of Secrets Manager Secret for the Bitbucket IAM User Access Key.
+    Value: !Ref BitbucketIAMUserAccessKeySecret
+    Export:
+      Name: !Join [':', [!Ref 'AWS::StackName', 'BitbucketIAMUserAccessKeySecretARN'] ]
+  
+  BitbucketIAMUserSecretKeySecretARN:
+    Description: ARN of Secrets Manager Secret for the Bitbucket IAM User Secret Key.
+    Value: !Ref BitbucketIAMUserSecretKeySecret
+    Export:
+      Name: !Join [':', [!Ref 'AWS::StackName', 'BitbucketIAMUserSecretKeySecretARN'] ]
