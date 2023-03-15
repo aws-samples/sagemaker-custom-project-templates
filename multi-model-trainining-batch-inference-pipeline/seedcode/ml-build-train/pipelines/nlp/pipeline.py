@@ -91,10 +91,10 @@ def get_pipeline(
     sagemaker_project_arn=None,
     role=None,
     default_bucket=None,
-    model_package_group_name_1="AbalonePackageGroup",
-    model_package_group_name_2="AbaloneModelPackageGroup-Example",
-    pipeline_name="AbalonePipeline",
-    base_job_prefix="Abalone",
+    model_package_group_name_1="NlpPackageGroup-1",
+    model_package_group_name_2="NlpModelPackageGroup-2",
+    pipeline_name="NlpPipeline",
+    base_job_prefix="Nlp",
     processing_instance_type="ml.t3.large",
     training_instance_type="ml.m5.large",
     inference_instance_type="ml.m5.large"
@@ -107,6 +107,10 @@ def get_pipeline(
 
     pipeline_session = get_pipeline_session(region, default_bucket)
 
+    input_data = ParameterString(
+        name="InputData", default_value="s3://sagemaker-sample-files/datasets/tabular/synthetic_credit_card_transactions"
+    )
+
     model_approval_status = ParameterString(
         name="ModelApprovalStatus", default_value="PendingManualApproval"
     )
@@ -118,10 +122,17 @@ def get_pipeline(
     training_instance_count_param= ParameterInteger(
         name="TrainingInstanceCount", default_value=1
     )
-    
+
     processing_framework_version = "0.23-1"
-    processing_input_files_path = "e2e-base/data/input"
-    processing_output_files_path = "e2e-base/data/output"
+    processing_output_files_path = "data/output"
+    training_output_files_path = "models"
+    training_framework_version = "1.12"
+    training_python_version = "py38"
+    training_hyperparameters = {
+        "epochs": 25,
+        "learning_rate": 0.001,
+        "batch_size": 100
+    }
     
     processor = FrameworkProcessor(
         estimator_cls=SKLearn,
@@ -137,7 +148,7 @@ def get_pipeline(
         inputs=[
             ProcessingInput(
                 input_name="input",
-                source="s3://{}/{}".format(default_bucket, processing_input_files_path),
+                source=input_data,
                 destination="/opt/ml/processing/input"
             )
         ],
@@ -160,15 +171,6 @@ def get_pipeline(
         inputs=run_args.inputs,
         outputs=run_args.outputs
     )
-    
-    training_output_files_path = "e2e-base/models"
-    training_framework_version = "1.12"
-    training_python_version = "py38"
-    training_hyperparameters = {
-        "epochs": 25,
-        "learning_rate": 0.001,
-        "batch_size": 100
-    }
     
     estimator_1 = PyTorch(
         os.path.join(BASE_DIR, "train_model_1.py"),

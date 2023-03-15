@@ -94,11 +94,11 @@ def get_pipeline(
     sagemaker_project_arn=None,
     role=None,
     default_bucket=None,
-    pipeline_name="AbalonePipelineBatchInference",
+    pipeline_name="NlpPipelineBatchInference",
     inference_instance_type="ml.m5.large",
     inference_instance_count=1
 ):
-    """Gets a SageMaker ML Pipeline instance working with on abalone data.
+    """Gets a SageMaker ML Pipeline instance working with on text data.
 
     Args:
         region: AWS region to create and run the pipeline.
