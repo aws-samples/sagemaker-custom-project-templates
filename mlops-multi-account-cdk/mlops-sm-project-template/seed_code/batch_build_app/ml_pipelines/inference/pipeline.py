@@ -33,13 +33,18 @@ import sagemaker.session
 from sagemaker import ModelPackage
 from sagemaker.inputs import TransformInput
 from sagemaker.transformer import Transformer
+from sagemaker.sklearn.processing import SKLearnProcessor
+from sagemaker.processing import (
+    ProcessingInput,
+    ProcessingOutput
+)
 from sagemaker.workflow.execution_variables import ExecutionVariables
 from sagemaker.workflow.functions import Join
 from sagemaker.workflow.model_step import ModelStep
+from sagemaker.workflow.steps import ProcessingStep, TransformStep
 from sagemaker.workflow.parameters import ParameterInteger, ParameterString
 from sagemaker.workflow.pipeline import Pipeline
 from sagemaker.workflow.pipeline_context import PipelineSession
-from sagemaker.workflow.steps import TransformStep
 from sagemaker.workflow.retry import (
     StepRetryPolicy, 
     StepExceptionTypeEnum,
@@ -148,19 +153,30 @@ def get_pipeline(
     ############################################
     # Pipeline Parameters for pipeline execution
     ############################################
-    transform_instance_type = "ml.m5.xlarge"
-    
+    processing_instance_type = ParameterString(
+        name="ProcessingInstanceType",
+        default_value="ml.m5.large"
+    )
+    processing_instance_count = ParameterInteger(
+        name="ProcessingInstanceCount",
+        default_value=1
+    )
+    transform_instance_type = ParameterString(
+        name="TransformInstanceType",
+        default_value="ml.m5.large"
+    )
     transform_instance_count = ParameterInteger(
         name="TransformInstanceCount",
         default_value=1
     )
 
     input_data = ParameterString(
-        name="input_data"
+        name="InputDataUrl",
+        default_value=f"s3://sagemaker-servicecatalog-seedcode-{region}/dataset/abalone-dataset.csv",
     )
 
     outputs_bucket = ParameterString(
-        name="outputs_bucket"
+        name="OutputsBucket"
     )
 
     # Retry policies
@@ -210,6 +226,29 @@ def get_pipeline(
         name="Create-model",
         step_args=model_package.create(instance_type=transform_instance_type),
     )
+    
+    # Processing step for feature engineering
+    sklearn_processor = SKLearnProcessor(
+        framework_version='0.20.0',
+        instance_type=processing_instance_type,
+        instance_count=processing_instance_count,
+        base_job_name=f"{base_job_prefix}/sklearn-abalone-preprocess",
+        sagemaker_session=pipeline_session,
+        role=role,
+    )
+    step_process = ProcessingStep(
+        name="PreprocessAbaloneData",
+        processor=sklearn_processor,
+        outputs=[
+            ProcessingOutput(output_name="output_data", source="/opt/ml/processing/output_data"),
+        ],
+        code="source_scripts/preprocessing/prepare_abalone_data/main.py",  # we must figure out this path to get it from step_source directory
+        job_arguments=[
+            "--input-data", input_data,
+            "--do-train-test-split", "False",
+        ],
+    )
+
 
     # Define qgen transformer and TransformStep
     output_transform = Join(on='/', values=['s3:/', outputs_bucket, base_job_prefix, ExecutionVariables.PIPELINE_EXECUTION_ID, "batch/"])
@@ -217,7 +256,7 @@ def get_pipeline(
     transformer = Transformer(
         model_name=step_create_model.properties.ModelName,
         instance_count=transform_instance_count,
-        instance_type= transform_instance_type,
+        instance_type=transform_instance_type,
         max_concurrent_transforms=64,
         max_payload=1,
         strategy = 'SingleRecord',
@@ -225,14 +264,14 @@ def get_pipeline(
         output_path=output_transform,
     )
 
-    input_path_transform_step=input_data
+    input_path_transform_step=step_process.properties.ProcessingOutputConfig.Outputs["output_data"].S3Output.S3Uri
 
     step_transformer = TransformStep(
         name="Transformer",
         transformer=transformer,
         inputs=TransformInput(
             data=input_path_transform_step,
-            content_type= "application/jsonlines",
+            content_type= "text/csv",
             split_type = 'Line'
         ),
         retry_policies=retry_policies,
@@ -250,8 +289,12 @@ def get_pipeline(
             outputs_bucket,
             transform_instance_count,
             transform_instance_type,
+            processing_instance_count,
+            processing_instance_type,
         ],
         steps=[
+            step_create_model,
+            step_process,
             step_transformer,
         ],
     )
