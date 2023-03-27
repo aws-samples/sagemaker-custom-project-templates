@@ -54,6 +54,10 @@ variable "git_repo_name" {
   description = "Name of the Git Repository that will have the model code"
 }
 
+variable "git_user_name" {
+  description = "User Name for the GitLab Repository that will have the model code"
+}
+
 variable "git_repo_branch" {
   description = "Branch of the Git Repository that will have the model code"
 }

@@ -19,12 +19,17 @@ Parameters:
   GitRepoName:
     Type: String
     Default: 'repo-name'
-    Description: Service generated Id of the project.
+    Description: Git Repo Name for storing the ML code.
+
+  GitUserName:
+    Type: String
+    Default: 'user-name'
+    Description: Git User Name for accessing the ML code.
     
   GitBranchName:
     Type: String
     Default: 'main'
-    Description: Service generated Id of the project.    
+    Description: Git Branch Name for the repo having the ML code.    
 
   MLOpsS3Bucket:
     Type: String
@@ -100,6 +105,7 @@ Resources:
         export TF_VAR_sagemaker_project_id=${SageMakerProjectId}
         export TF_VAR_gitlab_url=${GitlabURL}
         export TF_VAR_git_repo_name=${GitRepoName}
+        export TF_VAR_git_user_name=${GitUserName}
         export TF_VAR_git_repo_branch=${GitBranchName}
         export TF_VAR_secrets_manager_gitlab_secret_name=${SecretsManagerGitlabPrivateToken}
         export TF_VAR_secrets_manager_gitlab_iam_access_key=${SecretsManagerGitlabIAMAccessKey}

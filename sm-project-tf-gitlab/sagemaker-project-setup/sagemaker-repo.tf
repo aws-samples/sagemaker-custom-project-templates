@@ -7,7 +7,7 @@ resource "aws_sagemaker_code_repository" "sagemaker_model_build_repo" {
   tags                 = { "sagemaker:project-name" : var.sagemaker_project_name, "sagemaker:project-id" : var.sagemaker_project_id }
 
   git_config {
-    repository_url = var.gitlab_url
+    repository_url = "${var.gitlab_url}/${var.git_user_name}/${var.git_repo_name}.git"
     secret_arn     = var.secrets_manager_gitlab_user_secret_arn
   }
 
