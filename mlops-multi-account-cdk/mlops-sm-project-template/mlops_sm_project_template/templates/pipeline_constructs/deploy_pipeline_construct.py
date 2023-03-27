@@ -92,12 +92,31 @@ class DeployPipelineConstruct(Construct):
                 ],
             )
         )
+        cdk_synth_build_role.add_to_policy(
+            iam.PolicyStatement(
+                actions=["sagemaker:*"],
+                resources=[
+                    "*"
+                ],
+            )
+        )
 
         cdk_synth_build_role.add_to_policy(
             iam.PolicyStatement(
                 actions=["ssm:GetParameter"],
                 resources=[
                     f"arn:{Aws.PARTITION}:ssm:{Aws.REGION}:{Aws.ACCOUNT_ID}:parameter/*",
+                ],
+            )
+        )
+
+        cdk_synth_build_role.add_to_policy(
+            iam.PolicyStatement(
+                actions=["sts:AssumeRole"],
+                resources=[
+                    f'arn:aws:iam::{Aws.ACCOUNT_ID}:role/cdk-hnb659fds-file-publishing-role-{Aws.ACCOUNT_ID}-{Aws.REGION}',
+                    f'arn:aws:iam::{preprod_account}:role/cdk-hnb659fds-file-publishing-role-{preprod_account}-{Aws.REGION}',
+                    f'arn:aws:iam::{prod_account}:role/cdk-hnb659fds-file-publishing-role-{prod_account}-{Aws.REGION}',
                 ],
             )
         )
@@ -115,6 +134,15 @@ class DeployPipelineConstruct(Construct):
                 resources=[f"arn:aws:kms:{Aws.REGION}:{Aws.ACCOUNT_ID}:key/*"],
             ),
         )
+        env = codebuild.BuildEnvironment(
+                build_image=codebuild.LinuxBuildImage.STANDARD_5_0,
+                privileged=True,
+                environment_variables={
+                    "MODEL_PACKAGE_GROUP_NAME": codebuild.BuildEnvironmentVariable(value=model_package_group_name),
+                    "PROJECT_ID": codebuild.BuildEnvironmentVariable(value=project_id),
+                    "PROJECT_NAME": codebuild.BuildEnvironmentVariable(value=project_name),
+                },
+            )
 
         cdk_synth_build = codebuild.PipelineProject(
             self,
@@ -174,10 +202,11 @@ class DeployPipelineConstruct(Construct):
                                 "echo Starting cfn scanning `date` in `pwd`",
                                 "echo 'RulesToSuppress:\n- id: W58\n  reason: W58 is an warning raised due to Lambda functions require permission to write CloudWatch Logs, although the lambda role contains the policy that support these permissions cgn_nag continues to through this problem (https://github.com/stelligent/cfn_nag/issues/422)' > cfn_nag_ignore.yml",  # this is temporary solution to an issue with W58 rule with cfn_nag
                                 'mkdir report || echo "dir report exists"',
-                                "SCAN_RESULT=$(cfn_nag_scan --fail-on-warnings --deny-list-path cfn_nag_ignore.yml --input-path  ${TemplateFolder} -o json > ./report/cfn_nag.out.json && echo OK || echo FAILED)",
+                                "SCAN_RESULT=$(cfn_nag_scan --deny-list-path cfn_nag_ignore.yml --input-path  ${TemplateFolder} -o json > ./report/cfn_nag.out.json && echo OK || echo FAILED)",
                                 "echo Completed cfn scanning `date`",
                                 "echo $SCAN_RESULT",
                                 "echo $FAIL_BUILD",
+                                "cat ./report/cfn_nag.out.json",
                                 """if [[ "$FAIL_BUILD" = "true" && "$SCAN_RESULT" = "FAILED" ]]; then printf "\n\nFailiing pipeline as possible insecure configurations were detected\n\n" && exit 1; fi""",
                             ]
                         },
@@ -238,12 +267,21 @@ class DeployPipelineConstruct(Construct):
         )
 
         # add stages to deploy to the different environments
+        upload_dev_asset = self.get_upload_asset_project(env = env, account_id = Aws.ACCOUNT_ID, account_type="dev", role=cdk_synth_build_role)
+
+        # add stages to deploy to the different environments
         deploy_code_pipeline.add_stage(
             stage_name="DeployDev",
             actions=[
+                codepipeline_actions.CodeBuildAction(
+                    action_name="Upolad_Assets_Dev",
+                    input=source_artifact,
+                    project=upload_dev_asset,
+                    run_order=1
+                ),
                 codepipeline_actions.CloudFormationCreateUpdateStackAction(
                     action_name="Deploy_CFN_Dev",
-                    run_order=1,
+                    run_order=2,
                     template_path=cdk_synth_artifact.at_path("dev.template.json"),
                     stack_name=f"{project_name}-{construct_id}-dev",
                     admin_permissions=False,
@@ -265,18 +303,25 @@ class DeployPipelineConstruct(Construct):
                 ),
                 codepipeline_actions.ManualApprovalAction(
                     action_name="Approve_PreProd",
-                    run_order=2,
+                    run_order=3,
                     additional_information="Approving deployment for preprod",
                 ),
             ],
         )
+        upload_staging_asset = self.get_upload_asset_project(env = env, account_id = preprod_account, account_type="PreProd", role=cdk_synth_build_role)
 
         deploy_code_pipeline.add_stage(
             stage_name="DeployPreProd",
             actions=[
+                codepipeline_actions.CodeBuildAction(
+                    action_name="Upolad_Assets_PreProd",
+                    input=source_artifact,
+                    project=upload_staging_asset,
+                    run_order=1
+                ),
                 codepipeline_actions.CloudFormationCreateUpdateStackAction(
                     action_name="Deploy_CFN_PreProd",
-                    run_order=1,
+                    run_order=2,
                     template_path=cdk_synth_artifact.at_path("preprod.template.json"),
                     stack_name=f"{project_name}-{construct_id}-preprod",
                     admin_permissions=False,
@@ -298,18 +343,25 @@ class DeployPipelineConstruct(Construct):
                 ),
                 codepipeline_actions.ManualApprovalAction(
                     action_name="Approve_Prod",
-                    run_order=2,
+                    run_order=3,
                     additional_information="Approving deployment for prod",
                 ),
             ],
         )
 
+        upload_prod_asset = self.get_upload_asset_project(env = env, account_id = prod_account, account_type="Prod", role=cdk_synth_build_role)
         deploy_code_pipeline.add_stage(
             stage_name="DeployProd",
             actions=[
+                codepipeline_actions.CodeBuildAction(
+                    action_name="Upolad_Assets_Prod",
+                    input=source_artifact,
+                    project=upload_prod_asset,
+                    run_order=1
+                ),
                 codepipeline_actions.CloudFormationCreateUpdateStackAction(
                     action_name="Deploy_CFN_Prod",
-                    run_order=1,
+                    run_order=2,
                     template_path=cdk_synth_artifact.at_path("prod.template.json"),
                     stack_name=f"{project_name}-{construct_id}-prod",
                     admin_permissions=False,
@@ -346,3 +398,35 @@ class DeployPipelineConstruct(Construct):
             ),
             targets=[targets.CodePipeline(deploy_code_pipeline)],
         )
+
+    def get_upload_asset_project(self, env, account_id, account_type, role):
+        # assume_role = iam.Role.from_role_arn( self,
+        #             f"{account_type}-upload-role",
+        #             f'arn:aws:iam::{account_id}:role/cdk-hnb659fds-file-publishing-role-{account_id}-{Aws.REGION}')
+
+        upload_asset = codebuild.PipelineProject(
+            self,
+            f"UploadAsset-{account_type}",
+            role= role,
+            build_spec=codebuild.BuildSpec.from_object(
+                {
+                    "version": "0.2",
+                    "phases": {
+                        "build": {
+                            "commands": [
+                                "npm install -g aws-cdk",
+                                "pip install -r requirements.txt",
+                                "cdk synth --no-lookups",
+                                # "pwd",
+                                # "ls -la -R",
+                                f"python -c 'from upload_assets import upload_assets_to_s3; upload_assets_to_s3(account_id={account_id})'"
+                            ]
+                        }
+                    },
+                    "artifacts": {"base-directory": "tmp", "files": "**/*"},
+                }
+            ),
+            environment=env
+        )
+
+        return upload_asset

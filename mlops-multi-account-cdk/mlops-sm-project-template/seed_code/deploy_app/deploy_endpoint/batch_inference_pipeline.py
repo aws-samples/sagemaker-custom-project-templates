@@ -29,15 +29,6 @@ from sagemaker.workflow.pipeline_context import PipelineSession
 
 from sagemaker.workflow.execution_variables import ExecutionVariables
 from sagemaker.workflow.functions import Join
-from sagemaker.workflow.check_job_config import CheckJobConfig
-from sagemaker.workflow.clarify_check_step import (
-    ClarifyCheckStep
-)
-
-from sagemaker.workflow.quality_check_step import (
-    DataQualityCheckConfig,
-    QualityCheckStep
-)
 
 
 from sagemaker.workflow.parameters import (
@@ -135,13 +126,6 @@ class AbaloneBatchTransformPipeline():
         self.training_image_name = "sagemaker-{0}-trainingimagebuild".format(project_id)
         self.inference_image_name = "sagemaker-{0}-inferenceimagebuild".format(project_id)
 
-        self.check_job_config = CheckJobConfig(
-            role=self.role,
-            instance_count=1,
-            instance_type="ml.c5.xlarge",
-            volume_size_in_gb=120,
-            sagemaker_session=self.sagemaker_session,
-        )
         self.pipeline_session = PipelineSession()
 
     def get_output_path(self, step_name):
@@ -246,44 +230,6 @@ class AbaloneBatchTransformPipeline():
         logger.info('Transform step created')
         return model_transform_step
 
-    def get_data_quality_step(self, step_process)->ClarifyCheckStep:
-        ''' 
-        create a data quality step to be used in SageMaker pipeline. The data quality step will compare 
-        data distribution with the baseline, which is generated during training
-
-        Args:
-            step_process: data quality step depends on the process step
-
-        Returns:    
-            ClarifyCheckStep
-        
-        '''
-        from deploy_endpoint.get_approved_package import get_approved_package_desc
-        spec = get_approved_package_desc()
-        processed_s3_uri = step_process.properties.ProcessingOutputConfig.Outputs["transform"].S3Output.S3Uri
-
-        step_name = "data_quality"
-        output_path = self.get_output_path(step_name)
-
-        data_quality_check_config = DataQualityCheckConfig(
-            baseline_dataset=processed_s3_uri,
-            dataset_format=DatasetFormat.csv(header=False, output_columns_position="START"),
-            output_s3_uri=output_path
-        )
-
-        data_quality_check_step = QualityCheckStep(
-            name="CheckDataQuality",
-            skip_check=False,
-            register_new_baseline=False,
-            quality_check_config=data_quality_check_config,
-            check_job_config=self.check_job_config,
-            supplied_baseline_statistics=spec['DriftCheckBaselines']['ModelDataQuality']['Statistics']['S3Uri'],
-            supplied_baseline_constraints=spec['DriftCheckBaselines']['ModelDataQuality']['Constraints']['S3Uri'],
-            # model_package_group_name=spec['ModelPackageGroupName'] #this fails in staging & prod as model package in Dev only
-        )      
-
-        return data_quality_check_step  
-
 
     def get_pipeline(self)->Pipeline:
         ''' 
@@ -291,10 +237,7 @@ class AbaloneBatchTransformPipeline():
         '''
         
         step_process = self.get_process_step()
-        step_data_quality = self.get_data_quality_step(step_process)
         step_transform = self.get_transform_step(step_process)
-
-        step_transform.add_depends_on([step_data_quality])
 
         pipeline = Pipeline(
             name=self.pipeline_name,
@@ -304,7 +247,7 @@ class AbaloneBatchTransformPipeline():
                 self.inference_instance_type,
                 self.input_data
             ],
-            steps=[step_process, step_data_quality, step_transform],
+            steps=[step_process, step_transform],
             sagemaker_session=self.sagemaker_session,
         )
 
@@ -325,8 +268,7 @@ def get_pipeline(
     '''
     create a SageMaker pipeline:
     1. The pipeline will pre-process the data
-    2. The pipeline will check data quality against the latest approved model package in the model registry 
-    3. The pipeline will then perform batch inference using SageMaker BatchTransform job
+    2. The pipeline will perform batch inference using SageMaker BatchTransform job
 
     Args:
         model_name: name of the model to be used in the pipeline

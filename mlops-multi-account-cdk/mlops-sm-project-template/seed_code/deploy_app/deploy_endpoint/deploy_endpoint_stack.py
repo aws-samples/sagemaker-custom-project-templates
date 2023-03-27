@@ -45,7 +45,9 @@ from config.constants import (
     MODEL_BUCKET_ARN,
     DEFAULT_DEPLOYMENT_REGION,
     CREATE_BATCH_PIPELINE,
-    CREATE_ENDPOINT
+    CREATE_ENDPOINT,
+    PREPROD_ACCOUNT,
+    PROD_ACCOUNT
 )
 
 from datetime import datetime, timezone
@@ -199,7 +201,11 @@ class DeployEndpointStack(Stack):
         self.model_execution_role = iam.Role(
             self,
             "ModelExecutionRole",
-            assumed_by=iam.ServicePrincipal("sagemaker.amazonaws.com"),
+            role_name=f"{PROJECT_NAME}-model-execution-role",
+            assumed_by=iam.CompositePrincipal(
+                iam.ServicePrincipal("lambda.amazonaws.com"),
+                iam.ServicePrincipal("sagemaker.amazonaws.com"),
+            ),
             managed_policies=[
                 model_execution_policy,
                 iam.ManagedPolicy.from_aws_managed_policy_name(
@@ -311,7 +317,50 @@ class DeployEndpointStack(Stack):
             removal_policy=RemovalPolicy.DESTROY,
             encryption=s3.BucketEncryption.S3_MANAGED           
         )
+        i_bucket.add_to_resource_policy(
+            iam.PolicyStatement(
+                sid="S3ServerAccessLogsPolicy",
+                actions=["s3:PutObject"],
+                resources=[
+                    i_bucket.arn_for_objects(key_pattern="*"),
+                    i_bucket.bucket_arn,
+                ],
+                principals=[
+                    iam.ServicePrincipal("logging.s3.amazonaws.com")
+                ],
+            )
+        )
 
+        # DEV account access to objects in the bucket
+        i_bucket.add_to_resource_policy(
+            iam.PolicyStatement(
+                sid="AddDevPermissions",
+                actions=["s3:*"],
+                resources=[
+                    i_bucket.arn_for_objects(key_pattern="*"),
+                    i_bucket.bucket_arn,
+                ],
+                principals=[
+                    iam.ArnPrincipal(f"arn:aws:iam::{Aws.ACCOUNT_ID}:root"),
+                ],
+            )
+        )
+
+        # PROD account access to objects in the bucket
+        i_bucket.add_to_resource_policy(
+            iam.PolicyStatement(
+                sid="AddCrossAccountPermissions",
+                actions=["s3:List*", "s3:Get*", "s3:Put*"],
+                resources=[
+                    i_bucket.arn_for_objects(key_pattern="*"),
+                    i_bucket.bucket_arn,
+                ],
+                principals=[
+                    iam.ArnPrincipal(f"arn:aws:iam::{PREPROD_ACCOUNT}:root"),
+                    iam.ArnPrincipal(f"arn:aws:iam::{PROD_ACCOUNT}:root"),
+                ]
+            )
+        )
         source_scripts = s3_deployment.BucketDeployment(
             self,
             id=f"{prj_name}-source_scripts",
