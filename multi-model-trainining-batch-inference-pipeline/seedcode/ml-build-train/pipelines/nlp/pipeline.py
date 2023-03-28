@@ -91,21 +91,22 @@ def get_pipeline(
     sagemaker_project_arn=None,
     role=None,
     default_bucket=None,
-    model_package_group_name_1="AbalonePackageGroup",
-    model_package_group_name_2="AbaloneModelPackageGroup-Example",
-    pipeline_name="AbalonePipeline",
-    base_job_prefix="Abalone",
+    model_package_group_name_1="NlpPackageGroup-1",
+    model_package_group_name_2="NlpModelPackageGroup-2",
+    pipeline_name="NlpPipeline",
+    base_job_prefix="Nlp",
     processing_instance_type="ml.t3.large",
     training_instance_type="ml.m5.large",
     inference_instance_type="ml.m5.large"
 ):
-    
-    sagemaker_session = get_session(region, default_bucket)
+    pipeline_session = get_pipeline_session(region, default_bucket)
     
     if role is None:
-        role = sagemaker.session.get_execution_role(sagemaker_session)
+        role = sagemaker.session.get_execution_role(pipeline_session)
 
-    pipeline_session = get_pipeline_session(region, default_bucket)
+    input_data = ParameterString(
+        name="InputData", default_value="s3://{}/datasets/tabular/tweets_dataset".format(default_bucket)
+    )
 
     model_approval_status = ParameterString(
         name="ModelApprovalStatus", default_value="PendingManualApproval"
@@ -120,7 +121,6 @@ def get_pipeline(
     )
     
     processing_framework_version = "0.23-1"
-    processing_input_files_path = "e2e-base/data/input"
     processing_output_files_path = "e2e-base/data/output"
     
     processor = FrameworkProcessor(
@@ -129,7 +129,7 @@ def get_pipeline(
         role=role,
         instance_count=processing_instance_count_param,
         instance_type=processing_instance_type,
-        sagemaker_session=sagemaker_session
+        sagemaker_session=pipeline_session
     )
     
     run_args = processor.get_run_args(
@@ -137,7 +137,7 @@ def get_pipeline(
         inputs=[
             ProcessingInput(
                 input_name="input",
-                source="s3://{}/{}".format(default_bucket, processing_input_files_path),
+                source=input_data,
                 destination="/opt/ml/processing/input"
             )
         ],
@@ -255,6 +255,7 @@ def get_pipeline(
     pipeline = Pipeline(
         name=pipeline_name,
         parameters=[
+            input_data,
             model_approval_status,
             processing_instance_count_param,
             training_instance_count_param
@@ -266,7 +267,7 @@ def get_pipeline(
             step_train_2, 
             step_register_model_2
         ],
-        sagemaker_session=sagemaker_session
+        sagemaker_session=pipeline_session
     )
     
     return pipeline

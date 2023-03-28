@@ -1,9 +1,6 @@
 import os
-
 import boto3
 import sagemaker
-from sagemaker import model
-from sagemaker.pytorch import PyTorchModel
 import sagemaker.session
 from sagemaker.workflow.parameters import (
     ParameterInteger,
@@ -94,11 +91,11 @@ def get_pipeline(
     sagemaker_project_arn=None,
     role=None,
     default_bucket=None,
-    pipeline_name="AbalonePipelineBatchInference",
+    pipeline_name="NlpPipelineBatchInference",
     inference_instance_type="ml.m5.large",
     inference_instance_count=1
 ):
-    """Gets a SageMaker ML Pipeline instance working with on abalone data.
+    """Gets a SageMaker ML Pipeline instance working with on text data.
 
     Args:
         region: AWS region to create and run the pipeline.
@@ -107,16 +104,10 @@ def get_pipeline(
     Returns:
         an instance of a pipeline
     """
-    sagemaker_session = get_session(region, default_bucket)
-    
-    if role is None:
-        role = sagemaker.session.get_execution_role(sagemaker_session)
 
     pipeline_session = get_pipeline_session(region, default_bucket)
 
     #### PARAMETERS
-    model_url = ParameterString("ModelUrl")
-
     input_path = ParameterString("InputPath")
     output_path = ParameterString("OutputPath")
     
@@ -150,6 +141,6 @@ def get_pipeline(
         name=pipeline_name,
         parameters=[input_path, output_path],
         steps=transform_steps,
-        sagemaker_session=sagemaker_session
+        sagemaker_session=pipeline_session
     )
     return pipeline

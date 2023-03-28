@@ -3,6 +3,12 @@ Description:
   It specifies the resources that need to be created. In this case, an EventBridge Rule, a SageMaker Pipelines and a
   SageMake Model.
 Parameters:
+  ContainerImage1:
+    Type: String
+    Description: Image used for the SageMaker Model 1
+  ContainerImage2:
+    Type: String
+    Description: Image used for the SageMaker Model 2
   SageMakerProjectName:
     Type: String
     Description: Name of the project (lower case)
@@ -17,6 +23,18 @@ Parameters:
   ModelExecutionRoleArn:
     Type: String
     Description: Execution role used for deploying the model.
+  ModelDataUrl1:
+    Type: String
+    Description: S3 location for the model 1
+  ModelDataUrl2:
+    Type: String
+    Description: S3 location for the model 2
+  ModelName1:
+    Type: String
+    Description: SageMaker Model Name 1
+  ModelName2:
+    Type: String
+    Description: SageMaker Model Name 2
   InputPath:
     Type: String
     Description: The S3 path where data is stored on which to run inference.
@@ -36,9 +54,35 @@ Parameters:
     Type: String
     Description:
       The body of the SageMaker Pipeline.
+
 Resources:
+  Model1:
+    Type: AWS::SageMaker::Model
+    Properties:
+      EnableNetworkIsolation: False
+      ExecutionRoleArn: !Ref ModelExecutionRoleArn
+      ModelName: !Ref ModelName1
+      PrimaryContainer:
+        Mode: SingleModel
+        Image: !Ref ContainerImage1
+        ModelDataUrl: !Ref ModelDataUrl1
+
+  Model2:
+    Type: AWS::SageMaker::Model
+    Properties:
+      EnableNetworkIsolation: False
+      ExecutionRoleArn: !Ref ModelExecutionRoleArn
+      ModelName: !Ref ModelName2
+      PrimaryContainer:
+        Mode: SingleModel
+        Image: !Ref ContainerImage2
+        ModelDataUrl: !Ref ModelDataUrl2
+
   BatchPipeline1:
     Type: AWS::SageMaker::Pipeline
+    DependsOn:
+      - Model1
+      - Model2
     Properties: 
       PipelineDescription: The SM Pipeline that executes the batch inference for model 1
       PipelineName: !Sub ${SageMakerProjectName}-${StageName}-BatchPipeline-1
@@ -50,8 +94,11 @@ Resources:
           Value: !Ref SageMakerProjectName
         - Key: sagemaker:project-id
           Value: !Ref SageMakerProjectId
+
   EventRule1:
     Type: AWS::Events::Rule
+    DependsOn:
+      - BatchPipeline1
     Properties:
       Name: !Sub sagemaker-${SageMakerProjectName}-${StageName}-SchedExecRule1
       ScheduleExpression: !Sub rate(${ScheduleExpressionforPipeline})

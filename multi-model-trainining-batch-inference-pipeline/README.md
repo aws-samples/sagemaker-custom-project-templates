@@ -4,6 +4,14 @@
 
 The purpose of this template is to deploy a Sagemaker Training Pipeline for parallel training of multiple models, and a scheduled batch inference using SageMaker Batch Transform and SageMaker Pipelines, given two `ModelGroupPackageName` from the Amazon SageMaker Model Registry. 
 
+## Prerequisites
+
+Copy data from the public S3 bucket `sagemaker-sample-files` from your default bucket.
+
+```
+aws s3 cp s3://sagemaker-sample-files/datasets/tabular/tweets_dataset/TheSocialDilemma.csv s3://DOC-EXAMPLE-BUCKET/datasets/tabular/tweets_dataset/TheSocialDilemma.csv
+```
+
 ## Architecture
 
 ![Architecture.png](images/Architecture.png)

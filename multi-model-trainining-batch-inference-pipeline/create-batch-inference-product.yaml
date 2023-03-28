@@ -41,7 +41,7 @@ Parameters:
 
   ProductSupportURLParameter:
     Type: String
-    Default: 'https://github.com/brunopistone/multi-model-train-template'
+    Default: 'https://github.com/aws-samples/sagemaker-custom-project-templates'
     Description: The support url of this product within the portfolio.
 
   SageMakerProjectRepoZipParameter:
@@ -216,10 +216,239 @@ Resources:
               Service:
                 - servicecatalog.amazonaws.com
             Action: 'sts:AssumeRole'
+      Policies:
+        - PolicyName: !Join [ '-', [ 'SMCustomProject-SAMPLE-Service-Catalog-Policy', !Select [ 4, !Split [ '-', !Select [ 2, !Split [ '/', !Ref 'AWS::StackId' ] ] ] ] ] ]
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Action:
+                  - 'iam:PassRole'
+                Resource:
+                  - arn:aws:iam::*:role/service-role/AmazonSageMakerServiceCatalogProductsUse*
+                  - arn:aws:iam::*:role/AmazonSageMakerServiceCatalogProductsUse*
+                Effect: Allow
       ManagedPolicyArns:
         - arn:aws:iam::aws:policy/AmazonS3ReadOnlyAccess
         - arn:aws:iam::aws:policy/AmazonSageMakerAdmin-ServiceCatalogProductsServiceRolePolicy
         - arn:aws:iam::aws:policy/AmazonSageMakerFullAccess
+
+  AmazonSageMakerServiceCatalogProductsUseRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: 'AmazonSageMakerServiceCatalogProductsUseRoleMultiModelTB'
+      Description: Role used by SageMaker Project resources
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - lambda.amazonaws.com
+                - events.amazonaws.com
+                - apigateway.amazonaws.com
+                - cloudformation.amazonaws.com
+                - states.amazonaws.com
+                - codepipeline.amazonaws.com
+                - codebuild.amazonaws.com
+                - glue.amazonaws.com
+                - firehose.amazonaws.com
+                - sagemaker.amazonaws.com
+            Action: 'sts:AssumeRole'
+      Policies:
+        - PolicyName: 'AmazonSageMakerServiceCatalogProductsUsePolicyMultiModelTB'
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: "Allow"
+                Action: "s3:*"
+                Resource: "*"
+              - Action:
+                  - 'cloudformation:CreateChangeSet'
+                  - 'cloudformation:CreateStack'
+                  - 'cloudformation:DescribeChangeSet'
+                  - 'cloudformation:DeleteChangeSet'
+                  - 'cloudformation:DeleteStack'
+                  - 'cloudformation:DescribeStacks'
+                  - 'cloudformation:ExecuteChangeSet'
+                  - 'cloudformation:SetStackPolicy'
+                  - 'cloudformation:UpdateStack'
+                Resource: 'arn:aws:cloudformation:*:*:stack/sagemaker-*'
+                Effect: Allow
+              - Action:
+                  - 'cloudwatch:PutMetricData'
+                Resource: '*'
+                Effect: Allow
+              - Action:
+                  - 'codebuild:BatchGetBuilds'
+                  - 'codebuild:StartBuild'
+                Resource:
+                  - 'arn:aws:codebuild:*:*:project/sagemaker-*'
+                  - 'arn:aws:codebuild:*:*:build/sagemaker-*'
+                Effect: Allow
+              - Action:
+                  - 'codecommit:CancelUploadArchive'
+                  - 'codecommit:GetBranch'
+                  - 'codecommit:GetCommit'
+                  - 'codecommit:GetUploadArchiveStatus'
+                  - 'codecommit:UploadArchive'
+                Resource: 'arn:aws:codecommit:*:*:sagemaker-*'
+                Effect: Allow
+              - Action:
+                  - 'codepipeline:StartPipelineExecution'
+                Resource: 'arn:aws:codepipeline:*:*:sagemaker-*'
+                Effect: Allow
+              - Action:
+                  - 'ec2:DescribeRouteTables'
+                Resource: '*'
+                Effect: Allow
+              - Action:
+                  - 'ecr:BatchCheckLayerAvailability'
+                  - 'ecr:BatchGetImage'
+                  - 'ecr:Describe*'
+                  - 'ecr:GetAuthorizationToken'
+                  - 'ecr:GetDownloadUrlForLayer'
+                Resource: '*'
+                Effect: Allow
+              - Effect: Allow
+                Action:
+                  - 'ecr:BatchDeleteImage'
+                  - 'ecr:CompleteLayerUpload'
+                  - 'ecr:CreateRepository'
+                  - 'ecr:DeleteRepository'
+                  - 'ecr:InitiateLayerUpload'
+                  - 'ecr:PutImage'
+                  - 'ecr:UploadLayerPart'
+                Resource:
+                  - 'arn:aws:ecr:*:*:repository/sagemaker-*'
+              - Action:
+                  - 'events:DeleteRule'
+                  - 'events:DescribeRule'
+                  - 'events:PutRule'
+                  - 'events:PutTargets'
+                  - 'events:RemoveTargets'
+                Resource:
+                  - 'arn:aws:events:*:*:rule/sagemaker-*'
+                Effect: Allow
+              - Action:
+                  - 'firehose:PutRecord'
+                  - 'firehose:PutRecordBatch'
+                Resource: 'arn:aws:firehose:*:*:deliverystream/sagemaker-*'
+                Effect: Allow
+              - Action:
+                  - 'glue:BatchCreatePartition'
+                  - 'glue:BatchDeletePartition'
+                  - 'glue:BatchDeleteTable'
+                  - 'glue:BatchDeleteTableVersion'
+                  - 'glue:BatchGetPartition'
+                  - 'glue:CreateDatabase'
+                  - 'glue:CreatePartition'
+                  - 'glue:CreateTable'
+                  - 'glue:DeletePartition'
+                  - 'glue:DeleteTable'
+                  - 'glue:DeleteTableVersion'
+                  - 'glue:GetDatabase'
+                  - 'glue:GetPartition'
+                  - 'glue:GetPartitions'
+                  - 'glue:GetTable'
+                  - 'glue:GetTables'
+                  - 'glue:GetTableVersion'
+                  - 'glue:GetTableVersions'
+                  - 'glue:SearchTables'
+                  - 'glue:UpdatePartition'
+                  - 'glue:UpdateTable'
+                Resource:
+                  - 'arn:aws:glue:*:*:catalog'
+                  - 'arn:aws:glue:*:*:database/default'
+                  - 'arn:aws:glue:*:*:database/global_temp'
+                  - 'arn:aws:glue:*:*:database/sagemaker-*'
+                  - 'arn:aws:glue:*:*:table/sagemaker-*'
+                  - 'arn:aws:glue:*:*:tableVersion/sagemaker-*'
+                Effect: Allow
+              - Action:
+                  - 'iam:PassRole'
+                Resource:
+                  - arn:aws:iam::*:role/service-role/AmazonSageMakerServiceCatalogProductsUse*
+                  - arn:aws:iam::*:role/AmazonSageMakerServiceCatalogProductsUse*
+                Effect: Allow
+              - Effect: Allow
+                Action:
+                  - 'comprehend:*'
+                  - 'lambda:*'
+                  - 'translate:*'
+                Resource:
+                  - '*'
+              - Action:
+                  - 'logs:CreateLogDelivery'
+                  - 'logs:CreateLogGroup'
+                  - 'logs:CreateLogStream'
+                  - 'logs:DeleteLogDelivery'
+                  - 'logs:Describe*'
+                  - 'logs:GetLogDelivery'
+                  - 'logs:GetLogEvents'
+                  - 'logs:ListLogDeliveries'
+                  - 'logs:PutLogEvents'
+                  - 'logs:PutResourcePolicy'
+                  - 'logs:UpdateLogDelivery'
+                Resource: '*'
+                Effect: Allow
+              - Effect: Allow
+                Action:
+                  - 's3:CreateBucket'
+                  - 's3:DeleteBucket'
+                  - 's3:GetBucketAcl'
+                  - 's3:GetBucketCors'
+                  - 's3:GetBucketLocation'
+                  - 's3:ListAllMyBuckets'
+                  - 's3:ListBucket'
+                  - 's3:ListBucketMultipartUploads'
+                  - 's3:PutBucketCors'
+                  - 's3:PutObjectAcl'
+                Resource:
+                  - '*'
+              - Effect: Allow
+                Action:
+                  - 's3:AbortMultipartUpload'
+                  - 's3:DeleteObject'
+                  - 's3:GetObject'
+                  - 's3:GetObjectVersion'
+                  - 's3:PutObject'
+                Resource:
+                  - '*'
+              - Effect: Allow
+                Action:
+                  - 'sagemaker:*'
+                NotResource:
+                  - 'arn:aws:sagemaker:*:*:domain/*'
+                  - 'arn:aws:sagemaker:*:*:user-profile/*'
+                  - 'arn:aws:sagemaker:*:*:app/*'
+                  - 'arn:aws:sagemaker:*:*:flow-definition/*'
+              - Action:
+                  - 'states:DescribeExecution'
+                  - 'states:DescribeStateMachine'
+                  - 'states:DescribeStateMachineForExecution'
+                  - 'states:GetExecutionHistory'
+                  - 'states:ListExecutions'
+                  - 'states:ListTagsForResource'
+                  - 'states:StartExecution'
+                  - 'states:StopExecution'
+                  - 'states:TagResource'
+                  - 'states:UntagResource'
+                  - 'states:UpdateStateMachine'
+                Resource:
+                  - 'arn:aws:states:*:*:stateMachine:sagemaker-*'
+                  - 'arn:aws:states:*:*:execution:sagemaker-*:*'
+                Effect: Allow
+              - Action:
+                  - 'states:ListStateMachines'
+                Resource: '*'
+                Effect: Allow
+              - Effect: Allow
+                Action:
+                  - 'codestar-connections:UseConnection'
+                Resource: 'arn:aws:codestar-connections:*:*:connection/*'
+                Condition:
+                  StringEqualsIgnoreCase:
+                    'aws:ResourceTag/sagemaker': 'true'
 
   ServiceCatalogProductAssociation:
     Type: AWS::ServiceCatalog::PortfolioProductAssociation

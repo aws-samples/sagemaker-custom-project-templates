@@ -67,9 +67,9 @@ Resources:
               - !Ref 'AWS::Partition'
               - 'iam:'
               - !Ref 'AWS::AccountId'
-              - role/service-role/AmazonSageMakerServiceCatalogProductsUseRole
+              - role/AmazonSageMakerServiceCatalogProductsUseRoleMultiModelTB
           Id: !Sub 'codecommit-${SageMakerProjectName}-modelbuild'
-  
+
   ModelBuildCodeCommitRepository:
     Type: 'AWS::CodeCommit::Repository'
     Properties:
@@ -82,7 +82,7 @@ Resources:
           Bucket: AWSDEFAULT___CODE_STAGING_BUCKET___
           Key: AWSDEFAULT___PROJECT_NAME___/seedcode/multi-model-trainining-batch-inference-pipeline-build.zip
         BranchName: main
-  
+
   SageMakerModelPipelineBuildProject:
     Type: 'AWS::CodeBuild::Project'
     Properties:
@@ -90,13 +90,13 @@ Resources:
       Description: >-
         Builds the model building workflow code repository, creates the
         SageMaker Pipeline and executes it
-      ServiceRole: !Join 
+      ServiceRole: !Join
         - ':'
         - - arn
           - !Ref 'AWS::Partition'
           - 'iam:'
           - !Ref 'AWS::AccountId'
-          - role/service-role/AmazonSageMakerServiceCatalogProductsUseRole
+          - role/AmazonSageMakerServiceCatalogProductsUseRoleMultiModelTB
       Artifacts:
         Type: CODEPIPELINE
       Environment:
@@ -113,17 +113,17 @@ Resources:
           - Name: SAGEMAKER_PIPELINE_NAME
             Value: !Sub 'sagemaker-${SageMakerProjectName}'
           - Name: SAGEMAKER_PIPELINE_ROLE_ARN
-            Value: !Join 
+            Value: !Join
               - ':'
               - - arn
                 - !Ref 'AWS::Partition'
                 - 'iam:'
                 - !Ref 'AWS::AccountId'
-                - role/service-role/AmazonSageMakerServiceCatalogProductsUseRole
+                - role/AmazonSageMakerServiceCatalogProductsUseRoleMultiModelTB
           - Name: AWS_REGION
             Value: !Ref 'AWS::Region'
           - Name: SAGEMAKER_PROJECT_ARN
-            Value: !Join 
+            Value: !Join
               - ':'
               - - arn
                 - !Ref 'AWS::Partition'
@@ -135,19 +135,19 @@ Resources:
         Type: CODEPIPELINE
         BuildSpec: codebuild-buildspec.yml
       TimeoutInMinutes: 480
-  
+
   ModelBuildPipeline:
     Type: 'AWS::CodePipeline::Pipeline'
     DependsOn: MlOpsArtifactsBucket
     Properties:
       Name: !Sub 'sagemaker-${SageMakerProjectName}-${SageMakerProjectId}-modelbuild'
-      RoleArn: !Join 
+      RoleArn: !Join
         - ':'
         - - arn
           - !Ref 'AWS::Partition'
           - 'iam:'
           - !Ref 'AWS::AccountId'
-          - role/service-role/AmazonSageMakerServiceCatalogProductsUseRole
+          - role/AmazonSageMakerServiceCatalogProductsUseRoleMultiModelTB
       ArtifactStore:
         Type: S3
         Location: !Ref MlOpsArtifactsBucket
@@ -181,7 +181,7 @@ Resources:
               Configuration:
                 ProjectName: !Ref SageMakerModelPipelineBuildProject
               RunOrder: 1
-  
+
   ModelDeploySageMakerEventRule1:
     Type: 'AWS::Events::Rule'
     Properties:
@@ -203,7 +203,7 @@ Resources:
                 - PendingManualApproval
       State: ENABLED
       Targets:
-        - Arn: !Join 
+        - Arn: !Join
             - ':'
             - - arn
               - !Ref 'AWS::Partition'
@@ -211,15 +211,15 @@ Resources:
               - !Ref 'AWS::Region'
               - !Ref 'AWS::AccountId'
               - !Ref ModelDeployPipeline
-          RoleArn: !Join 
+          RoleArn: !Join
             - ':'
             - - arn
               - !Ref 'AWS::Partition'
               - 'iam:'
               - !Ref 'AWS::AccountId'
-              - role/service-role/AmazonSageMakerServiceCatalogProductsUseRole
+              - role/AmazonSageMakerServiceCatalogProductsUseRoleMultiModelTB
           Id: !Sub 'sagemaker-${SageMakerProjectName}-trigger'
-  
+
   ModelDeploySageMakerEventRule2:
     Type: 'AWS::Events::Rule'
     Properties:
@@ -241,7 +241,7 @@ Resources:
                 - PendingManualApproval
       State: ENABLED
       Targets:
-        - Arn: !Join 
+        - Arn: !Join
             - ':'
             - - arn
               - !Ref 'AWS::Partition'
@@ -249,15 +249,15 @@ Resources:
               - !Ref 'AWS::Region'
               - !Ref 'AWS::AccountId'
               - !Ref ModelDeployPipeline
-          RoleArn: !Join 
+          RoleArn: !Join
             - ':'
             - - arn
               - !Ref 'AWS::Partition'
               - 'iam:'
               - !Ref 'AWS::AccountId'
-              - role/service-role/AmazonSageMakerServiceCatalogProductsUseRole
+              - role/AmazonSageMakerServiceCatalogProductsUseRoleMultiModelTB
           Id: !Sub 'sagemaker-${SageMakerProjectName}-trigger'
-  
+
   ModelDeployCodeCommitEventRule:
     Type: 'AWS::Events::Rule'
     Properties:
@@ -277,7 +277,7 @@ Resources:
             - main
       State: ENABLED
       Targets:
-        - Arn: !Join 
+        - Arn: !Join
             - ':'
             - - arn
               - !Ref 'AWS::Partition'
@@ -285,15 +285,15 @@ Resources:
               - !Ref 'AWS::Region'
               - !Ref 'AWS::AccountId'
               - !Ref ModelDeployPipeline
-          RoleArn: !Join 
+          RoleArn: !Join
             - ':'
             - - arn
               - !Ref 'AWS::Partition'
               - 'iam:'
               - !Ref 'AWS::AccountId'
-              - role/service-role/AmazonSageMakerServiceCatalogProductsUseRole
+              - role/AmazonSageMakerServiceCatalogProductsUseRoleMultiModelTB
           Id: !Sub 'codecommit-${SageMakerProjectName}-trigger'
-  
+
   ModelDeployCodeCommitRepository:
     Type: 'AWS::CodeCommit::Repository'
     Properties:
@@ -306,7 +306,7 @@ Resources:
           Bucket: AWSDEFAULT___CODE_STAGING_BUCKET___
           Key: AWSDEFAULT___PROJECT_NAME___/seedcode/multi-model-trainining-batch-inference-pipeline-deploy.zip
         BranchName: main
-  
+
   ModelDeployBuildProject:
     Type: 'AWS::CodeBuild::Project'
     Properties:
@@ -314,13 +314,13 @@ Resources:
       Description: >-
         Builds the Cfn template which defines the Endpoint with specified
         configuration
-      ServiceRole: !Join 
+      ServiceRole: !Join
         - ':'
         - - arn
           - !Ref 'AWS::Partition'
           - 'iam:'
           - !Ref 'AWS::AccountId'
-          - role/service-role/AmazonSageMakerServiceCatalogProductsUseRole
+          - role/AmazonSageMakerServiceCatalogProductsUseRoleMultiModelTB
       Artifacts:
         Type: CODEPIPELINE
       Environment:
@@ -335,20 +335,20 @@ Resources:
           - Name: ARTIFACT_BUCKET
             Value: !Ref MlOpsArtifactsBucket
           - Name: MODEL_EXECUTION_ROLE_ARN
-            Value: !Join 
+            Value: !Join
               - ':'
               - - arn
                 - !Ref 'AWS::Partition'
                 - 'iam:'
                 - !Ref 'AWS::AccountId'
-                - role/service-role/AmazonSageMakerServiceCatalogProductsUseRole
+                - role/AmazonSageMakerServiceCatalogProductsUseRoleMultiModelTB
           - Name: SOURCE_MODEL_PACKAGE_GROUP_NAMES
-            Value: !Join 
+            Value: !Join
               - ','
               - - !Sub '${SageMakerProjectName}-${SageMakerProjectId}-1'
                 - !Sub '${SageMakerProjectName}-${SageMakerProjectId}-2'
           - Name: SAGEMAKER_PROJECT_ARN
-            Value: !Join 
+            Value: !Join
               - ':'
               - - arn
                 - !Ref 'AWS::Partition'
@@ -368,19 +368,19 @@ Resources:
         Type: CODEPIPELINE
         BuildSpec: buildspec.yml
       TimeoutInMinutes: 30
-  
+
   ModelDeployTestProject:
     Type: 'AWS::CodeBuild::Project'
     Properties:
       Name: !Sub 'sagemaker-${SageMakerProjectName}-${SageMakerProjectId}-testing'
       Description: Test the deployment endpoint
-      ServiceRole: !Join 
+      ServiceRole: !Join
         - ':'
         - - arn
           - !Ref 'AWS::Partition'
           - 'iam:'
           - !Ref 'AWS::AccountId'
-          - role/service-role/AmazonSageMakerServiceCatalogProductsUseRole
+          - role/AmazonSageMakerServiceCatalogProductsUseRoleMultiModelTB
       Artifacts:
         Type: CODEPIPELINE
       Environment:
@@ -402,19 +402,19 @@ Resources:
         Type: CODEPIPELINE
         BuildSpec: test/buildspec.yml
       TimeoutInMinutes: 30
-  
+
   ModelDeployPipeline:
     Type: 'AWS::CodePipeline::Pipeline'
     DependsOn: MlOpsArtifactsBucket
     Properties:
       Name: !Sub 'sagemaker-${SageMakerProjectName}-${SageMakerProjectId}-modeldeploy'
-      RoleArn: !Join 
+      RoleArn: !Join
         - ':'
         - - arn
           - !Ref 'AWS::Partition'
           - 'iam:'
           - !Ref 'AWS::AccountId'
-          - role/service-role/AmazonSageMakerServiceCatalogProductsUseRole
+          - role/AmazonSageMakerServiceCatalogProductsUseRoleMultiModelTB
       ArtifactStore:
         Type: S3
         Location: !Ref MlOpsArtifactsBucket
@@ -461,14 +461,14 @@ Resources:
               Configuration:
                 ActionMode: REPLACE_ON_FAILURE
                 Capabilities: CAPABILITY_NAMED_IAM
-                RoleArn: !Join 
+                RoleArn: !Join
                   - ':'
                   - - arn
                     - !Ref 'AWS::Partition'
                     - 'iam:'
                     - !Ref 'AWS::AccountId'
                     - >-
-                      role/service-role/AmazonSageMakerServiceCatalogProductsUseRole
+                      role/AmazonSageMakerServiceCatalogProductsUseRoleMultiModelTB
                 StackName: !Sub >-
                   sagemaker-${SageMakerProjectName}-${SageMakerProjectId}-deploy-staging
                 TemplateConfiguration: 'BuildArtifact::staging-config-export.json'
@@ -510,14 +510,14 @@ Resources:
                 Provider: CloudFormation
               Configuration:
                 ActionMode: CREATE_UPDATE
-                RoleArn: !Join 
+                RoleArn: !Join
                   - ':'
                   - - arn
                     - !Ref 'AWS::Partition'
                     - 'iam:'
                     - !Ref 'AWS::AccountId'
                     - >-
-                      role/service-role/AmazonSageMakerServiceCatalogProductsUseRole
+                      role/AmazonSageMakerServiceCatalogProductsUseRoleMultiModelTB
                 Capabilities: CAPABILITY_NAMED_IAM
                 StackName: !Sub >-
                   sagemaker-${SageMakerProjectName}-${SageMakerProjectId}-deploy-prod
