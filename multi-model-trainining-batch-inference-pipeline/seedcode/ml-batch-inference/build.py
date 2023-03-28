@@ -38,14 +38,15 @@ def get_approved_package(model_package_group_name):
 
         # Return error if no packages found
         if len(approved_packages) == 0:
-            error_message = ("No approved ModelPackage found for ModelPackageGroup: {}".format(model_package_group_name))
+            error_message = (
+                "No approved ModelPackage found for ModelPackageGroup: {}".format(model_package_group_name))
             print("{}".format(error_message))
 
             raise Exception(error_message)
 
         model_package = approved_packages[0]
         print("Identified the latest approved model package: {}".format(model_package))
-        
+
         return model_package
     except ClientError as e:
         stacktrace = traceback.format_exc()
@@ -53,6 +54,7 @@ def get_approved_package(model_package_group_name):
         print("{}".format(stacktrace))
 
         raise Exception(error_message)
+
 
 def describe_model_package(model_package_arn):
     try:
@@ -75,7 +77,8 @@ def describe_model_package(model_package_arn):
         print("{}".format(stacktrace))
 
         raise Exception(error_message)
-        
+
+
 def extend_config(args, pipeline_definitions, container_definitions, stage_config):
     """
     Extend the stage configuration with additional parameters and tags based.
@@ -87,11 +90,13 @@ def extend_config(args, pipeline_definitions, container_definitions, stage_confi
         stage_config["Tags"] = {}
     # Create new params and tags
     new_params = {
+        "InputPath": "s3://{}/inference/data/input".format(args.default_bucket),
+        "OutputPath": "s3://{}/inference/data/output".format(args.default_bucket),
         "SageMakerProjectName": args.sagemaker_project_name,
         "SageMakerProjectId": args.sagemaker_project_id,
         "ModelExecutionRoleArn": args.model_execution_role,
     }
-    
+
     index = 1
     for pipeline_definition in pipeline_definitions:
         new_params["PipelineDefinitionBody" + str(index)] = pipeline_definition
@@ -103,7 +108,7 @@ def extend_config(args, pipeline_definitions, container_definitions, stage_confi
         new_params["ModelDataUrl" + str(index)] = container_def["ModelDataUrl"]
         new_params["ModelName" + str(index)] = container_def["ModelName"]
         index += 1
-    
+
     new_tags = {
         "sagemaker:deployment-stage": stage_config["Parameters"]["StageName"],
         "sagemaker:project-id": args.sagemaker_project_id,
@@ -117,16 +122,18 @@ def extend_config(args, pipeline_definitions, container_definitions, stage_confi
         "Tags": {**stage_config.get("Tags", {}), **new_tags},
     }
 
+
 def get_pipeline_custom_tags(args, sagemaker_client, new_tags):
     try:
         response = sagemaker_client.list_tags(
-                ResourceArn=args.sagemaker_project_arn)
+            ResourceArn=args.sagemaker_project_arn)
         project_tags = response["Tags"]
         for project_tag in project_tags:
             new_tags[project_tag["Key"]] = project_tag["Value"]
     except:
         logger.error("Error getting project tags")
     return new_tags
+
 
 def get_cfn_style_config(stage_config):
     parameters = []
@@ -145,6 +152,7 @@ def get_cfn_style_config(stage_config):
         tags.append(tag)
     return parameters, tags
 
+
 def create_cfn_params_tags_file(config, export_params_file, export_tags_file):
     # Write Params and tags in separate file for Cfn cli command
     parameters, tags = get_cfn_style_config(config)
@@ -152,7 +160,8 @@ def create_cfn_params_tags_file(config, export_params_file, export_tags_file):
         json.dump(parameters, f, indent=4)
     with open(export_tags_file, "w") as f:
         json.dump(tags, f, indent=4)
-        
+
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--log-level", type=str, default=os.environ.get("LOGLEVEL", "INFO").upper())
@@ -181,19 +190,18 @@ def main():
     # Configure logging to output the line number and message
     log_format = "%(levelname)s: [%(filename)s:%(lineno)s] %(message)s"
     logging.basicConfig(format=log_format, level=args.log_level)
-    
+
     model_names = []
     pipeline_definitions = []
     container_definitions = []
-    
+
     for model_package_group_name in args.model_package_group_names.split(","):
         logger.info("Model Package Group: {}".format(model_package_group_name))
         # Get the latest approved package
         model_package = get_approved_package(model_package_group_name)
         model_package_arn = model_package["ModelPackageArn"]
-
         model_package = describe_model_package(model_package_arn)
-    
+
         model = PyTorchModel(
             entry_point=os.path.join(BASE_DIR, "pipelines", "batch_inference", "inference.py"),
             name=model_package_group_name + "-" + str(model_package["ModelPackageVersion"]),
@@ -208,23 +216,23 @@ def main():
         container_def["ModelName"] = model_package_group_name + "-" + str(model_package["ModelPackageVersion"])
 
         container_definitions.append(container_def)
-        
+
         model_names.append(model_package_group_name + "-" + str(model_package["ModelPackageVersion"]))
-    
+
     # Build the pipeline
     pipeline_definition = run_pipeline.main(
         'pipelines.batch_inference.pipeline',
         args.model_execution_role,
         json.dumps([
-            {"Key":"sagemaker:project-name","Value": args.sagemaker_project_name},
-            {"Key":"sagemaker:project-id","Value": args.sagemaker_project_id}
+            {"Key": "sagemaker:project-name", "Value": args.sagemaker_project_name},
+            {"Key": "sagemaker:project-id", "Value": args.sagemaker_project_id}
         ]),
         json.dumps({
-            'region':args.aws_region,
-            'default_bucket':args.default_bucket,
+            'region': args.aws_region,
+            'default_bucket': args.default_bucket,
             'model_names': model_names,
-            'inference_instance_type':args.inference_instance_type,
-            'inference_instance_count':args.inference_instance_count
+            'inference_instance_type': args.inference_instance_type,
+            'inference_instance_count': args.inference_instance_count
         })
     )
 
@@ -237,7 +245,7 @@ def main():
     with open(args.export_staging_config, "w") as f:
         json.dump(staging_config, f, indent=4)
     if (args.export_cfn_params_tags):
-      create_cfn_params_tags_file(staging_config, args.export_staging_params, args.export_staging_tags)
+        create_cfn_params_tags_file(staging_config, args.export_staging_params, args.export_staging_tags)
 
     # Write the prod config for code pipeline
     with open(args.import_prod_config, "r") as f:
@@ -246,7 +254,8 @@ def main():
     with open(args.export_prod_config, "w") as f:
         json.dump(prod_config, f, indent=4)
     if (args.export_cfn_params_tags):
-      create_cfn_params_tags_file(prod_config, args.export_prod_params, args.export_prod_tags)
+        create_cfn_params_tags_file(prod_config, args.export_prod_params, args.export_prod_tags)
+
 
 if __name__ == "__main__":
     main()

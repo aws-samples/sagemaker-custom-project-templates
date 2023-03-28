@@ -17,19 +17,20 @@ import traceback
 
 BASE_DIR = os.path.dirname(os.path.realpath(__file__))
 
+
 def get_sagemaker_client(region):
-     """Gets the sagemaker client.
+    """Gets the sagemaker client.
 
-        Args:
-            region: the aws region to start the session
-            default_bucket: the bucket to use for storing the artifacts
+       Args:
+           region: the aws region to start the session
+           default_bucket: the bucket to use for storing the artifacts
 
-        Returns:
-            `sagemaker.session.Session instance
-        """
-     boto_session = boto3.Session(region_name=region)
-     sagemaker_client = boto_session.client("sagemaker")
-     return sagemaker_client
+       Returns:
+           `sagemaker.session.Session instance
+       """
+    boto_session = boto3.Session(region_name=region)
+    sagemaker_client = boto_session.client("sagemaker")
+    return sagemaker_client
 
 
 def get_session(region, default_bucket):
@@ -54,6 +55,7 @@ def get_session(region, default_bucket):
         default_bucket=default_bucket,
     )
 
+
 def get_pipeline_session(region, default_bucket):
     """Gets the pipeline session based on the region.
 
@@ -74,6 +76,7 @@ def get_pipeline_session(region, default_bucket):
         default_bucket=default_bucket,
     )
 
+
 def get_pipeline_custom_tags(new_tags, region, sagemaker_project_arn=None):
     try:
         sm_client = get_sagemaker_client(region)
@@ -86,23 +89,30 @@ def get_pipeline_custom_tags(new_tags, region, sagemaker_project_arn=None):
         print(f"Error getting project tags: {e}")
     return new_tags
 
+
 def get_pipeline(
-    region,
-    sagemaker_project_arn=None,
-    role=None,
-    default_bucket=None,
-    model_package_group_name_1="NlpPackageGroup-1",
-    model_package_group_name_2="NlpModelPackageGroup-2",
-    pipeline_name="NlpPipeline",
-    base_job_prefix="Nlp",
-    processing_instance_type="ml.t3.large",
-    training_instance_type="ml.m5.large",
-    inference_instance_type="ml.m5.large"
+        region,
+        sagemaker_project_arn=None,
+        role=None,
+        default_bucket=None,
+        model_package_group_name_1="NlpPackageGroup-1",
+        model_package_group_name_2="NlpModelPackageGroup-2",
+        pipeline_name="NlpPipeline",
+        base_job_prefix="Nlp",
+        processing_instance_type="ml.t3.large",
+        training_instance_type="ml.m5.large",
+        inference_instance_type="ml.m5.large"
 ):
     pipeline_session = get_pipeline_session(region, default_bucket)
-    
+
     if role is None:
         role = sagemaker.session.get_execution_role(pipeline_session)
+
+    training_hyperparameters = {
+        "epochs": 25,
+        "learning_rate": 0.001,
+        "batch_size": 100
+    }
 
     input_data = ParameterString(
         name="InputData", default_value="s3://{}/datasets/tabular/tweets_dataset".format(default_bucket)
@@ -112,26 +122,23 @@ def get_pipeline(
         name="ModelApprovalStatus", default_value="PendingManualApproval"
     )
 
-    processing_instance_count_param= ParameterInteger(
+    processing_instance_count_param = ParameterInteger(
         name="ProcessingInstanceCount", default_value=1
     )
 
-    training_instance_count_param= ParameterInteger(
+    training_instance_count_param = ParameterInteger(
         name="TrainingInstanceCount", default_value=1
     )
-    
-    processing_framework_version = "0.23-1"
-    processing_output_files_path = "e2e-base/data/output"
-    
+
     processor = FrameworkProcessor(
         estimator_cls=SKLearn,
-        framework_version=processing_framework_version,
+        framework_version="0.23-1",
         role=role,
         instance_count=processing_instance_count_param,
         instance_type=processing_instance_type,
         sagemaker_session=pipeline_session
     )
-    
+
     run_args = processor.get_run_args(
         code=os.path.join(BASE_DIR, "processing.py"),
         inputs=[
@@ -145,14 +152,18 @@ def get_pipeline(
             ProcessingOutput(
                 output_name="train",
                 source="/opt/ml/processing/output/train",
-                destination="s3://{}/{}/train".format(default_bucket, processing_output_files_path)),
+                destination="s3://{}/data/output/train".format(default_bucket)),
             ProcessingOutput(
                 output_name="test",
                 source="/opt/ml/processing/output/test",
-                destination="s3://{}/{}/test".format(default_bucket, processing_output_files_path))
+                destination="s3://{}/data/output/test".format(default_bucket)),
+            ProcessingOutput(
+                output_name="inference",
+                source="/opt/ml/processing/output/inference",
+                destination="s3://{}/inference/data/input".format(default_bucket))
         ]
     )
-    
+
     step_process = ProcessingStep(
         name="ProcessData",
         code=run_args.code,
@@ -160,29 +171,19 @@ def get_pipeline(
         inputs=run_args.inputs,
         outputs=run_args.outputs
     )
-    
-    training_output_files_path = "e2e-base/models"
-    training_framework_version = "1.12"
-    training_python_version = "py38"
-    training_hyperparameters = {
-        "epochs": 25,
-        "learning_rate": 0.001,
-        "batch_size": 100
-    }
-    
+
     estimator_1 = PyTorch(
         os.path.join(BASE_DIR, "train_model_1.py"),
-        framework_version=training_framework_version,
-        py_version=training_python_version,
-        output_path="s3://{}/{}".format(default_bucket,
-                                        training_output_files_path),
+        framework_version="1.12",
+        py_version="py38",
+        output_path="s3://{}/models".format(default_bucket),
         hyperparameters=training_hyperparameters,
         role=role,
         instance_count=training_instance_count_param,
         instance_type=training_instance_type,
         disable_profiler=True
     )
-    
+
     step_train_1 = TrainingStep(
         depends_on=[step_process],
         name="TrainModel1",
@@ -198,20 +199,19 @@ def get_pipeline(
             )
         }
     )
-    
+
     estimator_2 = PyTorch(
         os.path.join(BASE_DIR, "train_model_2.py"),
-        framework_version=training_framework_version,
-        py_version=training_python_version,
-        output_path="s3://{}/{}".format(default_bucket,
-                                        training_output_files_path),
+        framework_version="1.12",
+        py_version="py38",
+        output_path="s3://{}/models".format(default_bucket),
         hyperparameters=training_hyperparameters,
         role=role,
         instance_count=training_instance_count_param,
         instance_type=training_instance_type,
         disable_profiler=True
     )
-    
+
     step_train_2 = TrainingStep(
         depends_on=[step_process],
         name="TrainModel2",
@@ -227,7 +227,7 @@ def get_pipeline(
             )
         }
     )
-    
+
     step_register_model_1 = RegisterModel(
         name="RegisterModel1",
         estimator=estimator_1,
@@ -239,7 +239,7 @@ def get_pipeline(
         inference_instances=[inference_instance_type],
         transform_instances=[inference_instance_type]
     )
-    
+
     step_register_model_2 = RegisterModel(
         name="RegisterModel2",
         estimator=estimator_2,
@@ -251,7 +251,7 @@ def get_pipeline(
         inference_instances=[inference_instance_type],
         transform_instances=[inference_instance_type]
     )
-    
+
     pipeline = Pipeline(
         name=pipeline_name,
         parameters=[
@@ -262,12 +262,12 @@ def get_pipeline(
         ],
         steps=[
             step_process,
-            step_train_1, 
+            step_train_1,
             step_register_model_1,
-            step_train_2, 
+            step_train_2,
             step_register_model_2
         ],
         sagemaker_session=pipeline_session
     )
-    
+
     return pipeline

@@ -78,7 +78,7 @@ def extract_data(file_path, percentage=100):
 
         raise e
 
-def load_data(df, file_path, file_name):
+def load_data(df, file_path, file_name, header=True):
     try:
         if not os.path.exists(file_path):
             os.makedirs(file_path)
@@ -90,7 +90,7 @@ def load_data(df, file_path, file_name):
         df.to_csv(
             path,
             index=False,
-            header=True,
+            header=header,
             quoting=csv.QUOTE_ALL,
             encoding="utf-8",
             escapechar="\\",
@@ -150,3 +150,7 @@ if __name__ == '__main__':
 
     load_data(data_train, os.path.join(PROCESSING_PATH_OUTPUT, "train"), "train")
     load_data(data_test, os.path.join(PROCESSING_PATH_OUTPUT, "test"), "test")
+
+    ## Creating test dataset for batch inference
+    data_test = data_test.drop('labels', axis=1)
+    load_data(data_test, os.path.join(PROCESSING_PATH_OUTPUT, "inference"), "data", False)
