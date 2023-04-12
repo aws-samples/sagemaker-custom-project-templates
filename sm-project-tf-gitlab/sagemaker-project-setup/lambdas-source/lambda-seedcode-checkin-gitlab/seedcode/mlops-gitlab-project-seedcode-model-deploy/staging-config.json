@@ -1,0 +1,19 @@
+{
+    "Parameters": {
+        "StageName": "staging",
+        "EndpointInstanceCount": "1",
+        "EndpointInstanceType": "ml.m5.large",
+        "SageMakerProjectName": "sm-gitlab-tf-test2",
+        "ModelPackageName": "arn:aws:sagemaker:us-east-2:316413003582:model-package/sm-gitlab-tf-test2-p-iub6k5kzs8na/1",
+        "ModelExecutionRoleArn": "arn:aws:iam::316413003582:role/service-role/AmazonSageMakerServiceCatalogProductsUseRole",
+        "ModelImageURI": "257758044811.dkr.ecr.us-east-2.amazonaws.com/sagemaker-xgboost:1.0-1-cpu-py3",
+        "ModelRegistryArtifact": "s3://sagemaker-project-p-iub6k5kzs8na/sm-gitlab-tf-test2-p-iub6k5kzs8na/AbaloneTrain/pipelines-8wjehdlj9fwt-TrainAbaloneModel-jdSdEHz8yv/output/model.tar.gz"
+    },
+    "Tags": {
+        "sagemaker:deployment-stage": "staging",
+        "sagemaker:project-id": "p-iub6k5kzs8na",
+        "sagemaker:project-name": "sm-gitlab-tf-test2",
+        "sagemaker:user-profile-arn": "arn:aws:sagemaker:us-east-2:316413003582:user-profile/d-yes0q7wf0eci/sm-gitlab-user",
+        "sagemaker:domain-arn": "arn:aws:sagemaker:us-east-2:316413003582:domain/d-yes0q7wf0eci"
+    }
+}

@@ -8,7 +8,8 @@
                 "lambda:*",
                 "sagemaker:*",
                 "logs:*",
-                "sts:GetCallerIdentity"
+                "sts:GetCallerIdentity",
+                "cloudformation:*"
             ],
             "Resource": "*"
         },

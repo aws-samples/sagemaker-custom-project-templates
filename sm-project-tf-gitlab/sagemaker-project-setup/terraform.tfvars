@@ -12,3 +12,8 @@ sagemaker_service_catalog_exec_role         = "role/service-role/AmazonSageMaker
 sagemaker_service_catalog_codepipeline_role = "role/service-role/AmazonSageMakerServiceCatalogProductsUseRole"
 sagemaker_service_catalog_events_role       = "role/service-role/AmazonSageMakerServiceCatalogProductsEventsRole"
 sagemaker_service_catalog_lambda_role       = "role/service-role/AmazonSageMakerServiceCatalogProductsUseRole"
+
+# GitLab Repo branch names
+git_build_repo_branch  = "main"
+git_deploy_repo_branch = "main"
+
