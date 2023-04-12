@@ -15,3 +15,14 @@ Sokratis Kartakis <kartakis@amazon.com>
 Fatema Alkhanaizi <alkhanai@amazon.com>
 
 Georgios Schinas <schinasg@amazon.co.uk>
+
+
+Maintaining Team: 
+
+Viktor Malesevic <malesv@amazon.de>
+
+Fotinos Kyriakides <kyriakf@amazon.com>
+
+Gabija Pasiunaite <gabipas@amazon.ch>
+
+Selena Tabbara <sttabbar@amazon.co.uk>
