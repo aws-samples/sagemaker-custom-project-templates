@@ -104,7 +104,7 @@ Here are the steps involved in the workflow shown in the Architecture diagram:
 ### Step 5: Create the Amazon SageMaker Project inside the SageMaker Studio.
 
 1. Open SageMaker Studio and sign in to your user profile. Make sure the SageMaker Exec IAM role mapped to the User profile has access to the Service Catalog.
-2. Choose the SageMaker __components and registries__ icon on the left, and choose the __Create project__ button.
+2. Choose the SageMaker __Deployments__ icon on the left, and choose the __Projects__ option.
 3. The default view displays SageMaker templates. Switch to the __Organization__ templates tab to see custom project templates.
 4. Look for the template with the Service Catalog Product Name you noted from the outputs of the previous Terraform execution step.
 
@@ -136,14 +136,14 @@ Here are the steps involved in the workflow shown in the Architecture diagram:
 
 ### Step 7: Cleanup (Optional)
 
-1. To cleanup the SageMaker Project resources, right click on the SageMaker Project and select "Update Project"
+1. To cleanup the SageMaker Project resources, choose Update from the Actions menu in the upper-right corner of the project tab.
 
     ![](images/sm-projects-image-3.png)
 
 2. Change TerraformAction parameter to "destroy".
 3. Update the SageMaker Project.
 4. Monitor the logs in CloudWatch Log group for completion of Terraform run.
-5. Once it is complete, right click on the SageMaker Project and select "Delect Project" to delete the SageMaker Project.
+5. Once it is complete, right click on the SageMaker Project and select "Delete Project" to delete the SageMaker Project.
 6. Now go back to the development machine where you had cloned this repo.
 7. Navigate back to the "Service Catalog Set up" directory. Run __"cd sm-project-tf-gitlab/service-catalog-setup/"__.
 8. Generate the Terraform plan. Run __"terraform plan"__.
