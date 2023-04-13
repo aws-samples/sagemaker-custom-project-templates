@@ -132,6 +132,10 @@ Here are the steps involved in the workflow shown in the Architecture diagram:
 21. This will trigger the CloudFormation CommandRunner Utility which will inturn perform the Terraform execution to provision the SageMaker Pipeline resources.
 22. The logs of this terraform run will be available in the CloudWatch Log Group you noted from the Output of Terraform Run of previous step.
 23. You have now successfully created an MLOps SageMaker Project with Terraform integration and GitLab. 
+24. Once the Project creation & SageMaker Pipeline execution is complete, you can go to the Model Groups tab to approve the model. 
+25. Once approved, deploy GitLab CI pipeline will be triggered & it will create SageMaker Endpoints via Terraform.
+26. The Endpoints that are created will be accessible within the "Endpoints" tab of the SageMaker Project.
+27. Note that the Prod endpoint creation from GitLab Deploy CI pipeline is not automated. You will have to manually run the last stage of Prod deploy in the GitLab CI pipeline.
 
 
 ### Step 7: Cleanup (Optional)
