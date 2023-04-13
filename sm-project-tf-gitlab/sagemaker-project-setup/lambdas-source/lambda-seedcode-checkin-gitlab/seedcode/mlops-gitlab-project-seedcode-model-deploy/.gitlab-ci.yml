@@ -1,4 +1,7 @@
-image: python:latest
+image:
+  name: hashicorp/terraform:light
+  entrypoint:
+    - '/usr/bin/env'
 
 variables:
   PIP_CACHE_DIR: "$CI_PROJECT_DIR/.cache/pip"
@@ -12,19 +15,18 @@ variables:
   EXPORT_TEMPLATE_PROD_TAGS: "prod-tags-export.json"
   EXPORT_TEST_RESULTS: "test-results.json"
   STACK_NAME_DEPLOY_STAGING: "sagemaker-${SAGEMAKER_PROJECT_NAME}-${SAGEMAKER_PROJECT_ID}-deploy-staging"
-  STACK_NAME_DEPLOY_PROD: "sagemaker-${SAGEMAKER_PROJECT_NAME}-${SAGEMAKER_PROJECT_ID}-deploy-prod"
+  STACK_NAME_DEPLOY_PROD: "sagemaker-${SAGEMAKER_PROJECT_NAME}-${SAGEMAKER_PROJECT_ID}-deploy-prod"  
 
-cache:
-  paths:
-    - .cache/pip
-    - venv/
 
 before_script:
+  - apk add --no-cache python3 py3-pip
   - python -V 
-  - pip install virtualenv
-  - virtualenv venv
-  - source venv/bin/activate
-  - pip install --upgrade --force-reinstall "botocore>1.21.30" "boto3>1.18.30" "awscli>1.20.30"
+  - apk add jq
+  - terraform --version
+  - jq --version
+  - pip install --upgrade --force-reinstall "botocore>1.21.30" "boto3>1.18.30" "awscli>1.20.30" --ignore-installed six --user
+  - export AWS_ACCESS_KEY=${AWS_ACCESS_KEY_ID}
+  - export AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}  
 
 stages:          
   - build
@@ -35,7 +37,7 @@ stages:
 build_job:       
   stage: build
   script:
-    - python build.py --region "$AWS_REGION" --model-execution-role "$MODEL_EXECUTION_ROLE_ARN" --model-package-group-name "$SAGEMAKER_PROJECT_NAME_ID" --sagemaker-project-id "$SAGEMAKER_PROJECT_ID" --sagemaker-project-name "$SAGEMAKER_PROJECT_NAME" --export-staging-config $EXPORT_TEMPLATE_STAGING_CONFIG --export-prod-config $EXPORT_TEMPLATE_PROD_CONFIG --sagemaker-project-arn "$SAGEMAKER_PROJECT_ARN"
+    - python build.py --region "$AWS_REGION" --model-execution-role "$SAGEMAKER_PIPELINE_ROLE_ARN" --model-package-group-name "$SAGEMAKER_PROJECT_NAME_ID" --sagemaker-project-id "$SAGEMAKER_PROJECT_ID" --sagemaker-project-name "$SAGEMAKER_PROJECT_NAME" --export-staging-config $EXPORT_TEMPLATE_STAGING_CONFIG --export-prod-config $EXPORT_TEMPLATE_PROD_CONFIG --sagemaker-project-arn "$SAGEMAKER_PROJECT_ARN"
     - cat $EXPORT_TEMPLATE_STAGING_CONFIG
     - cat $EXPORT_TEMPLATE_PROD_CONFIG
   artifacts:
@@ -53,27 +55,19 @@ staging_deploy:
     - build_job
   script:
     - echo "Deploying model to SageMaker Endpoint..."  
-    - sudo su
-    - yum update -y
-    - yum install -y yum-utils
-    - yum install -y unzip
-    - yum-config-manager --add-repo https://rpm.releases.hashicorp.com/AmazonLinux/hashicorp.repo
-    - yum -y install terraform
-    - yum install jq -y
-    - export TF_VAR_sagemaker_project_name=`cat "staging-config.json" | jq -r ".Parameters.SageMakerProjectName"`    
-    - export TF_VAR_sagemaker_project_id=`cat "staging-config.json" | jq -r '.Tags' | jq -r '.["sagemaker:project-id"]'`
-    - export TF_VAR_model_exec_role_arn=`cat "staging-config.json" | jq -r ".Parameters.ModelExecutionRoleArn"`
-    - export TF_VAR_model_registry_artifact=`cat "staging-config.json" | jq -r ".Parameters.ModelRegistryArtifact"`   
-    - export TF_VAR_model_inference_image=`cat "staging-config.json" | jq -r ".Parameters.ModelImageURI"`    
-    - export TF_VAR_endpoint_instance_count=`cat "staging-config.json" | jq -r ".Parameters.EndpointInstanceCount"`       
-    - export TF_VAR_endpoint_instance_type=`cat "staging-config.json" | jq -r ".Parameters.EndpointInstanceType"`       
-    - export TF_VAR_endpoint_stage_name=`cat "staging-config.json" | jq -r ".Parameters.StageName"`       
-    - cd terraform-package    
+    - export TF_VAR_sagemaker_project_name=`cat $EXPORT_TEMPLATE_STAGING_CONFIG | jq -r ".Parameters.SageMakerProjectName"`    
+    - export TF_VAR_sagemaker_project_id=`cat $EXPORT_TEMPLATE_STAGING_CONFIG | jq -r '.Tags' | jq -r '.["sagemaker:project-id"]'`
+    - export TF_VAR_model_exec_role_arn=`cat $EXPORT_TEMPLATE_STAGING_CONFIG | jq -r ".Parameters.ModelExecutionRoleArn"`
+    - export TF_VAR_model_registry_artifact=`cat $EXPORT_TEMPLATE_STAGING_CONFIG | jq -r ".Parameters.ModelRegistryArtifact"`   
+    - export TF_VAR_model_inference_image=`cat $EXPORT_TEMPLATE_STAGING_CONFIG | jq -r ".Parameters.ModelImageURI"`    
+    - export TF_VAR_endpoint_instance_count=`cat $EXPORT_TEMPLATE_STAGING_CONFIG | jq -r ".Parameters.EndpointInstanceCount"`       
+    - export TF_VAR_endpoint_instance_type=`cat $EXPORT_TEMPLATE_STAGING_CONFIG | jq -r ".Parameters.EndpointInstanceType"`       
+    - export TF_VAR_endpoint_stage_name=`cat $EXPORT_TEMPLATE_STAGING_CONFIG | jq -r ".Parameters.StageName"`   
+    - cd terraform-package   
+    - echo $TF_VAR_model_exec_role_arn 
     - terraform init
-    - echo "Terraform Init Output : $?"     
     - terraform plan
     - terraform apply -auto-approve 
-    - echo "Terraform Apply Output : $?"    
 
 test_staging:
   stage: test staging
@@ -87,25 +81,16 @@ production_deploy:
     - build_job
   script:
     - echo "Deploying model to SageMaker Endpoint..."
-    - sudo su
-    - yum update -y
-    - yum install -y yum-utils
-    - yum install -y unzip
-    - yum-config-manager --add-repo https://rpm.releases.hashicorp.com/AmazonLinux/hashicorp.repo
-    - yum -y install terraform
-    - yum install jq -y
-    - export TF_VAR_sagemaker_project_name=`cat "prod-config.json" | jq -r ".Parameters.SageMakerProjectName"`    
-    - export TF_VAR_sagemaker_project_id=`cat "prod-config.json" | jq -r '.Tags' | jq -r '.["sagemaker:project-id"]'`
-    - export TF_VAR_model_exec_role_arn=`cat "prod-config.json" | jq -r ".Parameters.ModelExecutionRoleArn"`
-    - export TF_VAR_model_registry_artifact=`cat "prod-config.json" | jq -r ".Parameters.ModelRegistryArtifact"`   
-    - export TF_VAR_model_inference_image=`cat "prod-config.json" | jq -r ".Parameters.ModelImageURI"`    
-    - export TF_VAR_endpoint_instance_count=`cat "prod-config.json" | jq -r ".Parameters.EndpointInstanceCount"`       
-    - export TF_VAR_endpoint_instance_type=`cat "prod-config.json" | jq -r ".Parameters.EndpointInstanceType"`       
-    - export TF_VAR_endpoint_stage_name=`cat "prod-config.json" | jq -r ".Parameters.StageName"`       
+    - export TF_VAR_sagemaker_project_name=`cat $EXPORT_TEMPLATE_PROD_CONFIG | jq -r ".Parameters.SageMakerProjectName"`    
+    - export TF_VAR_sagemaker_project_id=`cat $EXPORT_TEMPLATE_PROD_CONFIG | jq -r '.Tags' | jq -r '.["sagemaker:project-id"]'`
+    - export TF_VAR_model_exec_role_arn=`cat $EXPORT_TEMPLATE_PROD_CONFIG | jq -r ".Parameters.ModelExecutionRoleArn"`
+    - export TF_VAR_model_registry_artifact=`cat $EXPORT_TEMPLATE_PROD_CONFIG | jq -r ".Parameters.ModelRegistryArtifact"`   
+    - export TF_VAR_model_inference_image=`cat $EXPORT_TEMPLATE_PROD_CONFIG | jq -r ".Parameters.ModelImageURI"`    
+    - export TF_VAR_endpoint_instance_count=`cat $EXPORT_TEMPLATE_PROD_CONFIG | jq -r ".Parameters.EndpointInstanceCount"`       
+    - export TF_VAR_endpoint_instance_type=`cat $EXPORT_TEMPLATE_PROD_CONFIG | jq -r ".Parameters.EndpointInstanceType"`       
+    - export TF_VAR_endpoint_stage_name=`cat $EXPORT_TEMPLATE_PROD_CONFIG | jq -r ".Parameters.StageName"`       
     - cd terraform-package    
     - terraform init
-    - echo "Terraform Init Output : $?"     
     - terraform plan
     - terraform apply -auto-approve 
-    - echo "Terraform Apply Output : $?"
   when: manual

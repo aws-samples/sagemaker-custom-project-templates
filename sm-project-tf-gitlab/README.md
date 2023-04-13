@@ -27,6 +27,18 @@ In this section of this repository we will take a look how we can set up an Amaz
 * DataScientists can review these SageMaker Pipelines in Amazon SageMaker Studio within the SageMaker Project.
 * SageMaker Project also contains other ML workflow components like Experiments, ML repositories, Model Groups, Endpoints etc all in one place for an holistic overview of maintaining a standardized Machine Learning Workflow.
 
+Here are the steps involved in the workflow shown in the Architecture diagram:
+1. Platform/Ops team will provision the prerequisites required for setting the SageMaker Custom Template using Terraform.
+2. Data Science Lead will create the SageMaker project using this Custom template.
+3. Creation of template will trigger another Terraform that will add ML seed code to GitLab.
+4. Seed code check in will trigger Build pipeline in GitLabCI. This will launch the SageMaker Pipelines having the ML workflow.
+5. Once the SageMaker Pipelines workflow is complete, Model approver can approve the model.
+6. This approval will trigger a Deploy Pipeline in GitLabCI.
+7. This pipeline will use Terraform to deploy a Stage/Non Prod SageMaker Endpoint.
+8. Prod Deployment approver can then review the entire project artifacts & approve the final stage of Deploy pipeline.
+9. Once approved, deploy pipeline will trigger Terraform again.
+10. Terraform will deploy the SageMaker prod endpoint.
+
 ### Repository Overview:
 * This repository contains two different packages of Terraform Code:
 
