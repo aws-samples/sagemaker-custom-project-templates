@@ -18,7 +18,6 @@ logger.addHandler(logging.StreamHandler())
 
 
 def lambda_handler(event, context):
-
     gitlab_server_uri = os.environ["GitLabServer"]
     region = os.environ["Region"]
     gitlab_project_name_build = os.environ["BuildProjectName"]
@@ -81,7 +80,6 @@ def lambda_handler(event, context):
     # Create the GitLab Project
 
     try:
-
         # Check if the Gitlab Project exists
         project_list_resp = gl.projects.list(search=gitlab_project_name_build)
         project_list = []
@@ -95,15 +93,16 @@ def lambda_handler(event, context):
                 build_proj_id = build_project.id
 
         if gitlab_project_name_build in project_list:
-            print("Gitlab project already existing")
+            print("Gitlab project already existing. Skipping the Creation.")
+            return {"message": "Gitlab project already existing. Skipping the Creation"}
             # Delete the Gitlab Project if exists
 
-            project_delete_resp = gl.projects.delete(build_proj_id)
-            print("Deleting the Gitlab Project ... ")
+            # project_delete_resp = gl.projects.delete(build_proj_id)
+            # print("Deleting the Gitlab Project ... ")
 
-            time.sleep(60)
-            print("Creating Gitlab project ...")
-            build_project = gl.projects.create({"name": gitlab_project_name_build})
+            # time.sleep(60)
+            # print("Creating Gitlab project ...")
+            # build_project = gl.projects.create({"name": gitlab_project_name_build})
         else:
             print("Gitlab project not found. Creating ....")
 
@@ -115,9 +114,7 @@ def lambda_handler(event, context):
         # cfnresponse.send(event, context, cfnresponse.FAILED, response_data)
         return {"message": "GitLab seedcode checkin failed."}
 
-
     try:
-
         # Check if the Gitlab Project exists
         deploy_project_list_resp = gl.projects.list(search=gitlab_project_name_deploy)
         deploy_project_list = []
@@ -131,15 +128,16 @@ def lambda_handler(event, context):
                 deploy_proj_id = deploy_project.id
 
         if gitlab_project_name_deploy in deploy_project_list:
-            print("Gitlab deploy project already existing")
+            print("Gitlab deploy project already existing. Skipping the Creation.")
+            return {"message": "Gitlab project already existing. Skipping the Creation"}
             # Delete the Gitlab Project if exists
 
-            deploy_project_delete_resp = gl.projects.delete(deploy_proj_id)
-            print("Deleting the Gitlab Project ... ")
+            # deploy_project_delete_resp = gl.projects.delete(deploy_proj_id)
+            # print("Deleting the Gitlab Project ... ")
 
-            time.sleep(60)
-            print("Creating Gitlab project ...")
-            deploy_project = gl.projects.create({"name": gitlab_project_name_deploy})
+            # time.sleep(60)
+            # print("Creating Gitlab project ...")
+            # deploy_project = gl.projects.create({"name": gitlab_project_name_deploy})
         else:
             print("Gitlab project not found. Creating ....")
 
@@ -250,7 +248,6 @@ def lambda_handler(event, context):
 
     model_deploy_directory = f"seedcode/mlops-gitlab-project-seedcode-model-deploy"
 
-
     # Iterate through all of the files in the extracted folder to create commmit data
 
     build_data = {
@@ -277,7 +274,6 @@ def lambda_handler(event, context):
                     build_data["actions"].append(build_action)
                 except:
                     pass
-
 
     deploy_data = {
         "branch": gitlab_deploy_repo_branch,
@@ -315,13 +311,12 @@ def lambda_handler(event, context):
         return {"message": "GitLab seedcode checkin failed."}
 
     try:
-       deploy_project.commits.create(deploy_data)
+        deploy_project.commits.create(deploy_data)
     except Exception as e:
         logging.error("Code could not be pushed to the model deploy repo.")
         logging.error(e)
         # cfnresponse.send(event, context, cfnresponse.FAILED, response_data)
         return {"message": "GitLab seedcode checkin failed."}
-
 
     logger.info("Successfully checked in seed code to GitLab..")
 
@@ -329,7 +324,6 @@ def lambda_handler(event, context):
 
 
 def get_secret(secret):
-
     secret_name = os.environ[secret]
     region_name = os.environ["Region"]
 

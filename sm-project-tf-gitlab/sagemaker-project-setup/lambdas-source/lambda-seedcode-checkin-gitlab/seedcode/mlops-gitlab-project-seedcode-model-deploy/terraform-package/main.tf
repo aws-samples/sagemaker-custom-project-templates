@@ -13,7 +13,8 @@ resource "aws_sagemaker_model" "sm_model" {
 
 #SageMaker Endpoint Configuration
 resource "aws_sagemaker_endpoint_configuration" "sm_endpoint_config" {
-  name = "sagemaker-${var.sagemaker_project_name}-${var.endpoint_stage_name}"
+  depends_on = [aws_sagemaker_model.sm_model]
+  name       = "sagemaker-${var.sagemaker_project_name}-${var.endpoint_stage_name}"
 
   production_variants {
     model_name             = aws_sagemaker_model.sm_model.name
@@ -33,16 +34,11 @@ resource "aws_sagemaker_endpoint_configuration" "sm_endpoint_config" {
     }
   }
 
-  # capture_content_type_header = {
-  #     csv_content_types = "text/csv" 
-
-  # }
-
-
 }
 
 #SageMaker Endpoint 
 resource "aws_sagemaker_endpoint" "sm_endpoint" {
+  depends_on           = [aws_sagemaker_endpoint_configuration.sm_endpoint_config]
   name                 = "sagemaker-${var.sagemaker_project_name}-${var.endpoint_stage_name}"
   endpoint_config_name = aws_sagemaker_endpoint_configuration.sm_endpoint_config.name
 }

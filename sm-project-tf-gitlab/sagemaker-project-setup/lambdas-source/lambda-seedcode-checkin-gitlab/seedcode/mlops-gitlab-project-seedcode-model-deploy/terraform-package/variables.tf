@@ -1,36 +1,36 @@
 # Variables
 #------------
 variable "sagemaker_project_name" {
-  description = "AWS region identifier"
+  description = "SageMaker Project Name"
 }
 
 variable "sagemaker_project_id" {
-  description = "AWS region identifier"
+  description = "SageMaker Project ID"
 }
 
 variable "model_exec_role_arn" {
-  description = "AWS region identifier"
+  description = "AWS IAM ARN for the Model creation"
 }
 
 
 variable "model_registry_artifact" {
-  description = "AWS region identifier"
+  description = "S3 URI having the model artifacts"
 }
 
 variable "model_inference_image" {
-  description = "AWS region identifier"
+  description = "ECR Image for the Model Inference"
 }
 
 variable "endpoint_instance_count" {
-  description = "AWS region identifier"
+  description = "Instance Count for Endpoint"
 }
 
 
 variable "endpoint_instance_type" {
-  description = "AWS region identifier"
+  description = "Instance type for Endpoint"
 }
 
 
 variable "endpoint_stage_name" {
-  description = "AWS region identifier"
+  description = "Stage Name to be used for Endpoint"
 }

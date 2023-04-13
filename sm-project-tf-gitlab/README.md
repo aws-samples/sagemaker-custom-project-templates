@@ -87,10 +87,11 @@ In this section of this repository we will take a look how we can set up an Amaz
     - Secrets Manager Secrets which has the GitLab token, credentials and IAM access keys. 
     - Service Catalog Product Name.
     - CloudWatch Log Group Name.
-
+11. Last step before moving on to create the SageMaker project, make sure "AmazonSageMakerServiceCatalogProductsUseRole" IAM role has read access to the above generated Secret Manager Secrets.
+ 
 ### Step 5: Create the Amazon SageMaker Project inside the SageMaker Studio.
 
-1. Open SageMaker Studio and sign in to your user profile.
+1. Open SageMaker Studio and sign in to your user profile. Make sure the SageMaker Exec IAM role mapped to the User profile has access to the Service Catalog.
 2. Choose the SageMaker __components and registries__ icon on the left, and choose the __Create project__ button.
 3. The default view displays SageMaker templates. Switch to the __Organization__ templates tab to see custom project templates.
 4. Look for the template with the Service Catalog Product Name you noted from the outputs of the previous Terraform execution step.
@@ -108,11 +109,11 @@ In this section of this repository we will take a look how we can set up an Amaz
 10. For TerraformAction - select "apply".
 11. For SecretsManagerGitlabPrivateToken, enter the "secrets_manager_gitlab_private_token" noted from the Output of Terraform Run of previous step.
 12. For MLOpsS3Bucket, enter the value of "s3_bucket_id" you had noted from the Output of Terraform Run of previous step.
-13. For GitRepoName, enter the GitLab Project Name where you will have the ML Build Code. If can be an existing or a new project name.
+13. For GitBuildRepoName, enter the GitLab Project Name where you will have the ML Build Code. Please make sure this is a new project name.
 14. For GitRepoURL, enter the URL of your GitLab repository (For ex: https://gitlab.com).
 15. For SecretsManagerGitlabIAMSecretKey, enter the value of "secrets_manager_gitlab_iam_secret_key" you had noted from the Output of Terraform Run of previous step.
 16. For CommandRunerCWLogGrp, enter the value of "cw_log_group_name" you had noted from the Output of Terraform Run of previous step.
-17. For GitBranchName, enter the branch to use from your Git repository for pipeline activities.
+17. For GitDeployRepoName, enter the GitLab Project Name where you will have the ML Deploy Code. Please make sure this is a new project name.
 18. For SecretsManagerGitlabUserSecretARN, enter the value of "secrets_manager_gitlab_user_creds" you had noted from the Output of Terraform Run of previous step.
 19. For SecretsManagerGitlabIAMAccessKey, enter the value of "secrets_manager_gitlab_iam_access_key" you had noted from the Output of Terraform Run of previous step.
 20. Select Create Project.
