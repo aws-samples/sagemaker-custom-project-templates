@@ -1,7 +1,7 @@
 
 # SageMaker Model Object
 resource "aws_sagemaker_model" "sm_model" {
-  name               = "sagemaker-${var.sagemaker_project_name}"
+  name               = "sagemaker-${var.sagemaker_project_name}-${var.endpoint_stage_name}"
   execution_role_arn = var.model_exec_role_arn
 
   container {
