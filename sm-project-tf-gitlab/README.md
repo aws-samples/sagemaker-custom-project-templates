@@ -27,6 +27,18 @@ In this section of this repository we will take a look how we can set up an Amaz
 * DataScientists can review these SageMaker Pipelines in Amazon SageMaker Studio within the SageMaker Project.
 * SageMaker Project also contains other ML workflow components like Experiments, ML repositories, Model Groups, Endpoints etc all in one place for an holistic overview of maintaining a standardized Machine Learning Workflow.
 
+Here are the steps involved in the workflow shown in the Architecture diagram:
+1. Platform/Ops team will provision the prerequisites required for setting the SageMaker Custom Template using Terraform.
+2. Data Science Lead will create the SageMaker project using this Custom template.
+3. Creation of template will trigger another Terraform that will add ML seed code to GitLab.
+4. Seed code check in will trigger Build pipeline in GitLabCI. This will launch the SageMaker Pipelines having the ML workflow.
+5. Once the SageMaker Pipelines workflow is complete, Model approver can approve the model.
+6. This approval will trigger a Deploy Pipeline in GitLabCI.
+7. This pipeline will use Terraform to deploy a Stage/Non Prod SageMaker Endpoint.
+8. Prod Deployment approver can then review the entire project artifacts & approve the final stage of Deploy pipeline.
+9. Once approved, deploy pipeline will trigger Terraform again.
+10. Terraform will deploy the SageMaker prod endpoint.
+
 ### Repository Overview:
 * This repository contains two different packages of Terraform Code:
 
@@ -87,11 +99,12 @@ In this section of this repository we will take a look how we can set up an Amaz
     - Secrets Manager Secrets which has the GitLab token, credentials and IAM access keys. 
     - Service Catalog Product Name.
     - CloudWatch Log Group Name.
-
+11. Last step before moving on to create the SageMaker project, make sure "AmazonSageMakerServiceCatalogProductsUseRole" IAM role has read access to the above generated Secret Manager Secrets.
+ 
 ### Step 5: Create the Amazon SageMaker Project inside the SageMaker Studio.
 
-1. Open SageMaker Studio and sign in to your user profile.
-2. Choose the SageMaker __components and registries__ icon on the left, and choose the __Create project__ button.
+1. Open SageMaker Studio and sign in to your user profile. Make sure the SageMaker Exec IAM role mapped to the User profile has access to the Service Catalog.
+2. Choose the SageMaker __Deployments__ icon on the left, and choose the __Projects__ option.
 3. The default view displays SageMaker templates. Switch to the __Organization__ templates tab to see custom project templates.
 4. Look for the template with the Service Catalog Product Name you noted from the outputs of the previous Terraform execution step.
 
@@ -108,29 +121,33 @@ In this section of this repository we will take a look how we can set up an Amaz
 10. For TerraformAction - select "apply".
 11. For SecretsManagerGitlabPrivateToken, enter the "secrets_manager_gitlab_private_token" noted from the Output of Terraform Run of previous step.
 12. For MLOpsS3Bucket, enter the value of "s3_bucket_id" you had noted from the Output of Terraform Run of previous step.
-13. For GitRepoName, enter the GitLab Project Name where you will have the ML Build Code. If can be an existing or a new project name.
+13. For GitBuildRepoName, enter the GitLab Project Name where you will have the ML Build Code. Please make sure this is a new project name.
 14. For GitRepoURL, enter the URL of your GitLab repository (For ex: https://gitlab.com).
 15. For SecretsManagerGitlabIAMSecretKey, enter the value of "secrets_manager_gitlab_iam_secret_key" you had noted from the Output of Terraform Run of previous step.
 16. For CommandRunerCWLogGrp, enter the value of "cw_log_group_name" you had noted from the Output of Terraform Run of previous step.
-17. For GitBranchName, enter the branch to use from your Git repository for pipeline activities.
+17. For GitDeployRepoName, enter the GitLab Project Name where you will have the ML Deploy Code. Please make sure this is a new project name.
 18. For SecretsManagerGitlabUserSecretARN, enter the value of "secrets_manager_gitlab_user_creds" you had noted from the Output of Terraform Run of previous step.
 19. For SecretsManagerGitlabIAMAccessKey, enter the value of "secrets_manager_gitlab_iam_access_key" you had noted from the Output of Terraform Run of previous step.
 20. Select Create Project.
 21. This will trigger the CloudFormation CommandRunner Utility which will inturn perform the Terraform execution to provision the SageMaker Pipeline resources.
 22. The logs of this terraform run will be available in the CloudWatch Log Group you noted from the Output of Terraform Run of previous step.
 23. You have now successfully created an MLOps SageMaker Project with Terraform integration and GitLab. 
+24. Once the Project creation & SageMaker Pipeline execution is complete, you can go to the Model Groups tab to approve the model. 
+25. Once approved, deploy GitLab CI pipeline will be triggered & it will create SageMaker Endpoints via Terraform.
+26. The Endpoints that are created will be accessible within the "Endpoints" tab of the SageMaker Project.
+27. Note that the Prod endpoint creation from GitLab Deploy CI pipeline is not automated. You will have to manually run the last stage of Prod deploy in the GitLab CI pipeline.
 
 
 ### Step 7: Cleanup (Optional)
 
-1. To cleanup the SageMaker Project resources, right click on the SageMaker Project and select "Update Project"
+1. To cleanup the SageMaker Project resources, choose Update from the Actions menu in the upper-right corner of the project tab.
 
     ![](images/sm-projects-image-3.png)
 
 2. Change TerraformAction parameter to "destroy".
 3. Update the SageMaker Project.
 4. Monitor the logs in CloudWatch Log group for completion of Terraform run.
-5. Once it is complete, right click on the SageMaker Project and select "Delect Project" to delete the SageMaker Project.
+5. Once it is complete, right click on the SageMaker Project and select "Delete Project" to delete the SageMaker Project.
 6. Now go back to the development machine where you had cloned this repo.
 7. Navigate back to the "Service Catalog Set up" directory. Run __"cd sm-project-tf-gitlab/service-catalog-setup/"__.
 8. Generate the Terraform plan. Run __"terraform plan"__.
