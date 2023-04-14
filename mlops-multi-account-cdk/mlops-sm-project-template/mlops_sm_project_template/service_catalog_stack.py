@@ -181,6 +181,29 @@ class ServiceCatalogStack(Stack):
                 resources=[f"arn:aws:sagemaker:*:{Aws.ACCOUNT_ID}:model-package-group/*"],
             ),
         )
+        
+        # allows user to see the created resources in service catalog view
+        products_launch_role.add_to_policy(
+            iam.PolicyStatement(
+                actions=["cloudformation:ListStackResources"], 
+                effect=iam.Effect.ALLOW,
+                resources=[
+                    "*"
+                ],
+            ),
+        )
+        
+        # allows updating provisiond products on the fly without reprovisioning
+        # useful for development workd on the template
+        products_launch_role.add_to_policy(
+            iam.PolicyStatement(
+                actions=["codebuild:UpdateProject"],
+                effect=iam.Effect.ALLOW,
+                resources=[
+                    "*"
+                ],
+            ),
+        )
 
         portfolio = servicecatalog.Portfolio(
             self,
