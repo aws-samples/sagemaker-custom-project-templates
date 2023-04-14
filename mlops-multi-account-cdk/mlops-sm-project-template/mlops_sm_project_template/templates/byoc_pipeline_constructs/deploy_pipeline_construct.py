@@ -47,6 +47,7 @@ class DeployPipelineConstruct(Construct):
         preprod_account: int,
         prod_account: int,
         deployment_region: str,
+        enable_asset_publishing: bool = False, # set to true if you would like to enable an asset publishing stage
         **kwargs,
     ) -> None:
         super().__init__(scope, construct_id, **kwargs)
@@ -228,7 +229,7 @@ class DeployPipelineConstruct(Construct):
                 project=cdk_synth_build,
             )
         )
-
+        
         # add a security evaluation stage for cloudformation templates
         security_stage = deploy_code_pipeline.add_stage(stage_name="SecurityEvaluation")
 
@@ -240,7 +241,11 @@ class DeployPipelineConstruct(Construct):
                 project=security_scan,
             )
         )
-
+        
+        # optionally: add a stage to publish assets if the code in the deploy repository needs them
+        if enable_asset_publishing:
+            self.enable_asset_publishing(cdk_synth_artifact, deploy_code_pipeline)
+        
         # add stages to deploy to the different environments
         deploy_code_pipeline.add_stage(
             stage_name="DeployDev",
@@ -350,3 +355,62 @@ class DeployPipelineConstruct(Construct):
             ),
             targets=[targets.CodePipeline(deploy_code_pipeline)],
         )
+    
+    # publishing assets using cdk-assets, relies on asset manifests being already created by cdk synth
+    def enable_asset_publishing(self, input_artifact, pipeline):
+        
+        asset_publish_role = iam.Role(
+            self,
+            "AssetPublishRole",
+            assumed_by=iam.ServicePrincipal("codebuild.amazonaws.com"),
+            path="/service-role/",
+        )
+
+        asset_publish_role.add_to_policy(
+            iam.PolicyStatement(
+                actions=[
+                    "sts:AssumeRole",
+                ],
+                effect=iam.Effect.ALLOW,
+                resources=[f"arn:{Aws.PARTITION}:iam::{Aws.ACCOUNT_ID}:role/cdk-hnb659fds-file-publishing-role-{Aws.ACCOUNT_ID}-{Aws.REGION}"],
+            )
+        )
+
+        assets_publish_project = codebuild.PipelineProject(
+            self,
+            "AssetsPublish",
+            environment=codebuild.BuildEnvironment(
+                build_image=codebuild.LinuxBuildImage.STANDARD_5_0,
+            ),
+            role=asset_publish_role,
+            build_spec=codebuild.BuildSpec.from_object(
+                {
+                    "version": 0.2,
+                    "phases": {
+                        "install": {
+                            "commands": [
+                                "npm install -g cdk-assets@2"
+                            ]
+                            },
+                            "build": {
+                            "commands": [
+                                "if [ -f dev.assets.json ]; then cdk-assets --path \"dev.assets.json\" --verbose publish; else echo \"no assets found\"; fi",
+                                "if [ -f preprod.assets.json ]; then cdk-assets --path \"preprod.assets.json\" --verbose publish; else echo \"no assets found\"; fi",
+                                "if [ -f prod.assets.json ]; then cdk-assets --path \"prod.assets.json\" --verbose publish; else echo \"no assets found\"; fi"
+                            ]
+                        }
+                    }
+                }
+            )
+        )
+
+        assets_stage = pipeline.add_stage(stage_name="Assets")
+        assets_stage.add_action(
+            codepipeline_actions.CodeBuildAction(
+                action_name="Assets",
+                input=input_artifact,
+                outputs=[],
+                project=assets_publish_project,
+            )
+        )
+
