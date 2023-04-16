@@ -65,6 +65,16 @@ Register the SageMaker Project Template through GitHub Action Pipeline CI/CD ( P
 Follow below steps:
 
 1. Create a GitHub repository with the content of this folder.
+   1. Fork the repo.
+   2. Clone the repo to your local machine.
+   3. `cd` into the repo folder and then into the `mlops-cdk-github-action` folder.
+   4. `git init` in the `mlops-cdk-github-action` folder.
+   5. Before you push the repo to your GitHub account, make sure the Personal Access Token you're using has not only the `repo` scope, but also the `workflow` scope. This is required for the GitHub Action to be able to trigger the workflow.
+   1. Fork the repo.
+   2. Clone the repo to your local machine.
+   3. `cd` into the repo folder and then into the `mlops-cdk-github-action` folder.
+   4. `git init` in the `mlops-cdk-github-action` folder.
+   5. Before you push the repo to your GitHub account, make sure the Personal Access Token you're using has not only the `repo` scope, but also the `workflow` scope. This is required for the GitHub Action to be able to trigger the workflow.
 2. Make sure you have the SageMaker domain ready with a user profile, if you don’t have a SageMaker Domain created yet. Follow the steps to create it: [Create SageMaker Domain](https://docs.aws.amazon.com/sagemaker/latest/dg/onboard-quick-start.html)
 3. Once you have the domain created. Navigate to Domain, Click on your Domain, Click on User Profile, on the right-hand side pane copy the “Execution Role”.
 ![screenshot1](diagrams/domain_execution_role.png)
