@@ -119,7 +119,7 @@ Assign below permissions to this role (_Note: For setup we are providing broad p
     IAMFullAccess
     AmazonSageMakerFullAccess
 ```
-Create the role and post creation, open the newly created role and update the Trust Relationship to this(update aws account and GitHub repo details)
+Create the role with any name, such as "mlops-cdk-github-action", and post creation, open the newly created role and update the Trust Relationship to this(update aws account and GitHub repo details)
     
 ```
 {
