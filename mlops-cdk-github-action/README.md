@@ -98,7 +98,7 @@ Follow below steps:
        ]
     }
     ```
-5. Go to AWS Systems Manager, then go to the Parameter Store, and create a String Parameter of Data Type text named “/sagemaker/execution/role/” and provide the value as the SageMaker Execution Role ARN.
+5. Go to AWS Systems Manager, then go to the Parameter Store, and create a String Parameter of Data Type text named “/sagemaker/execution/role” and provide the value as the SageMaker Execution Role ARN.
 
 ![screenshot2](diagrams/sagemaker_parameter.png)
 
