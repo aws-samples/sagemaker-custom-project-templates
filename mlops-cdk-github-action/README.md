@@ -144,12 +144,13 @@ Create the role with any name, such as "mlops-cdk-github-action", and post creat
     }
 ```
    
-8. Create GitHub secrets: If you haven't yet cloned the repository mentioned in this blog, now is the time to do so. GitHub Secrets are encrypted variables that can be created within your GitHub organization or repository. These secrets can then be utilized in your GitHub Actions workflows. In order to run your GitHub Actions pipelines successfully, you must create the following three required secrets in your cloned repository.
-       ```
-       AWS_ACCOUNT_OPENID_IAM_ROLE - The ARN of the IAM role created in the previous step.
-       AWS_REGION - The AWS region where you will be deploying the SageMaker Project Template.
-       AWS_ACCOUNT - The AWS account where you will be deploying the SageMaker Project Template
-      ```
+8. Create GitHub secrets:
+  - If you haven't yet cloned the repository mentioned in this blog, now is the time to do so.
+  - GitHub Secrets are encrypted variables that can be created within your GitHub organization or repository. These secrets can then be used in your GitHub Actions workflows.
+  - In order to run your GitHub Actions pipelines successfully, you must create the following three required secrets in your cloned repository:
+    - `AWS_ACCOUNT_OPENID_IAM_ROLE` - The ARN of the IAM role created in the previous step.
+    - `AWS_REGION` - The AWS region where you will be deploying the SageMaker Project Template.
+    - `AWS_ACCOUNT` - The AWS account where you will be deploying the SageMaker Project Template.
    
 9. In the cloned repository, you will see the "Sagemaker Project Template Registration in Service Catalog" workflow in your GitHub Actions. Run this workflow to deploy the SageMaker organizational template to AWS Service Catalog.
 
