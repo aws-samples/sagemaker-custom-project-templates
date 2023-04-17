@@ -1,19 +1,24 @@
 # MLOps SageMaker Project Template for GitHub Actions
-This repository contains the resources that are required to deploy the MLOps SageMaker Project Template with GitHub Action as the CI/CD.
 
-- [MLOps SageMaker Project Template](#mlops-sagemaker-project-template)
+This repository contains resources required to deploy an MLOps SageMaker Project Template using GitHub Actions for CI/CD.
+
+## Table of Contents
+
+- [MLOps SageMaker Project Template for GitHub Actions](#mlops-sagemaker-project-template-for-github-actions)
+  - [Table of Contents](#table-of-contents)
   - [Solution Architecture](#solution-architecture)
   - [Repository Structure](#repository-structure)
   - [Deployment Options](#deployment-options)
     - [CI/CD Deployment of Service Catalog Stack](#cicd-deployment-of-service-catalog-stack)
     - [Manual Deployment of Service Catalog Stack](#manual-deployment-of-service-catalog-stack)
+      - [Pre-requisites](#pre-requisites)
+      - [Project Build and Deploy](#project-build-and-deploy)
   - [Clean-up](#clean-up)
   - [Troubleshooting](#troubleshooting)
 
 ## Solution Architecture
 
 ![mlops project architecture](diagrams/github_action_mlops_architecture.jpg)
-
 
 ## Repository Structure
 
@@ -25,80 +30,74 @@ This repository contains the resources that are required to deploy the MLOps Sag
 ├── app.py
 ├── cdk.json
 ├── diagrams
-├── .github                                   <--- contains the GitHub Action WorkFlow script
-│   ├── sm_template_register_service_catalog.yml  
+├── .github <--- contains the GitHub Action WorkFlow script
+│   ├── sm_template_register_service_catalog.yml
 ├── mlops_sm_project_template
-│   ├── README.md
-│   ├── __init__.py
-│   ├── cdk_helper_scripts
-│   ├── config
-│   │   └── constants.py                      <--- global configs to be used in CDK stacks
-│   ├── core_stage.py                     <--- entry to build the differnt stacks
-│   ├── service_catalog_stack.py              <--- stack for service catalog setup and template deployment
-│   └── templates
-│       ├── basic_project_stack.py                <--- stack for basic sagemaker project template setup - DEV Accounts provided in constants.py
-│       └── pipeline_constructs
-│           ├── build_pipeline_construct.py       <--- construct containing CI/CD pipeline linked to the build app
-│           └── deploy_pipeline_construct.py      <--- construct containing CI/CD pipeline linked to the deploy app
+│   ├── README.md
+│   ├── init.py
+│   ├── cdk_helper_scripts
+│   ├── config
+│   │   └── constants.py <--- global configs to be used in CDK stacks
+│   ├── core_stage.py <--- entry to build the different stacks
+│   ├── service_catalog_stack.py <--- stack for service catalog setup and template deployment
+│   └── templates
+│   ├── basic_project_stack.py <--- stack for basic sagemaker project template setup - DEV Accounts provided in constants.py
+│   └── pipeline_constructs
+│   ├── build_pipeline_construct.py <--- construct containing CI/CD pipeline linked to the build app
+│   └── deploy_pipeline_construct.py <--- construct containing CI/CD pipeline linked to the deploy app
 ├── requirements-dev.txt
-├── requirements.txt                          <--- cdk packages used in the stacks (must be installed)
-├── scripts                                   <--- shell scripts to automate part of the deployments
-│   └── install-prerequisites-brew.sh
-└── seed_code                                 <--- code samples to be used to setup the build and deploy repositories of the sagemaker project
-    ├── build_app
-    └── deploy_app
+├── requirements.txt <--- cdk packages used in the stacks (must be installed)
+├── scripts <--- shell scripts to automate part of the deployments
+│   └── install-prerequisites-brew.sh
+└── seed_code <--- code samples to be used to setup the build and deploy repositories of the sagemaker project
+   ├── build_app
+   └── deploy_app
 ```
 
 ## Deployment Options
 
 There are two deployment options for the SageMaker Project Template to the Service Catalog in the target account:
 
-- **[CI/CD Deployment of Service Catalog Stack](#cicd-deployment-of-service-catalog-stack)** - deploy by using GitHub Action CICD pipeline by cloning the repository to your GitHub Repository
-
-- **[Manual Deployment of Service Catalog Stack](#manual-deployment-of-service-catalog-stack)** - deploy directly to the targeted accounts using CDK commands from your local development setup
-
-
+- **[CI/CD Deployment of Service Catalog Stack](#cicd-deployment-of-service-catalog-stack)** - Deploy by using GitHub Action CI/CD pipeline by cloning the repository to your GitHub Repository.
+- **[Manual Deployment of Service Catalog Stack](#manual-deployment-of-service-catalog-stack)** - Deploy directly to the targeted accounts using CDK commands from your local development setup.
 
 ### CI/CD Deployment of Service Catalog Stack
-Register the SageMaker Project Template through GitHub Action Pipeline CI/CD ( Preferred )
 
-Follow below steps:
+Register the SageMaker Project Template through the GitHub Action Pipeline CI/CD (preferred method).
 
-1. Create a GitHub repository with the content of this folder.
+Follow these steps:
+
+1. **Create a GitHub repository** with the content of this folder.
    1. Fork the repo.
    2. Clone the repo to your local machine.
    3. `cd` into the repo folder and then into the `mlops-cdk-github-action` folder.
-   4. `git init` in the `mlops-cdk-github-action` folder.
-   5. Before you push the repo to your GitHub account, make sure the Personal Access Token you're using has not only the `repo` scope, but also the `workflow` scope. This is required for the GitHub Action to be able to trigger the workflow.
-   1. Fork the repo.
-   2. Clone the repo to your local machine.
-   3. `cd` into the repo folder and then into the `mlops-cdk-github-action` folder.
-   4. `git init` in the `mlops-cdk-github-action` folder.
-   5. Before you push the repo to your GitHub account, make sure the Personal Access Token you're using has not only the `repo` scope, but also the `workflow` scope. This is required for the GitHub Action to be able to trigger the workflow.
-2. Make sure you have the SageMaker domain ready with a user profile, if you don’t have a SageMaker Domain created yet. Follow the steps to create it: [Create SageMaker Domain](https://docs.aws.amazon.com/sagemaker/latest/dg/onboard-quick-start.html)
-3. Once you have the domain created. Navigate to Domain, Click on your Domain, Click on User Profile, on the right-hand side pane copy the “Execution Role”.
+   4. Run `git init` in the `mlops-cdk-github-action` folder.
+   5. Before pushing the repo to your GitHub account, make sure the Personal Access Token you're using has both the `repo` and `workflow` scopes. This is required for the GitHub
+ Action to be able to trigger the workflow.
+2. Set up the SageMaker domain and user profile if you haven’t already. Follow the steps to create a SageMaker Domain: [Create SageMaker Domain](https://docs.aws.amazon.com/sagemaker/latest/dg/onboard-quick-start.html).
+3. Once the domain is created, navigate to Domain, click on your Domain, click on User Profile, and copy the “Execution Role” from the right-hand side pane.
 ![screenshot1](diagrams/domain_execution_role.png)
-4. Ensure that the above identified Execution role has the following SageMaker project IAM permissions:
+4. Update the Execution role to have the following SageMaker project IAM permissions:
     ```commandline
-    {
-    "Version": "2012-10-17",
-    "Statement": [
-        {
-        "Sid": "VisualEditor0",
-        "Effect": "Allow",
-        "Action": [
-            "sagemaker:DescribeProject",
-            "sagemaker:CreateProject",
-            "sagemaker:DeleteProject",
-            "sagemaker:ListProjects",
-            "sagemaker:UpdateProject "
-        ],
-            "Resource": "*"
-        }
-       ]
-    }
+   {
+     "Version": "2012-10-17",
+     "Statement": [
+         {
+             "Sid": "VisualEditor0",
+             "Effect": "Allow",
+             "Action": [
+                 "sagemaker:DescribeProject",
+                 "sagemaker:CreateProject",
+                 "sagemaker:DeleteProject",
+                 "sagemaker:ListProjects",
+                 "sagemaker:UpdateProject"
+             ],
+             "Resource": "*"
+         }
+     ]
+   }
     ```
-5. Go to AWS Systems Manager, then go to the Parameter Store, and create a String Parameter of Data Type text named “/sagemaker/execution/role” and provide the value as the SageMaker Execution Role ARN.
+5. Go to AWS Systems Manager, navigate to the Parameter Store, and create a String Parameter of Data Type text named “/sagemaker/execution/role”. Provide the value as the SageMaker Execution Role ARN.
 
 ![screenshot2](diagrams/sagemaker_parameter.png)
 
@@ -106,11 +105,11 @@ Follow below steps:
 
 ![screenshot3](diagrams/github_identity_provider.png)
 
-7. Create an IAM role using OIDC identify provider. OIDC allows your GitHub Actions workflows to access resources in Amazon Web Services (AWS), without needing to store the AWS credentials as long-lived GitHub secrets. [follow more](https://docs.github.com/en/actions/deployment/security-hardening-your-deployments/configuring-openid-connect-in-amazon-web-services) 
+7. Create an IAM role using the OIDC identity provider. OIDC allows your GitHub Actions workflows to access resources in Amazon Web Services (AWS) without storing the AWS credentials as long-lived GitHub secrets. [Learn more](https://docs.github.com/en/actions/deployment/security-hardening-your-deployments/configuring-openid-connect-in-amazon-web-services).
 
 ![screenshot4](diagrams/github_iam_role_create.png)
 
-Assign below permissions to this role (_Note: For setup we are providing broad permission to those services, later you need to trim down the permissions to only required one_)
+Assign the following permissions to this role (_Note: For setup, broad permissions are provided for these services. Later, trim down the permissions to only required ones_):
 ```
     AmazonEC2ContainerRegistryFullAccess
     AmazonS3FullAccess
@@ -120,7 +119,7 @@ Assign below permissions to this role (_Note: For setup we are providing broad p
     AmazonSageMakerFullAccess
     AmazonSSMFullAccess
 ```
-Create the role with any name, such as "mlops-cdk-github-action", and post creation, open the newly created role and update the Trust Relationship to this(update aws account and GitHub repo details)
+Create the role with any name, such as "mlops-cdk-github-action". After creation, open the newly created role and update the Trust Relationship with your AWS account and GitHub repo details:
     
 ```
 {
@@ -146,7 +145,6 @@ Create the role with any name, such as "mlops-cdk-github-action", and post creat
 ```
    
 8. Create GitHub secrets:
-  - If you haven't yet cloned the repository mentioned in this blog, now is the time to do so.
   - GitHub Secrets are encrypted variables that can be created within your GitHub organization or repository. These secrets can then be used in your GitHub Actions workflows.
   - In order to run your GitHub Actions pipelines successfully, you must create the following three required secrets in your cloned repository:
     - `AWS_ACCOUNT_OPENID_IAM_ROLE` - The ARN of the IAM role created in the previous step.
@@ -157,7 +155,7 @@ Create the role with any name, such as "mlops-cdk-github-action", and post creat
 
 ![screenshot5](diagrams/github_action_trigger.png)
 
-10. Make sure the above GitHub workflow completes successfully.
+10. Ensure that the GitHub workflow completes successfully.
 
 11. Launch the Service Catalog product:
   - Go to your [AWS Service Catalog Portfolios](https://console.aws.amazon.com/servicecatalog/home#admin-products) and click on the *Name* of the "SageMaker Organization Templates" portfolio.
@@ -188,17 +186,17 @@ Create the role with any name, such as "mlops-cdk-github-action", and post creat
 
 ![screenshot7](diagrams/project_create_page.png)
 
-  - And then "Create project"
+  - Click "Create project" to finalize the process.
 
 
 ### Manual Deployment of Service Catalog Stack
-Register the SageMaker Project Template from local development.
+Manually register the SageMaker Project Template from local development.
 
 #### Pre-requisites
 
-* If you have a mac machine with [Homebrew](https://brew.sh/) installed, you can use `scripts/install-prerequisites-brew.sh` to install the prerequisites and setup the python environment
+* For Mac machines with [Homebrew](https://brew.sh/) installed, use `scripts/install-prerequisites-brew.sh` to install prerequisites and set up the Python environment.
 
-1. This is an AWS CDK project written in Python 3.8. Here's what you need to have on your workstation before you can deploy this project. It is preferred to use a linux OS to be able to run all cli commands and avoid path issues.
+1. This AWS CDK project is written in Python 3.8. Ensure you have the following installed on your workstation (preferably a Linux OS to avoid path issues) before deploying this project:
 
    * [Node.js](https://nodejs.org/)
    * [Python3.8](https://www.python.org/downloads/release/python-380/) or [Miniconda](https://docs.conda.io/en/latest/miniconda.html)
@@ -206,9 +204,7 @@ Register the SageMaker Project Template from local development.
    * [AWS CLI](https://aws.amazon.com/cli/)
    * [Docker](https://docs.docker.com/desktop/)
 
-
-
-2. It is necessary to create a simple way to interact with multiple AWS credentials. We recommend the creation of an AWS profile per account with enough permission to deploy to CloudFormation following the instructions [here](https://docs.aws.amazon.com/toolkit-for-visual-studio/latest/user-guide/keys-profiles-credentials.html#adding-a-profile-to-the-aws-credentials-profile-file) . For example, the `.aws/credentials` should look like:
+2. Create a simple method to interact with multiple AWS credentials. We recommend creating an AWS profile for each account with sufficient permissions to deploy to CloudFormation by following the instructions [here](https://docs.aws.amazon.com/toolkit-for-visual-studio/latest/user-guide/keys-profiles-credentials.html#adding-a-profile-to-the-aws-credentials-profile-file). For example, the `.aws/credentials` should look like:
 
     ```
     [mlops-dev]
@@ -216,12 +212,12 @@ Register the SageMaker Project Template from local development.
     aws_secret_access_key = YOUR_SECRET_ACCESS_KEY
     aws_session_token = YOUR_SESSION_TOKEN  # this token is generated if you are using an IAM Role to assume into the account
     ```
-3. Make sure you have the SageMaker domain ready with a user profile, if you don’t have a SageMaker Domain created yet. Follow the steps to create it: [Create SageMaker Domain](https://docs.aws.amazon.com/sagemaker/latest/dg/onboard-quick-start.html)
-4. Once you have the domain created. Navigate to Domain, Click on your Domain, Click on User Profile, on the right-hand side pane copy the “Execution Role”.
+3. Ensure you have a SageMaker domain with a user profile. If not, follow these steps to create one: [Create SageMaker Domain](https://docs.aws.amazon.com/sagemaker/latest/dg/onboard-quick-start.html).
+4. After creating the domain, navigate to Domain, click on your Domain, click on User Profile, and copy the “Execution Role” from the right-hand side pane.
 
 ![screenshot1](diagrams/domain_execution_role.png)
 
-4. Ensure that the above identified Execution role has the following SageMaker project IAM permissions:
+4. Make sure the Execution role has the following SageMaker project IAM permissions:
     ```
     {
     "Version": "2012-10-17",
@@ -241,56 +237,56 @@ Register the SageMaker Project Template from local development.
        ]
     }
     ```
-5. Go to AWS Systems Manager, then go to the Parameter Store, and create a String Parameter of Data Type text named “/sagemaker/execution/role/” and provide the value as the SageMaker Execution Role ARN.
+5. Go to AWS Systems Manager, navigate to the Parameter Store, create a String Parameter of Data Type text named “/sagemaker/execution/role”, and provide the value as the SageMaker Execution Role ARN.
 
 ![screenshot2](diagrams/sagemaker_parameter.png)
 
 
 #### Project Build and Deploy
 
-Follow the steps below to achieve that:
+Follow the steps:
 
 1. Clone this repository in your work environment (e.g. your laptop)
 
-2. Change directory to project root : `mlops-cdk-github-action`
+2. Change the directory to the project root : `mlops-cdk-github-action`
 
     ```
     cd mlops-cdk-github-action
     ```
-3. Make sure all the Pre-requisites section is installed(Node, Docker, Python). 
-4. Install dependencies in a separate python virtual environment using your favourite python packages manager. You can refer to `scripts/install-prerequisites-brew.sh` for commands to setup a python environment.
+3. Ensure all prerequisites (Node, Docker, Python) are installed.
+4. Install dependencies in a separate Python virtual environment using your preferred Python package manager. Refer to `scripts/install-prerequisites-brew.sh` for commands to set up a Python environment.
 
     ```
      pip install -r requirements.txt
     ```
 5. Navigate to `.env` file on project root level. Add your AWS Account and Region.
-  _[don't commit this file, as this is only for local development]_
+  _[Do NOT commit this file, as it is only for local development.]_
     ```
     AWS_ACCOUNT=<your_aws_account_id_on_which_you_want_to_register>
     AWS_REGION=<aws_region>         
     ```
-6. Ensure your docker daemon is running
+1. Ensure your Docker daemon is running
 
-7. Bootstrap the account manually, then run the following command from project root folder:
+2. Manually bootstrap the account by running the following command from the project root folder:
 
     ```
     cdk bootstrap aws://<target account id>/<target region> --profile <your_aws_profile_for_the_target_account>
     ```
 
-    The following is an example of the same:
+    Example:
     ```
     cdk bootstrap aws://1234567890/us-east-1
     ```
 
-    for more information read the [AWS CDK documentation on Bootstrapping](https://docs.aws.amazon.com/cdk/v2/guide/bootstrapping.html#bootstrapping-howto)
+    For more information, read the [AWS CDK documentation on Bootstrapping](https://docs.aws.amazon.com/cdk/v2/guide/bootstrapping.html#bootstrapping-howto).
 
-8. Build the CDK stack
+3. Build the CDK stack.
   
     ```
     cdk synth
     ```
 
-9. Deploy the stage to AWS Account
+4. Deploy the stage to AWS Account.
 
     ```
     cdk --app ./cdk.out/assembly-dev deploy —all --profile <your_aws_profile_for_the_target_account>
@@ -301,9 +297,9 @@ Follow the steps below to achieve that:
 
 ## Clean-up
 
-In case you used the local deployment, once you are done with testing the new feature that was deployed locally, run the following commands to clean-up the environment:
+If you used local deployment and finished testing the new feature, run the following commands to clean up the environment:
 ```
-# destroy stage to target account (make it match your stack name)
-cdk --app ./cdk.out/assembly-dev destroy —all --profile <your_aws_profile_for_the_target_account>
+# Destroy stage to target account (make it match your stack name)
+cdk --app ./cdk.out/assembly-dev destroy --all --profile <your_aws_profile_for_the_target_account>
 ```
 ## Troubleshooting
