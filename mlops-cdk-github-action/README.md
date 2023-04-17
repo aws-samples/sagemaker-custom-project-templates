@@ -116,7 +116,7 @@ Assign below permissions to this role (_Note: For setup we are providing broad p
     AmazonS3FullAccess
     AWSServiceCatalogAdminFullAccess
     AWSCloudFormationFullAccess
-    IAMFullAccessAmazon
+    IAMFullAccess
     SageMakerFullAccess
 ```
 Create the role and post creation, open the newly created role and update the Trust Relationship to this(update aws account and GitHub repo details)
