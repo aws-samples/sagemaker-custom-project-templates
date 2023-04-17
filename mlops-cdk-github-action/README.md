@@ -13,6 +13,7 @@ This repository contains resources required to deploy an MLOps SageMaker Project
     - [Manual Deployment of Service Catalog Stack](#manual-deployment-of-service-catalog-stack)
       - [Pre-requisites](#pre-requisites)
       - [Project Build and Deploy](#project-build-and-deploy)
+  - [See what's deployed](#see-whats-deployed)
   - [Clean-up](#clean-up)
   - [Troubleshooting](#troubleshooting)
 
@@ -157,24 +158,8 @@ Create the role with any name, such as "mlops-cdk-github-action". After creation
 
 10. Ensure that the GitHub workflow completes successfully.
 
-11. Launch the Service Catalog product:
-  - Go to your [AWS Service Catalog Portfolios](https://console.aws.amazon.com/servicecatalog/home#admin-products) and click on the *Name* of the "SageMaker Organization Templates" portfolio.
-  -  In the *Access* tab, "Grant access" to the *IAM Principal* you're using.
-    - If you assumed a role, switch to the *Role* tab to find it.
-    - If you are logged in as an IAM user, switch to the *Users* tab.
-  - After selecting your IAM Principal, click "Grant access" again.
-  - Go to [Products](https://console.aws.amazon.com/servicecatalog/home#products).
-  - Select the "ML Ops with GitHub Action template for real-time deployment" product and *Launch Product*.
-  - You can name it anything or just check the box for *Generate name*.
-  - Fill out the parameters:
-    - A [GitHub Personal access token (classic)](https://docs.github.com/en/enterprise-server@3.4/authentication/keeping-your-account-and-data-secure/creating-a-personal-access-token) with at least `repo`, `workflow`, and `delete_repo` scopes.
-    - Your GitHub user name (case-sensitive).
-    - The SageMakerProjectId can be anything, like "mlops-demo"
-    - The SageMakerProjectName could be "github-actions".
-  - *Launch product* 
-
-12. Launch the SageMaker Project.
-  - In SageMaker Studio. with the same SageMaker user profile as you used in the earlier steps, go to left hand menu bar and select hte "SageMaker resources" icon, which looks like a triangle.
+11. Launch the SageMaker Project.
+  - In SageMaker Studio, *with the same SageMaker user profile as you used in the earlier steps*, go to left hand menu bar and select the "SageMaker resources" icon, which looks like a triangle.
   - Select Projects from the SageMaker resources.
   - Toggle the templates buttons to "Organization templates".
   - Select the "MLOps with GitHub Action template..."
@@ -182,7 +167,10 @@ Create the role with any name, such as "mlops-cdk-github-action". After creation
 ![screenshot6](diagrams/sagemaker_custom_project.png)
 
   - Click the orange "Create project" button
-  - Complete the project details (e.g., "github-actions-mlops-project" for "Name"):
+  - Complete the project details
+    - (e.g., "github-actions-mlops-project" for "Name")
+    - Your GitHub user name (case-sensitive)
+    - A [GitHub Personal access token (classic)](https://docs.github.com/en/enterprise-server@3.4/authentication/keeping-your-account-and-data-secure/creating-a-personal-access-token) with at least `repo`, `workflow`, and `delete_repo` scopes.
 
 ![screenshot7](diagrams/project_create_page.png)
 
@@ -289,11 +277,34 @@ Follow the steps:
 4. Deploy the stage to AWS Account.
 
     ```
-    cdk --app ./cdk.out/assembly-dev deploy —all --profile <your_aws_profile_for_the_target_account>
+    cdk --app ./cdk.out/assembly-dev deploy --all --profile <your_aws_profile_for_the_target_account>
     ```
 
   as a stage could include a combination of stacks `--all` flag is included with the `deploy` command
 
+
+#Build and Deploy
+Build will automatically
+
+## See what's deployed
+After the SageMaker project is deployed, you can see the following in your GitHub account:
+  - A new repository named '<project-name>-build' is created in your GitHub account. This repository contains the build scripts and the build project.
+    - This repository is managed by data scientists, whereas the CDK project is managed by DevOps or ML Ops engineers.
+    - Notice that the build repo contains a `source_scripts` folder. This folder contains the scripts that are used to build the model. The example contains XGBoost, but it could be any ML algorithm or framework.
+  - If you open the '<project-name>-build' repository and go to Actions, you can see the build pipeline running. The pipeline will build the model.
+  - A new repository named '<project-name>-deploy' is created in your GitHub account. This repository contains the deployment scripts and the deployment project.
+    - The Action won't run until you approve the pipeline.
+
+Now you can approve the pipeline and start the deployment process:
+1. Go to the AWS Console and navigate to the SageMaker service.
+2. In SageMaker Projects, select the project you created.
+3. Switch to the "Pipelines" tab and double-click on the pipeline you created.
+4. Double-click on the most recent version of the pipeline.
+5. Click "Update status" and change the status to "Approved".
+
+To check the status of the deployment in GitHub:
+1. Go to the GitHub repository named '<project-name>-deploy'.
+2. Go to Actions and select the most recent workflow run.
 
 ## Clean-up
 
@@ -302,4 +313,5 @@ If you used local deployment and finished testing the new feature, run the follo
 # Destroy stage to target account (make it match your stack name)
 cdk --app ./cdk.out/assembly-dev destroy --all --profile <your_aws_profile_for_the_target_account>
 ```
+
 ## Troubleshooting
