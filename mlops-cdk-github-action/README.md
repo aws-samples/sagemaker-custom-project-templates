@@ -157,14 +157,38 @@ Create the role with any name, such as "mlops-cdk-github-action", and post creat
 
 ![screenshot5](diagrams/github_action_trigger.png)
 
-10. When the above GitHub workflow completes successfully, you will be able to view the custom SageMaker Project template from your SageMaker Studio, as depicted in the following screenshot.
+10. Make sure the above GitHub workflow completes successfully.
+
+11. Launch the Service Catalog product:
+  - Go to your [AWS Service Catalog Portfolios](https://console.aws.amazon.com/servicecatalog/home#admin-products) and click on the *Name* of the "SageMaker Organization Templates" portfolio.
+  -  In the *Access* tab, "Grant access" to the *IAM Principal* you're using.
+    - If you assumed a role, switch to the *Role* tab to find it.
+    - If you are logged in as an IAM user, switch to the *Users* tab.
+  - After selecting your IAM Principal, click "Grant access" again.
+  - Go to [Products](https://console.aws.amazon.com/servicecatalog/home#products).
+  - Select the "ML Ops with GitHub Action template for real-time deployment" product and *Launch Product*.
+  - You can name it anything or just check the box for *Generate name*.
+  - Fill out the parameters:
+    - A [GitHub Personal access token (classic)](https://docs.github.com/en/enterprise-server@3.4/authentication/keeping-your-account-and-data-secure/creating-a-personal-access-token) with at least `repo`, `workflow`, and `delete_repo` scopes.
+    - Your GitHub user name (case-sensitive).
+    - The SageMakerProjectId can be anything, like "mlops-demo"
+    - The SageMakerProjectName could be "github-actions".
+  - *Launch product* 
+
+12. Launch the SageMaker Project.
+  - In SageMaker Studio. with the same SageMaker user profile as you used in the earlier steps, go to left hand menu bar and select hte "SageMaker resources" icon, which looks like a triangle.
+  - Select Projects from the SageMaker resources.
+  - Toggle the templates buttons to "Organization templates".
+  - Select the "MLOps with GitHub Action template..."
 
 ![screenshot6](diagrams/sagemaker_custom_project.png)
 
-11. Follow the project creation, and on the project creation details page provide project name (lower case only), your GitHub username (case-sensitive) and GitHub [personal access token](https://docs.github.com/en/enterprise-server@3.4/authentication/keeping-your-account-and-data-secure/creating-a-personal-access-token). 
-_Make sure while creating personal access token has minimum those permissions:_   **repo, workflow, delete_repo**
+  - Click the orange "Create project" button
+  - Complete the project details (e.g., "github-actions-mlops-project" for "Name"):
 
 ![screenshot7](diagrams/project_create_page.png)
+
+  - And then "Create project"
 
 
 ### Manual Deployment of Service Catalog Stack
