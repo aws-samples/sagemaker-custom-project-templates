@@ -155,7 +155,7 @@ class PipelineStack(Stack):
             CoreStage(
                 self,
                 "dev",
-                deploy_sm_domain=config_set["CREATE_SM_DOMAIN"] == "True",
+                deploy_sm_domain="True", # config_set["CREATE_SM_DOMAIN"] ==
                 env=Environment(account=config_set["DEV_ACCOUNT"], region=DEFAULT_DEPLOYMENT_REGION),
             )
         )
