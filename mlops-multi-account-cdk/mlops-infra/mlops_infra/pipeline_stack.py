@@ -48,6 +48,7 @@ class CoreStage(Stage):
 
         networking_stack = NetworkingStack(self, "networking", deploy_sm_domain, **kwargs)
 
+        # TODO: If SM Studio is not created in the dev account, the mlops-sm-project-template Service Catalog Portfolio still expects an execution role in as SSM /mlops/role/lead which will have to be created manually and will need to have ssm:PutParameter policy
         if deploy_sm_domain:
             sagemaker_studio_stack = SagemakerStudioStack(
                 self,
