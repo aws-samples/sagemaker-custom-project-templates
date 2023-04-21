@@ -50,13 +50,27 @@ variable "gitlab_url" {
   description = "URL of the Git Repository that will have the model code"
 }
 
-variable "git_repo_name" {
-  description = "Name of the Git Repository that will have the model code"
+variable "git_build_repo_name" {
+  description = "Name of the Git Repository that will have the model build code"
 }
 
-variable "git_repo_branch" {
-  description = "Branch of the Git Repository that will have the model code"
+variable "git_deploy_repo_name" {
+  description = "Name of the Git Repository that will have the model deploy code"
 }
+
+
+variable "git_user_name" {
+  description = "User Name for the GitLab Repository that will have the model code"
+}
+
+variable "git_build_repo_branch" {
+  description = "Branch of the Git Repository that will have the model build code"
+}
+
+variable "git_deploy_repo_branch" {
+  description = "Branch of the Git Repository that will have the model deploy code"
+}
+
 
 variable "secrets_manager_gitlab_secret_name" {
   description = "Secrets Manager Secret having the Gitlab Private Token"

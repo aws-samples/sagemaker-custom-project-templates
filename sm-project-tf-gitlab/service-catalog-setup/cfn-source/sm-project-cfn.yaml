@@ -16,15 +16,20 @@ Parameters:
     Default: 'https://gitlab.com'
     Description: URL of the Gitlab domain.
 
-  GitRepoName:
+  GitBuildRepoName:
     Type: String
-    Default: 'repo-name'
-    Description: Service generated Id of the project.
+    Default: 'build-repo-name'
+    Description: Git Repo Name for storing the ML Build code.
+
+  GitUserName:
+    Type: String
+    Default: 'user-name'
+    Description: Git User Name for accessing the ML code.
     
-  GitBranchName:
+  GitDeployRepoName:
     Type: String
-    Default: 'main'
-    Description: Service generated Id of the project.    
+    Default: 'deploy-repo-name'
+    Description: Git Repo Name for storing the ML Deploy code.   
 
   MLOpsS3Bucket:
     Type: String
@@ -99,8 +104,9 @@ Resources:
         export TF_VAR_sagemaker_project_name=${SageMakerProjectName}
         export TF_VAR_sagemaker_project_id=${SageMakerProjectId}
         export TF_VAR_gitlab_url=${GitlabURL}
-        export TF_VAR_git_repo_name=${GitRepoName}
-        export TF_VAR_git_repo_branch=${GitBranchName}
+        export TF_VAR_git_build_repo_name=${GitBuildRepoName}
+        export TF_VAR_git_user_name=${GitUserName}
+        export TF_VAR_git_deploy_repo_name=${GitDeployRepoName}
         export TF_VAR_secrets_manager_gitlab_secret_name=${SecretsManagerGitlabPrivateToken}
         export TF_VAR_secrets_manager_gitlab_iam_access_key=${SecretsManagerGitlabIAMAccessKey}
         export TF_VAR_secrets_manager_gitlab_iam_secret_key=${SecretsManagerGitlabIAMSecretKey}

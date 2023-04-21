@@ -9,7 +9,8 @@
                 "sagemaker:*",
                 "logs:*",
                 "dynamodb:*",
-                "sts:GetCallerIdentity"
+                "sts:GetCallerIdentity",
+                "events:*"
             ],
             "Resource": "*"
         },
