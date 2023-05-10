@@ -116,10 +116,6 @@ class ServiceCatalogStack(Stack):
         )
 
         products_launch_role.add_managed_policy(
-            iam.ManagedPolicy.from_aws_managed_policy_name("AmazonEventBridgeFullAccess")
-        )
-
-        products_launch_role.add_managed_policy(
             iam.ManagedPolicy.from_aws_managed_policy_name("AWSKeyManagementServicePowerUser")
         )
 
@@ -130,7 +126,7 @@ class ServiceCatalogStack(Stack):
         )
 
         products_launch_role.add_managed_policy(
-            iam.ManagedPolicy.from_aws_managed_policy_name("AWSCodePipelineFullAccess")
+            iam.ManagedPolicy.from_aws_managed_policy_name("AWSCodePipeline_FullAccess")
         )
 
         products_launch_role.add_managed_policy(iam.ManagedPolicy.from_aws_managed_policy_name("AmazonS3FullAccess"))
