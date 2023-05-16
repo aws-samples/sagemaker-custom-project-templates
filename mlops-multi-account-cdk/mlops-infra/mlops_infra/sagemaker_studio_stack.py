@@ -166,7 +166,7 @@ class SagemakerStudioStack(Stack):
         event_handler = PythonFunction(
             self,
             "sg-project-function",
-            runtime=lambda_.Runtime.PYTHON_3_8,
+            runtime=lambda_.Runtime.PYTHON_3_9,
             entry="functions/sm_studio/enable_sm_projects",
             timeout=core.Duration.seconds(120),
         )

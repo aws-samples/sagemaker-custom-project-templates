@@ -114,10 +114,6 @@ class ServiceCatalogStack(Stack):
         )
 
         products_launch_role.add_managed_policy(
-            iam.ManagedPolicy.from_aws_managed_policy_name("AmazonEventBridgeFullAccess")
-        )
-
-        products_launch_role.add_managed_policy(
             iam.ManagedPolicy.from_aws_managed_policy_name("AWSKeyManagementServicePowerUser")
         )
 
