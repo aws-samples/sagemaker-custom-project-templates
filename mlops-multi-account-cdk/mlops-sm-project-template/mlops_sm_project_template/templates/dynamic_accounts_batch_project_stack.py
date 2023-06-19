@@ -42,8 +42,8 @@ from mlops_sm_project_template.templates.pipeline_constructs.deploy_pipeline_con
 
 
 class MLOpsStack(Stack):
-    DESCRIPTION: str = "This template includes a model building pipeline that includes a workflow to pre-process, train, evaluate and register a model. The deploy pipeline creates a dev, preprod and production sagemaker pipeline for inference. The target PREPROD/PROD accounts are provided as cloudformation paramters and must be provided during project creation."
-    TEMPLATE_NAME: str = "Dynamic Accounts MLOps template for batch deployment"
+    DESCRIPTION: str = "This template includes a build and a deploy code repository (CodeCommit) associated to their respective CICD pipeline (CodePipeline). The build repository and CICD pipeline are used to run SageMaker pipeline(s) in dev and promote the pipeline definition to an artefact bucket. The deploy repository and CICD pipeline loads the artefact SageMaker pipeline definition to create a Sagemaker pipeline in preprod and production as infrastructure as code (eg for batch inference). The target PREPROD/PROD accounts are provided as cloudformation parameters and must be provided during project creation. The PREPROD/PROD accounts need to be cdk bootstraped in advance to have the right CloudFormation execution cross account roles."
+    TEMPLATE_NAME: str = "MLOps template to build and deploy SageMaker pipeline(s) cross-account with parametrized accounts"
 
     def __init__(self, scope: Construct, construct_id: str, **kwargs) -> None:
         super().__init__(scope, construct_id, **kwargs)

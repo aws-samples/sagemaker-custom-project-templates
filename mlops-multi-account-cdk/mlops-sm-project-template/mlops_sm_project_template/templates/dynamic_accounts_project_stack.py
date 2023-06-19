@@ -42,8 +42,8 @@ from mlops_sm_project_template.templates.pipeline_constructs.deploy_pipeline_con
 
 
 class MLOpsStack(Stack):
-    DESCRIPTION: str = "This template includes a model building pipeline that includes a workflow to pre-process, train, evaluate and register a model. The deploy pipeline creates a dev, preprod and production endpoint. The target PREPROD/PROD accounts are provided as cloudformation paramters and must be provided during project creation."
-    TEMPLATE_NAME: str = "Dynamic Accounts MLOps template for real-time deployment"
+    DESCRIPTION: str = "This template includes a model building pipeline that includes a workflow to pre-process, train, evaluate and register a model. The deploy pipeline creates a dev, preprod and production endpoint as infrastructure as code. The PREPROD/PROD accounts need to be cdk bootstraped in advance to have the right CloudFormation execution cross account roles."
+    TEMPLATE_NAME: str = "MLOps template for real-time deployment with parametrized accounts"
 
     def __init__(self, scope: Construct, construct_id: str, **kwargs) -> None:
         super().__init__(scope, construct_id, **kwargs)

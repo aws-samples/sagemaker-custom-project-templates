@@ -41,7 +41,7 @@ from mlops_sm_project_template.templates.pipeline_constructs.deploy_pipeline_con
 )
 
 class MLOpsStack(Stack):
-    DESCRIPTION: str = "This template includes a model building pipeline that includes a workflow to pre-process, train, evaluate and register a model. The deploy pipeline creates a dev,preprod and production endpoint. The target DEV/PREPROD/PROD accounts are predefined in the template."
+    DESCRIPTION: str = "This template includes a model building pipeline that includes a workflow to pre-process, train, evaluate and register a model. The deploy pipeline creates a dev,preprod and production endpoint. The target DEV/PREPROD/PROD accounts are predefined in this template."
     TEMPLATE_NAME: str = "Basic MLOps template for real-time deployment"
 
     def __init__(self, scope: Construct, construct_id: str, preprod_account: int, prod_account: int, deployment_region: str, **kwargs) -> None:

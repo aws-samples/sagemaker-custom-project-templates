@@ -193,7 +193,7 @@ class ServiceCatalogStack(Stack):
             "Portfolio",
             display_name=portfolio_name,
             provider_name=portfolio_owner,
-            description="Organization templates for drift detection pipelines",
+            description="Custom multi-account SageMaker Project templates for your organization",
         )
 
         # Create portfolio associate that depends on products
