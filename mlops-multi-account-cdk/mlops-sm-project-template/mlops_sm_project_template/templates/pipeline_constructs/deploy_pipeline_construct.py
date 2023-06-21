@@ -38,6 +38,7 @@ class DeployPipelineConstruct(Construct):
         construct_id: str,
         project_name: str,
         project_id: str,
+        s3_artifact: s3.IBucket,
         pipeline_artifact_bucket: s3.IBucket,
         model_package_group_name: str,
         repo_s3_bucket_name: str,
@@ -45,6 +46,7 @@ class DeployPipelineConstruct(Construct):
         preprod_account: int,
         prod_account: int,
         deployment_region: str,
+        create_model_event_rule: bool,
         **kwargs,
     ) -> None:
         super().__init__(scope, construct_id, **kwargs)
@@ -115,26 +117,50 @@ class DeployPipelineConstruct(Construct):
                 resources=[f"arn:aws:kms:{Aws.REGION}:{Aws.ACCOUNT_ID}:key/*"],
             ),
         )
+        
+        cdk_synth_build_role.add_to_policy(
+            iam.PolicyStatement(
+                actions=[
+                    "ssm:*",
+                ],
+                effect=iam.Effect.ALLOW,
+                resources=[
+                    f"arn:aws:ssm:{Aws.REGION}:{Aws.ACCOUNT_ID}:parameter/mlops/{project_name}*",
+                ],
+            ),
+        )
+        
+        cdk_synth_build_role.add_to_policy(
+            iam.PolicyStatement(
+                actions=[
+                    "s3:GetObject",
+                    "s3:GetObjectVersion"
+                ],
+                effect=iam.Effect.ALLOW,
+                resources=[f"{s3_artifact.bucket_arn}/*"],
+            ),
+        )
 
         cdk_synth_build = codebuild.PipelineProject(
             self,
             "CDKSynthBuild",
             role=cdk_synth_build_role,
-            build_spec=codebuild.BuildSpec.from_object(
-                {
-                    "version": "0.2",
-                    "phases": {
-                        "build": {
-                            "commands": [
-                                "npm install -g aws-cdk",
-                                "pip install -r requirements.txt",
-                                "cdk synth --no-lookups",
-                            ]
-                        }
-                    },
-                    "artifacts": {"base-directory": "cdk.out", "files": "**/*"},
-                }
-            ),
+            build_spec=codebuild.BuildSpec.from_source_filename("buildspec.yml"),
+            # build_spec=codebuild.BuildSpec.from_object(
+            #     {
+            #         "version": "0.2",
+            #         "phases": {
+            #             "build": {
+            #                 "commands": [
+            #                     "npm install -g aws-cdk",
+            #                     "pip install -r requirements.txt",
+            #                     "cdk synth --no-lookups",
+            #                 ]
+            #             }
+            #         },
+            #         "artifacts": {"base-directory": "cdk.out", "files": "**/*"},
+            #     }
+            # ),
             environment=codebuild.BuildEnvironment(
                 build_image=codebuild.LinuxBuildImage.STANDARD_5_0,
                 environment_variables={
@@ -332,17 +358,33 @@ class DeployPipelineConstruct(Construct):
             ],
         )
 
-        # CloudWatch rule to trigger model pipeline when a status change event happens to the model package group
-        model_event_rule = events.Rule(
-            self,
-            "ModelEventRule",
-            event_pattern=events.EventPattern(
-                source=["aws.sagemaker"],
-                detail_type=["SageMaker Model Package State Change"],
-                detail={
-                    "ModelPackageGroupName": [model_package_group_name],
-                    "ModelApprovalStatus": ["Approved", "Rejected"],
-                },
-            ),
-            targets=[targets.CodePipeline(deploy_code_pipeline)],
-        )
+        if create_model_event_rule:
+            # CloudWatch rule to trigger model pipeline when a status change event happens to the model package group
+            model_event_rule = events.Rule(
+                self,
+                "ModelEventRule",
+                event_pattern=events.EventPattern(
+                    source=["aws.sagemaker"],
+                    detail_type=["SageMaker Model Package State Change"],
+                    detail={
+                        "ModelPackageGroupName": [model_package_group_name],
+                        "ModelApprovalStatus": ["Approved", "Rejected"],
+                    },
+                ),
+                targets=[targets.CodePipeline(deploy_code_pipeline)],
+            )
+        else:
+            # CloudWatch rule to trigger the deploy CodePipeline when the build CodePipeline has succeeded
+            codepipeline_event_rule = events.Rule(
+                self,
+                "BuildCodePipelineEventRule",
+                event_pattern=events.EventPattern(
+                    source=["aws.codepipeline"],
+                    detail_type=["CodePipeline Pipeline Execution State Change"],
+                    detail={
+                        "pipeline": [f"{project_name}-build"],
+                        "state": ["SUCCEEDED"]
+                    },
+                ),
+                targets=[targets.CodePipeline(deploy_code_pipeline)],
+            )

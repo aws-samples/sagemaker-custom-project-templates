@@ -60,7 +60,7 @@ setuptools.setup(
     extras_require=extras,
     entry_points={
         "console_scripts": [
-            "get-pipeline-definition=pipelines.get_pipeline_definition:main",
+            "get-pipeline-definition=ml_pipelines.get_pipeline_definition:main",
             "run-pipeline=ml_pipelines.run_pipeline:main",
         ]
     },

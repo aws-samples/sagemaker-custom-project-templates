@@ -295,6 +295,7 @@ class MLOpsStack(Stack):
             "deploy",
             project_name,
             project_id,
+            s3_artifact,
             pipeline_artifact_bucket,
             model_package_group_name,
             seed_bucket,
@@ -302,4 +303,5 @@ class MLOpsStack(Stack):
             preprod_account,
             prod_account,
             deployment_region,
+            create_model_event_rule=True,
         )
