@@ -1,12 +1,12 @@
 # Developer Guide
 While the solution presented in [README](README.md) can be used as is, this repository is built with the intention to be customized for the need of your organization.
 
-[mlops-sm-project-template](mlops-sm-project-template/) will:
-- Create a Service Catalogue Portfolio via [service_catalog_stack](mlops-sm-project-template/service_catalog_stack.py).
+[mlops_sm_project_template](mlops_sm_project_template/) will:
+- Create a Service Catalogue Portfolio via [service_catalog_stack](mlops_sm_project_template/service_catalog_stack.py).
 - Create SageMaker Project Templates (Service Catalog Products) inside the Service Catalogue Portfolio. Each SageMaker Project template is a CDK stack called `MLOpsStack` inside [templates](mlops_sm_project_template/templates/)
 
 The high level design of each of those SageMaker Project Templates as described in [README](README.md) is the same:
-- Two CodeCommit repositories (one for `build` and one for `deploy`) instantiated with their respective seed code found in [seed_code](mlops_sm_project_template/seed_code/)
+- Two CodeCommit repositories (one for `build` and one for `deploy`) instantiated with their respective seed code found in [seed_code](seed_code/)
 - Two CodePipelines linked to the respective repositories, whose definitions are provided as CDK Constructs under [pipeline_constructs](mlops_sm_project_template/templates/pipeline_constructs) or [byoc_pipelines_constructs](mlops_sm_project_template/templates/byoc_pipeline_constructs/)
 
 By default, if changes to the `build` or `deploy` repositories of a project are specific to a use case (work done by Data Scientists), we do not recommend changing seed codes.
@@ -17,12 +17,12 @@ However if you observe repeated patterns that you want to make available accross
 Then you could either modify an existing [template project stack](mlops_sm_project_template/templates/) or create your own.
 
 If you want to create a new Service Catalogue Product / SageMaker Project template in the Service Catalogue Portfolio, you should:
-- Create a new `*_project_stack.py` in [templates](mlops_sm_project_template/templates/) (you can copy a pre-existing one such as [dynamic_accounts_project_stack](mlops_sm_project_template/templates/dynamic_accounts_project_stack.py))
+- Create a new `YOUR_CUSTOM_project_stack.py` in [templates](mlops_sm_project_template/templates/) (you can copy a pre-existing one such as [dynamic_accounts_project_stack](mlops_sm_project_template/templates/dynamic_accounts_project_stack.py))
 - You can reuse existing or create new CICD pipeline constructs in as in [pipeline_constructs](mlops_sm_project_template/templates/pipeline_constructs)
-- You can provide your own `seed_code` for either the build or deploy app or both. Your `YOUR_CUSTOM_project_stack.py` should reference to the new ones you created.
+- You can provide your own `seed code` for either the build or deploy app or both. Your `YOUR_CUSTOM_project_stack.py` should reference to the new ones you created.
 
-By default a SageMaker Project Template contains two repositories (but you can change that based on your organization's requirements). The definitions of those repositories are contained in [seed_code](mlops_sm_project_template/seed_code/).
-The [service_catalog_stack](mlops-sm-project-template/service_catalog_stack.py) packages the content of the subfolders in s3 via `aws_cdk.aws_s3_assets.s3_assets.Asset()` and shares the s3 key via SSM.
+By default a SageMaker Project Template contains two repositories (but you can change that based on your organization's requirements). The definitions of those repositories are contained in [seed_code](seed_code/).
+The [service_catalog_stack](mlops_sm_project_template/service_catalog_stack.py) packages the content of the subfolders in s3 via `aws_cdk.aws_s3_assets.s3_assets.Asset()` and shares the s3 key via SSM.
 
 For example:
 
@@ -49,7 +49,7 @@ For example:
 ```
 
 Whenever a SageMaker Project Template is instantiated by a user, the CodeCommit repositories will be initially populated with the seed code provided as s3_assets.
-The SSM paths containing the s3 paths of the seed repositories are passed as arguments to the CICD pipeline constructs (eg [build_pipeline_construct](mlops_sm_project_template/templates/pipeline_constructs/build_pipeline_construct.py) which are in charge or creating the CodeCommit repositories and respective Code Pipelines.
+The SSM paths containing the s3 paths of the seed repositories are passed as arguments to the CICD pipeline constructs (eg [build_pipeline_construct](mlops_sm_project_template/templates/pipeline_constructs/build_pipeline_construct.py)) which are in charge or creating the CodeCommit repositories and respective Code Pipelines.
 
 For example in [dynamic_accounts_project_stack](mlops_sm_project_template/templates/dynamic_accounts_project_stack.py):
 

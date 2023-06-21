@@ -43,7 +43,7 @@ The networking stack deploys all required resources to create a secure environme
 
 3. SSM parameters are used to store information about the VPC and its related components in each deployment account (DEV/PREPROD/PROD)
 
-**NOTE** This is an optional stack for the scenario that the account does not have an existing VPC configured. If you want to use an existing VPC you will need to comment out line 54 and lines 60-61 from `pipeline_stack.py`. Uncomment lines 93-98 from `sagemaker_studio_stack.py`. The uncommented code would load the networking information from the config file for each stage in the pipeline (**DEV/PREPROD/PROD**). In `mlops_infra/config/dev`, there is an example `constants.py` for how the vpc and subnets infromation should be provided. You can use this constant file to add any additional resources such as an exisiting security group that you want to use or an IAM role. Note that this is specific to each account so you would need to provide this information for every account you want to deploy this solution to it; networking infromation for each **DEV**, **PREPROD** and **PROD** account.
+**NOTE** This is an optional stack for the scenario that the account does not have an existing VPC configured. If you want to use an existing VPC you will need to comment out `networking_stack` (line 49) and comment out the `vpc` and `subnets` arguments of the `sagemaker_studio_stack` (line 56 and 57) in the `CoreStage` of [pipeline_stack.py](mlops_infra/pipeline_stack.py). Uncomment the commented block (around lines 89-94) from [sagemaker_studio_stack](mlops_infra/sagemaker_studio_stack.py). The uncommented code would load the networking information from the config file for each stage in the pipeline (**DEV/PREPROD/PROD**). In [mlops_infra/config/dev/](mlops_infra/config/dev/), there is an example [constants.py](mlops_infra/config/dev/constants.py) for how the vpc and subnets information should be provided. You can use this constant file to add any additional resources such as an exisiting security group that you want to use or an IAM role. Note that this is specific to each account so you would need to provide this information for every account you want to deploy this solution to it; networking information for each **DEV**, **PREPROD** and **PROD** account.
 
 
 
@@ -58,19 +58,19 @@ You must ensure that the existing VPC contains most of the components that are c
 This stack handles the deployment of the following resources:
 
 1. SageMaker Studio Domain requires, along with
-2. IAM roles which would be linked to SM Studio user profiles. User Profile creating process is managed by the config files in `mlops_infra/config/dev/data_scientists.yml` and `mlops_infra/config/dev/lead_data_scientists.yml`. you can simply add new entries in the list to create a new user. The user will be linked to a role depending on which yml you add him to and will have a prefix defined in the yml files.
+2. IAM roles which would be linked to SM Studio user profiles. User Profile creating process is managed by the config files in [mlops_infra/config/dev/data_scientists.yml](mlops_infra/config/dev/data_scientists.yml) and [mlops_infra/config/dev/lead_data_scientists.yml](mlops_infra/config/dev/lead_data_scientists.yml). You can simply add new entries in the list to create a new user. The user will be linked to a role depending on which yml you add them to and will have a prefix defined in the yml files.
 
 ```
   users:
     - user_profile_name: "X"
 ```
 
-3. Default SageMaker Project Templates are also enabled on the account on the targeted region using a custom resource; the custom resource uses a lambda function, `functions/sm_studio/enable_sm_projects`, to make necessary SDK calls to both Amazon Service Catalog and Amazon SageMaker.
+3. Default SageMaker Project Templates are also enabled on the account on the targeted region using a custom resource; the custom resource uses a lambda function, [functions/sm_studio/enable_sm_projects](functions/sm_studio/enable_sm_projects), to make necessary SDK calls to both Amazon Service Catalog and Amazon SageMaker.
 
 ### CodeCommit Stack
 *This stack is only needed if you want to handle deployments of this folder of the repository to be managed through a CICD pipeline.*
 
-This stack handles setting up an AWS CodeCommit repository for this folder of the repository. This repository will be used as the source for the CI/CD pipeline defined in [Pipeline Stack](#pipeline-stack). The repository will be named based on the value defined in `mlops_infra/config/constants.py` with this variable `CODE_COMMIT_REPO_NAME`. The repository will be intialised with a default branch as defined in the `constants.py` file under `PIPELINE_BRANCH` variable.
+This stack handles setting up an AWS CodeCommit repository for this folder of the repository. This repository will be used as the source for the CI/CD pipeline defined in [Pipeline Stack](#pipeline-stack). The repository will be named based on the value defined in [constants.py](mlops_infra/config/constants.py) with this variable `CODE_COMMIT_REPO_NAME`. The repository will be intialised with a default branch as defined in the [constants.py]([mlops_infra/config/constants.py](mlops_infra/config/constants.py)) file under `PIPELINE_BRANCH` variable.
 
 ### Pipeline Stack
 
@@ -78,13 +78,13 @@ This stack handles setting up an AWS CodeCommit repository for this folder of th
 
 The CICD pipeline in this repository is setup to monitor an AWS CodeCommit repository as defined in [CodeCommit Stack](#codecommit-stack).
 
-If you are using other sources like github or bitbucket for your repository, you will need to modify the connection to the appropriate repository as defined in `mlops_infra/pipeline_stack.py`. This can be done using AWS CodeStar but must be setup on the account.
+If you are using other sources like github or bitbucket for your repository, you will need to modify the connection to the appropriate repository as defined in [mlops_infra/pipeline_stack.py](mlops_infra/pipeline_stack.py). This can be done using AWS CodeStar but must be setup on the account.
 
-Make sure the pipelines also point to your targeted branch; by default the pipeline is linked to `main` branch events, this is defined in the `constants.py` file under `PIPELINE_BRANCH` variable.
+Make sure the pipelines also point to your targeted branch; by default the pipeline is linked to `main` branch events, this is defined in the [constants.py](mlops_infra/config/constants.py) file under `PIPELINE_BRANCH` variable.
 
-`accounts.json` contains information about the target accounts you want to use for this repository CICD pipeline(s) and the target deployment accounts (DEV/PREPROD/PROD).
+[accounts.json](mlops_infra/config/accounts.json) contains information about the target accounts you want to use for this repository CICD pipeline(s) and the target deployment accounts (DEV/PREPROD/PROD).
 
-`accounts.json` is created as a list where each entry is a different set of DEV/PREPROD/PROD accounts. By default we recommend starting with one entry of DEV/PREPROD/PROD accounts but this can be used to scale the infrastructure to several organizational units/teams.
+[accounts.json](mlops_infra/config/accounts.json) is created as a list where each entry is a different set of DEV/PREPROD/PROD accounts. By default we recommend starting with one entry of DEV/PREPROD/PROD accounts but this can be used to scale the infrastructure to several organizational units/teams.
 The repository will create one parallel CICD pipeline for each entry. (please ensure all new target accounts you add to the list are bootstrapped)
 
 The CICD pipeline will deploy all stacks and resources to the appropriate accounts.
@@ -144,7 +144,7 @@ if you are using a mac or a linux machine that supports `make` commands, you wil
 
 This repository also contains some shell scripts that you can use to setup your machine and aws accounts:
 
-* If you have a mac machine with [Homebrew](https://brew.sh/) installed, you can use `scripts/install-prerequisites-brew.sh` to install the prerequisites and setup the python environment
+* If you have a mac machine with [Homebrew](https://brew.sh/) installed, you can use [scripts/install-prerequisites-brew.sh](scripts/install-prerequisites-brew.sh) to install the prerequisites and setup the python environment
 
 ### Setup AWS Profiles
 
@@ -168,12 +168,12 @@ aws_session_token = YOUR_SESSION_TOKEN  # this token is generated if you are usi
 ...
 ```
 
-Before you start with the deployment of the solution make sure to bootstrap your accounts. Ensure you add the pipeline/governance account details in `mlops_infra/config/constants.py`.
+Before you start with the deployment of the solution make sure to bootstrap your accounts. Ensure you add the pipeline/governance account details in [mlops_infra/config/constants.py](mlops_infra/config/constants.py).
 ```
 PIPELINE_ACCOUNT = ""     # account to host the pipeline handling updates of this repository
 ```
 
-Additionally, for each organizational units composed of **DEV**, **PREPROD** and **PROD** accounts, create a new entry in `mlops_infra/config/accounts.json`
+Additionally, for each organizational units composed of **DEV**, **PREPROD** and **PROD** accounts, create a new entry in [mlops_infra/config/accounts.json](mlops_infra/config/accounts.json)
 
 ```
 "DEV_ACCOUNT": "",        # account to setup sagemaker studio and networking stack
@@ -196,7 +196,7 @@ follow the steps below to achieve that:
 cd mlops-infra
 ```
 
-3. Install dependencies in a separate python environment using your favourite python packages manager. You can refer to `scripts/install-prerequisites-brew.sh` for commands to setup a python environment.
+3. Install dependencies in a separate python environment using your favourite python packages manager. You can refer to [scripts/install-prerequisites-brew.sh](scripts/install-prerequisites-brew.sh) for commands to setup a python environment.
 
 ```
  pip install -r requirements.txt
@@ -206,7 +206,7 @@ cd mlops-infra
 
 5. Ensure your docker daemon is running
 
-6. (Option 1) Bootstrap your deployment target accounts (e.g. governance, dev, etc.) using our script in `scripts/cdk-account-setup.sh` Ensure that you have the account ids ready and the corresponding AWS profiles with credentials created in your `~/.aws/credentials` for each account (see above).
+6. (Option 1) Bootstrap your deployment target accounts (e.g. governance, dev, etc.) using our script in [scripts/cdk-account-setup.sh](scripts/cdk-account-setup.sh). Ensure that you have the account ids ready and the corresponding AWS profiles with credentials created in your `~/.aws/credentials` for each account (see above).
 
 The script will request the 4 accounts, i.e. governance, dev, preprod and prod, and the corresponding AWS profiles as inputs. If you want to only deploy to 1 account you can use the same id for all account variables or pass the same values in the script.
 
@@ -256,10 +256,10 @@ cdk deploy --all --profile mlops-governance
 
 ### Manual Deployment
 
-It is possible to deploy a specific stage (in `pipeline_stack.py` refer to classes inheriting `Stage` class from `aws_cdk`). The same is possible to a singular stack (follow the same deployment steps as the pipeline stack).  `CoreStage` is a stage defined in `pipeline_stack.py` which contains both the `NetworkingStack` and the `SagemakerStudioStack` and is what the CI/CD pipeline deploys at every deployment stage to the target account of the stage. You can deploy this stage manually by following these steps:
+It is possible to deploy a specific stage (in [pipeline_stack.py](mlops_infra/pipeline_stack.py)) refer to classes inheriting `Stage` class from `aws_cdk`). The same is possible to a singular stack (follow the same deployment steps as the pipeline stack). `CoreStage` is a stage defined in [pipeline_stack.py](mlops_infra/pipeline_stack.py) which contains both the `NetworkingStack` and the `SagemakerStudioStack` and is what the CI/CD pipeline deploys at every deployment stage to the target account of the stage. You can deploy this stage manually by following these steps:
 
 
-1. Add a custom id to the target stage in `app.py`
+1. Add a custom id to the target stage in [app.py](mlops_infra/app.py)
 
 ```
 # Personal Stacks for testing locally, comment out when committing to repository

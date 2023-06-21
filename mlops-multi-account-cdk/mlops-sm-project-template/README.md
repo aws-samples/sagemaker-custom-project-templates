@@ -84,11 +84,11 @@ These resources are deployed to the DEV account with cross account access enable
 
 This construct contains resources that create a CI/CD pipeline to orchestrate a model training using SageMaker Pipelines starting from doing preprocessing jobs over the data and end by registering the trained model in a model package group in SageMaker Model Registry. After the pipeline finishes running successfuly, the model will have `Pending Manual Approval` status in SageMaker Model Registry.
 
-In `seed_code/build_app`, you will find the base code that would be setup when you create a new SageMaker Project. It is **python** based and is expected to run inside a CodeBuild project. There is a `buildspec.yml` that describes the command that will be run. For more details about this base code, refer to `seed_code/build_app/README.md`.
+In [seed_code/build_app](seed_code/build_app/), you will find the base code that would be setup when you create a new SageMaker Project. It is **python** based and is expected to run inside a CodeBuild project. There is a [buildspec.yml](seed_code/build_app/buildspec.yml) that describes the command that will be run. For more details about this base code, refer to [seed_code/build_app/README.md](seed_code/build_app/README.md).
 
 The following resources are created in this construct:
-- **CodeCommit Repository**, this repository is intialised with the code defined in `seed_code/build_app` which was the stored in an S3 bucket when the service catalog stack was deployed. The s3 bucket name and code zip key are stored in ssm parameters: `/mlops/code/seed_bucket` and `/mlops/code/build`. The stack expects these parameters to exist in the account.
-- **CodeBuild Project**, this codebuild project is used to create/update/run the SageMaker Pipeline defined in the **build app repository** in `ml_pipelines/training/pipeline.py`. The project's **buildspec** uses the `buildspec.yml` defined in the repository as well.
+- **CodeCommit Repository**, this repository is intialised with the code defined in [seed_code/build_app](seed_code/build_app/) which was the stored in an S3 bucket when the service catalog stack was deployed. The s3 bucket name and code zip key are stored in ssm parameters: `/mlops/code/seed_bucket` and `/mlops/code/build`. The stack expects these parameters to exist in the account.
+- **CodeBuild Project**, this codebuild project is used to create/update/run the SageMaker Pipeline defined in the **build app repository** in [ml_pipelines/training/pipeline.py](seed_code/build_app/ml_pipelines/training/pipeline.py). The project's **buildspec** uses the [buildspec.yml](seed_code/build_app/buildspec.yml) defined in the repository as well.
 - **CodePipeline Pipeline**, this pipeline has the **CodeCommit Repository** created in this construct as source and monitors the commits to the **main** branch. It has one additional stage, **Build** stage, which runs the **CodeBuild Project** defined above.
 
 **NOTE** The solution defined above only support a CICD pipeline that is linked to the **main** branch update events. If you want to have a **multi-branch approach** i.e. a CI/CD pipeline linked to the **develop** then you will need to duplicate the exisiting pipeline and ensure resources for each branch are **isolated** to not have impact on each other. You will also need to recosider the prefix strategy used in **Artifact Bucket**, created in [shared resources section](#shared-resources).
@@ -101,11 +101,11 @@ The following resources are created in this construct:
 
 This construct contains resources that create a CI/CD pipeline to automate the deployment of an Amazon SageMaker Endpoint for real time inference across multiple accounts.
 
-In `seed_code/deploy_app`, you will find the base code that would be setup when you create a new SageMaker Project. It is **python** based **AWS CDK** application. For more details about this base code, refer to `seed_code/deploy_app/README.md`.
+In [seed_code/deploy_app](seed_code/deploy_app/), you will find the base code that would be setup when you create a new SageMaker Project. It is **python** based **AWS CDK** application. For more details about this base code, refer to [seed_code/deploy_app/README.md](seed_code/deploy_app/README.md).
 
 
 The following resources are created in this construct:
-- **CodeCommit Repository**, this repository is intialised with the code defined in `seed_code/deploy_app` which was the stored in an S3 bucket when the service catalog stack was deployed. The s3 bucket name and code zip key are stored in ssm parameters: `/mlops/code/seed_bucket` and `/mlops/code/deploy`. The stack expects these parameters to exist in the account.
+- **CodeCommit Repository**, this repository is intialised with the code defined in [seed_code/deploy_app](seed_code/deploy_app) which was the stored in an S3 bucket when the service catalog stack was deployed. The s3 bucket name and code zip key are stored in ssm parameters: `/mlops/code/seed_bucket` and `/mlops/code/deploy`. The stack expects these parameters to exist in the account.
 - **EventBridge Rule**, this rule is linked to the model package group used for this SageMaker Project. It will be monitoring **Approved** and **Rejected** events and will trigger the deployment CI/CD pipeline on them.
 - **CodeBuild Project for CDK Synth**, this codebuild project is used to synthesize the AWS CDK application defined in the **deploy app repository**. 3 Cloudformation Templates are expected to be generated, each template references a targeted deployment account/environment: DEV, PREPROD and PROD.
 - **CodeBuild Project for CFN Nag**, this codebuild project is used to run `cfn-nag` over the cloudformation templates to ensure that they satisfy best Security practices.
@@ -118,12 +118,12 @@ There are 2 way to trigger the deployment CI/CD Pipeline:
 - **Model Events** - These are events which get triggered through a status change to the model package group in SageMaker Model Registry.
 - **Code Events** - The pipeline is triggered on git update events over a specific branch, in this solution it is linked to the **main** branch.
 
-**Note:** For the deployment stages for **PREPROD** and **PROD**, the roles defined for cloudformation deployment in `mlops_sm_project_template/templates/constructs/deploy_pipeline_construct.py` lines 284-292 and lines 317-326 are created when the **PREPROD** and **PROD** are bootstrapped with CDK with trust policies for the deployment CI/CD pipeline account (**DEV** account in our solution); the roles must be created before deploying this stack to any account along with trust policies included between the accounts and the roles. If you can bootstrap those accounts for any reason you should ensure to create similar roles in each of those accounts and adding them to the lines mentioned above in the file.
+**Note:** For the deployment stages for **PREPROD** and **PROD**, the roles defined for cloudformation deployment in [mlops_sm_project_template/templates/constructs/deploy_pipeline_construct.py](mlops_sm_project_template/templates/constructs/deploy_pipeline_construct.py) lines 284-292 and lines 317-326 are created when the **PREPROD** and **PROD** are bootstrapped with CDK with trust policies for the deployment CI/CD pipeline account (**DEV** account in our solution); the roles must be created before deploying this stack to any account along with trust policies included between the accounts and the roles. If you can bootstrap those accounts for any reason you should ensure to create similar roles in each of those accounts and adding them to the lines mentioned above in the file.
 
 ### CodeCommit Stack
 *This stack is only needed if you want to handle deployments of this folder of the repository to be managed through a CICD pipeline.*
 
-This stack handles setting up an AWS CodeCommit repository for this folder of the repository. This repository will be used as the source for the CI/CD pipeline defined in [Pipeline Stack](#pipeline-stack). The repository will be named based on the value defined in `mlops_sm_project_template/config/constants.py` with this variable `CODE_COMMIT_REPO_NAME`. The repository will be intialised with a default branch as defined in the `constants.py` file under `PIPELINE_BRANCH` variable.
+This stack handles setting up an AWS CodeCommit repository for this folder of the repository. This repository will be used as the source for the CI/CD pipeline defined in [Pipeline Stack](#pipeline-stack). The repository will be named based on the value defined in [mlops_sm_project_template/config/constants.py](mlops_sm_project_template/config/constants.py) with this variable `CODE_COMMIT_REPO_NAME`. The repository will be intialised with a default branch as defined in the [constants.py](mlops_sm_project_template/config/constants.py) file under `PIPELINE_BRANCH` variable.
 
 ### Pipeline Stack
 
@@ -131,13 +131,13 @@ This stack handles setting up an AWS CodeCommit repository for this folder of th
 
 The CICD pipeline in this repository is setup to monitor an AWS CodeCommit repository as defined in [CodeCommit Stack](#codecommit-stack).
 
-If you are using other sources like github or bitbucket for your repository, you will need to modify the connection to the appropriate repository as defined in `mlops_sm_project_template/pipeline_stack.py`. This can be done using AWS CodeStar but must be setup on the account.
+If you are using other sources like github or bitbucket for your repository, you will need to modify the connection to the appropriate repository as defined in [mlops_sm_project_template/pipeline_stack.py](mlops_sm_project_template/pipeline_stack.py). This can be done using AWS CodeStar but must be setup on the account.
 
-Make sure the pipelines also point to your targeted branch; by default the pipeline is linked to `main` branch events, this is defined in the `constants.py` file under `PIPELINE_BRANCH` variable.
+Make sure the pipelines also point to your targeted branch; by default the pipeline is linked to `main` branch events, this is defined in the [constants.py](mlops_sm_project_template/config/constants.py) file under `PIPELINE_BRANCH` variable.
 
-`accounts.json` contains information about the target accounts you want to use for this repository CICD pipeline(s) and the target deployment accounts (DEV/PREPROD/PROD). This information will also be deployed in SSM Parameter in the DEV account(s) for each SageMaker Project's Deploy CI/CD pipeline.
+[accounts.json](mlops_sm_project_template/config/accounts.json) contains information about the target accounts you want to use for this repository CICD pipeline(s) and the target deployment accounts (DEV/PREPROD/PROD). This information will also be deployed in SSM Parameter in the DEV account(s) for each SageMaker Project's Deploy CI/CD pipeline.
 
-`accounts.json` is created as a list where each entry is a different set of DEV/PREPROD/PROD accounts. By default we recommend starting with one entry of DEV/PREPROD/PROD accounts but this can be used to scale the infrastructure to several organizational units/teams.
+[accounts.json](mlops_sm_project_template/config/accounts.json) is created as a list where each entry is a different set of DEV/PREPROD/PROD accounts. By default we recommend starting with one entry of DEV/PREPROD/PROD accounts but this can be used to scale the infrastructure to several organizational units/teams.
 The repository will create one parallel CICD pipeline for each entry. (please ensure all new target accounts you add to the list are bootstrapped)
 
 The pipeline will deploy all stacks and resources to the appropriate accounts.
@@ -199,7 +199,7 @@ if you are using a mac or a linux machine that supports `make` commands, you wil
 
 This repository also contains some shell scripts that you can use to setup your machine and aws accounts:
 
-* If you have a mac machine with [Homebrew](https://brew.sh/) installed, you can use `scripts/install-prerequisites-brew.sh` to install the prerequisites and setup the python environment
+* If you have a mac machine with [Homebrew](https://brew.sh/) installed, you can use [scripts/install-prerequisites-brew.sh](scripts/install-prerequisites-brew.sh) to install the prerequisites and setup the python environment
 
 ### Setup AWS Profiles
 
@@ -223,12 +223,12 @@ aws_session_token = YOUR_SESSION_TOKEN  # this token is generated if you are usi
 ...
 ```
 
-Before you start with the deployment of the solution make sure to bootstrap your accounts. Ensure you add the pipeline/governance account details in `mlops_sm_project_template/config/constants.py`.
+Before you start with the deployment of the solution make sure to bootstrap your accounts. Ensure you add the pipeline/governance account details in [mlops_sm_project_template/config/constants.py](mlops_sm_project_template/config/constants.py).
 ```
 PIPELINE_ACCOUNT = ""     # account to host the pipeline handling updates of this repository
 ```
 
-Additionally, for each organizational units composed of **DEV**, **PREPROD** and **PROD** accounts, create a new entry in `mlops_sm_project_template/config/accounts.json`
+Additionally, for each organizational units composed of **DEV**, **PREPROD** and **PROD** accounts, create a new entry in [mlops_sm_project_template/config/accounts.json](mlops_sm_project_template/config/accounts.json)
 
 ```
 "DEV_ACCOUNT": "",        # account to host the service catalog template and then build sagemaker project
@@ -252,7 +252,7 @@ follow the steps below to achieve that:
 cd mlops-sm-project-template-rt
 ```
 
-3. Install dependencies in a separate python environment using your favourite python packages manager. You can refer to `scripts/install-prerequisites-brew.sh` for commands to setup a python environment.
+3. Install dependencies in a separate python environment using your favourite python packages manager. You can refer to [scripts/install-prerequisites-brew.sh](scripts/install-prerequisites-brew.sh) for commands to setup a python environment.
 
 ```
  pip install -r requirements.txt
@@ -262,7 +262,8 @@ cd mlops-sm-project-template-rt
 
 5. Ensure your docker daemon is running
 
-6. (Option 1) Bootstrap your deployment target accounts (e.g. governance, dev, etc.) using our script in `scripts/cdk-account-setup.sh.` Ensure that you have the account ids ready and the corresponding AWS profiles with credentials created in your `~/.aws/credentials` for each account (see above).
+**NOTE:** If you have already bootstrapped your accounts as part of the instructions of `mlops-infra` you can skip step 6.
+6. (Option 1) Bootstrap your deployment target accounts (e.g. governance, dev, etc.) using our script in [scripts/cdk-account-setup.sh](scripts/cdk-account-setup.sh). Ensure that you have the account ids ready and the corresponding AWS profiles with credentials created in your `~/.aws/credentials` for each account (see above).
 
 The script will request the 4 accounts, i.e. governance, dev, preprod and prod, and the corresponding AWS profiles as inputs. If you want to only deploy to 1 account you can use the same id for all account variables or pass the same values in the script.
 
@@ -314,9 +315,9 @@ cdk deploy --all --profile mlops-governance
 
 #### Manual Deployment of Service Catalog Stack
 
-It is possible to deploy a specific stage (in `pipeline_stack.py` refer to classes inheriting `Stage` class from `aws_cdk`). The same is possible to a singular stack (follow the same deployment steps as the pipeline stack).  `CoreStage` is a stage defined in `pipeline_stack.py` which contains the `ServiceCatalogStack` and is what the CI/CD pipeline deploys at every deployment stage to the target account of the stage. You can deploy this stage manually by following these steps:
+It is possible to deploy a specific stage (in [pipeline_stack.py](mlops_sm_project_template/pipeline_stack.py) refer to classes inheriting `Stage` class from `aws_cdk`). The same is possible to a singular stack (follow the same deployment steps as the pipeline stack).  `CoreStage` is a stage defined in [pipeline_stack.py](mlops_sm_project_template/pipeline_stack.py) which contains the `ServiceCatalogStack` and is what the CI/CD pipeline deploys at every deployment stage to the target account of the stage. You can deploy this stage manually by following these steps:
 
-1. Add a custom id to the target stage in `app.py`
+1. Add a custom id to the target stage in [app.py](mlops_sm_project_template/app.py)
 
 ```
 # Personal Stacks for testing locally, comment out when committing to repository
