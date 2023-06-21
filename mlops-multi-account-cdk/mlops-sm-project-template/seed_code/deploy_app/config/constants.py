@@ -18,20 +18,19 @@
 import boto3
 import os
 
-DEFAULT_DEPLOYMENT_REGION = "eu-west-1"
-
-ssm_client = boto3.client("ssm", region_name=DEFAULT_DEPLOYMENT_REGION)
-
-DEV_ACCOUNT = ssm_client.get_parameter(Name="/mlops/dev/account_id")["Parameter"]["Value"]
-
-PREPROD_ACCOUNT = ssm_client.get_parameter(Name="/mlops/preprod/account_id")["Parameter"]["Value"]
-PREPROD_REGION = ssm_client.get_parameter(Name="/mlops/preprod/region")["Parameter"]["Value"]
-
-PROD_ACCOUNT = ssm_client.get_parameter(Name="/mlops/prod/account_id")["Parameter"]["Value"]
-PROD_REGION = ssm_client.get_parameter(Name="/mlops/prod/region")["Parameter"]["Value"]
+ssm_client = boto3.client("ssm")
 
 PROJECT_NAME = os.getenv("PROJECT_NAME", "")
 PROJECT_ID = os.getenv("PROJECT_ID", "")
 MODEL_PACKAGE_GROUP_NAME = os.getenv("MODEL_PACKAGE_GROUP_NAME", "")
 MODEL_BUCKET_ARN = os.getenv("MODEL_BUCKET_ARN", "arn:aws:s3:::*mlops*")
 ECR_REPO_ARN = os.getenv("ECR_REPO_ARN", None)
+
+DEV_ACCOUNT = ssm_client.get_parameter(Name=f"/mlops/{PROJECT_NAME}/dev/account_id")["Parameter"]["Value"]
+DEFAULT_DEPLOYMENT_REGION = ssm_client.get_parameter(Name=f"/mlops/{PROJECT_NAME}/dev/region")["Parameter"]["Value"]
+
+PREPROD_ACCOUNT = ssm_client.get_parameter(Name=f"/mlops/{PROJECT_NAME}/preprod/account_id")["Parameter"]["Value"]
+PREPROD_REGION = ssm_client.get_parameter(Name=f"/mlops/{PROJECT_NAME}/preprod/region")["Parameter"]["Value"]
+
+PROD_ACCOUNT = ssm_client.get_parameter(Name=f"/mlops/{PROJECT_NAME}/prod/account_id")["Parameter"]["Value"]
+PROD_REGION = ssm_client.get_parameter(Name=f"/mlops/{PROJECT_NAME}/prod/region")["Parameter"]["Value"]

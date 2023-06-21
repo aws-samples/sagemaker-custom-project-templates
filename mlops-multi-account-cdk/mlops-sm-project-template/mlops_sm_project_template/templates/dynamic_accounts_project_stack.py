@@ -31,6 +31,8 @@ import aws_cdk
 
 from constructs import Construct
 
+from mlops_sm_project_template.templates.ssm_construct import SSMConstruct
+
 from mlops_sm_project_template.templates.pipeline_constructs.build_pipeline_construct import (
     BuildPipelineConstruct,
 )
@@ -40,8 +42,8 @@ from mlops_sm_project_template.templates.pipeline_constructs.deploy_pipeline_con
 
 
 class MLOpsStack(Stack):
-    DESCRIPTION: str = "This template includes a model building pipeline that includes a workflow to pre-process, train, evaluate and register a model. The deploy pipeline creates a dev, preprod and production endpoint. The target PREPROD/PROD accounts are provided as cloudformation paramters and must be provided during project creation."
-    TEMPLATE_NAME: str = "Dynamic Accounts MLOps template for real-time deployment"
+    DESCRIPTION: str = "This template includes a model building pipeline that includes a workflow to pre-process, train, evaluate and register a model. The deploy pipeline creates a dev, preprod and production endpoint as infrastructure as code. The PREPROD/PROD accounts need to be cdk bootstraped in advance to have the right CloudFormation execution cross account roles."
+    TEMPLATE_NAME: str = "MLOps template for real-time deployment with parametrized accounts"
 
     def __init__(self, scope: Construct, construct_id: str, **kwargs) -> None:
         super().__init__(scope, construct_id, **kwargs)
@@ -95,6 +97,15 @@ class MLOpsStack(Stack):
         Tags.of(self).add("sagemaker:project-id", project_id)
         Tags.of(self).add("sagemaker:project-name", project_name)
 
+        SSMConstruct(
+            self,
+            "MLOpsSSM",
+            project_name=project_name,
+            preprod_account=preprod_account,
+            prod_account=prod_account,
+            deployment_region=deployment_region,
+        )
+
         # create kms key to be used by the assets bucket
         kms_key = kms.Key(
             self,
@@ -136,7 +147,7 @@ class MLOpsStack(Stack):
         s3_artifact = s3.Bucket(
             self,
             "S3Artifact",
-            bucket_name=f"mlops-{project_name}-{project_id}-{Aws.REGION}",
+            bucket_name=f"mlops-{project_name}-{Aws.ACCOUNT_ID}",
             encryption_key=kms_key,
             versioned=True,
             removal_policy=aws_cdk.RemovalPolicy.DESTROY,
@@ -261,7 +272,7 @@ class MLOpsStack(Stack):
         pipeline_artifact_bucket = s3.Bucket(
             self,
             "PipelineBucket",
-            bucket_name=f"pipeline-{project_id}-{Aws.REGION}",
+            bucket_name=f"pipeline-{project_name}-{Aws.ACCOUNT_ID}",
             encryption_key=kms_key,
             versioned=True,
             removal_policy=aws_cdk.RemovalPolicy.DESTROY,
@@ -284,6 +295,7 @@ class MLOpsStack(Stack):
             "deploy",
             project_name,
             project_id,
+            s3_artifact,
             pipeline_artifact_bucket,
             model_package_group_name,
             seed_bucket,
@@ -291,4 +303,5 @@ class MLOpsStack(Stack):
             preprod_account,
             prod_account,
             deployment_region,
+            create_model_event_rule=True,
         )

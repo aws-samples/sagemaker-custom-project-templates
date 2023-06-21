@@ -37,9 +37,6 @@ import aws_cdk
 
 from constructs import Construct
 
-from mlops_sm_project_template.templates.basic_project_stack import MLOpsStack
-from mlops_sm_project_template.ssm_construct import SSMConstruct
-
 # Get environment variables
 LOG_LEVEL = os.getenv("LOG_LEVEL", "INFO").upper()
 
@@ -54,6 +51,7 @@ class ServiceCatalogStack(Stack):
         self,
         scope: Construct,
         construct_id: str,
+        config_set: dict,
         **kwargs,
     ) -> None:
         super().__init__(scope, construct_id, **kwargs)
@@ -171,6 +169,18 @@ class ServiceCatalogStack(Stack):
         products_launch_role.add_to_policy(
             iam.PolicyStatement(
                 actions=[
+                    "ssm:*",
+                ],
+                effect=iam.Effect.ALLOW,
+                resources=[
+                    f"arn:aws:ssm:*:{Aws.ACCOUNT_ID}:parameter/mlops/*",
+                ],
+            ),
+        )
+
+        products_launch_role.add_to_policy(
+            iam.PolicyStatement(
+                actions=[
                     "sagemaker:*",
                 ],
                 effect=iam.Effect.ALLOW,
@@ -183,7 +193,7 @@ class ServiceCatalogStack(Stack):
             "Portfolio",
             display_name=portfolio_name,
             provider_name=portfolio_owner,
-            description="Organization templates for drift detection pipelines",
+            description="Custom multi-account SageMaker Project templates for your organization",
         )
 
         # Create portfolio associate that depends on products
@@ -195,6 +205,8 @@ class ServiceCatalogStack(Stack):
             principal_type="IAM",
         )
 
+        # # To deploy specific product, uncomment the following block
+        # from mlops_sm_project_template.templates.basic_project_stack import MLOpsStack
         # product = servicecatalog.CloudFormationProduct(
         #     self,
         #     "DeployProduct",
@@ -203,7 +215,13 @@ class ServiceCatalogStack(Stack):
         #     product_versions=[
         #         servicecatalog.CloudFormationProductVersion(
         #             cloud_formation_template=servicecatalog.CloudFormationTemplate.from_asset(
-        #                 self.generate_template(MLOpsStack, f"MLOpsApp-{stage_name}", **kwargs)
+        #                 self.generate_template(
+        #                     MLOpsStack,
+        #                     f"MLOpsApp-{stage_name}",
+        #                     preprod_account=f"{config_set['PREPROD_ACCOUNT']}",
+        #                     prod_account=f"{config_set['PROD_ACCOUNT']}",
+        #                     **kwargs
+        #                 )
         #             ),
         #             product_version_name=product_version,
         #         )
@@ -221,7 +239,7 @@ class ServiceCatalogStack(Stack):
 
         # role_constraint = servicecatalog.CfnLaunchRoleConstraint(
         #     self,
-        #     f"LaunchRoleConstraint",
+        #     "LaunchRoleConstraint",
         #     portfolio_id=portfolio.portfolio_id,
         #     product_id=product.product_id,
         #     role_arn=products_launch_role.role_arn,
@@ -230,7 +248,7 @@ class ServiceCatalogStack(Stack):
         # role_constraint.add_depends_on(portfolio_association)
 
         # uncomment this block if you want to create service catalog products based on all templates
-        # make sure you comment out lines 202-234
+        # make sure you comment out lines 202-242
         products = self.deploy_all_products(
             portfolio_association,
             portfolio,
@@ -238,6 +256,7 @@ class ServiceCatalogStack(Stack):
             portfolio_owner,
             product_version,
             stage_name,
+            config_set,
             **kwargs,
         )
 
@@ -288,10 +307,43 @@ class ServiceCatalogStack(Stack):
                 output_type=BundlingOutput.ARCHIVED,
             ),
         )
+        
+        batch_build_app_asset = s3_assets.Asset(
+            self,
+            "BatchBuildAsset",
+            path="seed_code/batch_build_app/",
+            bundling=BundlingOptions(
+                image=zip_image,
+                command=[
+                    "sh",
+                    "-c",
+                    """zip -r /asset-output/batch_build_app.zip .""",
+                ],
+                output_type=BundlingOutput.ARCHIVED,
+            ),
+        )
+        
+        batch_deploy_app_asset = s3_assets.Asset(
+            self,
+            "BatchDeployAsset",
+            path="seed_code/batch_deploy_app/",
+            bundling=BundlingOptions(
+                image=zip_image,
+                command=[
+                    "sh",
+                    "-c",
+                    """zip -r /asset-output/batch_deploy_app.zip .""",
+                ],
+                output_type=BundlingOutput.ARCHIVED,
+            ),
+        )
 
         build_app_asset.grant_read(grantee=products_launch_role)
         deploy_app_asset.grant_read(grantee=products_launch_role)
         byoc_build_app_asset.grant_read(grantee=products_launch_role)
+        batch_build_app_asset.grant_read(grantee=products_launch_role)
+        batch_deploy_app_asset.grant_read(grantee=products_launch_role)
+
 
         # Output the deployment bucket and key, for input into pipeline stack
         self.export_ssm(
@@ -314,8 +366,17 @@ class ServiceCatalogStack(Stack):
             "/mlops/code/deploy",
             deploy_app_asset.s3_object_key,
         )
+        self.export_ssm(
+            "BatchCodeBuildKey",
+            "/mlops/code/batch_build",
+            batch_build_app_asset.s3_object_key,
+        )
+        self.export_ssm(
+            "BatchCodeDeployKey",
+            "/mlops/code/batch_deploy",
+            batch_deploy_app_asset.s3_object_key,
+        )
 
-        SSMConstruct(self, "MLOpsSSM")
 
     def deploy_all_products(
         self,
@@ -325,11 +386,12 @@ class ServiceCatalogStack(Stack):
         portfolio_owner: str,
         product_version: str,
         stage_name: str,
+        config_set: dict,
         templates_directory: str = "mlops_sm_project_template/templates",
         **kwargs,
     ):
 
-        i = 0  # used as a counter for the products
+        # i = 0  # used as a counter for the products
 
         for file in os.listdir(templates_directory):
             filename = os.fsdecode(file)
@@ -340,6 +402,22 @@ class ServiceCatalogStack(Stack):
 
                 template_py_file = template_py_file.replace("_", "-")
 
+                if 'dynamic' in template_py_file:
+                    generated_template = self.generate_template(
+                        template_module.MLOpsStack,
+                        f"{template_py_file}-{stage_name}",
+                        **kwargs,
+                    )
+                else:
+                    generated_template = self.generate_template(
+                        template_module.MLOpsStack,
+                        f"{template_py_file}-{stage_name}",
+                        preprod_account=config_set["PREPROD_ACCOUNT"],
+                        prod_account=config_set["PROD_ACCOUNT"],
+                        deployment_region=config_set["DEPLOYMENT_REGION"],
+                        **kwargs,
+                    )
+
                 product = servicecatalog.CloudFormationProduct(
                     self,
                     f"Product-{template_py_file}",
@@ -347,13 +425,7 @@ class ServiceCatalogStack(Stack):
                     product_name=template_module.MLOpsStack.TEMPLATE_NAME,
                     product_versions=[
                         servicecatalog.CloudFormationProductVersion(
-                            cloud_formation_template=servicecatalog.CloudFormationTemplate.from_asset(
-                                self.generate_template(
-                                    template_module.MLOpsStack,
-                                    f"{template_py_file}-{stage_name}",
-                                    **kwargs,
-                                )
-                            ),
+                            cloud_formation_template=servicecatalog.CloudFormationTemplate.from_asset(generated_template),
                             product_version_name=product_version,
                         )
                     ],
@@ -370,7 +442,7 @@ class ServiceCatalogStack(Stack):
 
                 role_constraint = servicecatalog.CfnLaunchRoleConstraint(
                     self,
-                    f"LaunchRoleConstraint{i}",
+                    f"LaunchRoleConstraint-{template_py_file}",
                     portfolio_id=portfolio.portfolio_id,
                     product_id=product.product_id,
                     role_arn=products_launch_role.role_arn,
@@ -378,7 +450,7 @@ class ServiceCatalogStack(Stack):
                 )
                 role_constraint.add_depends_on(portfolio_association)
 
-                i += 1
+                # i += 1
 
     def export_ssm(self, key: str, param_name: str, value: str):
         param = ssm.StringParameter(self, key, parameter_name=param_name, string_value=value)

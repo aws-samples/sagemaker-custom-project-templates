@@ -16,59 +16,73 @@
 # SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 from aws_cdk import (
+    Aws,
     aws_ssm as ssm,
 )
 
 from constructs import Construct
 
-from mlops_sm_project_template.config.constants import (
-    DEV_ACCOUNT,
-    PREPROD_ACCOUNT,
-    PROD_ACCOUNT,
-    DEFAULT_DEPLOYMENT_REGION,
-)
-
-
 class SSMConstruct(Construct):
-    def __init__(self, scope: Construct, construct_id: str, **kwargs) -> None:
+    def __init__(self, scope: Construct, construct_id: str, project_name: str, preprod_account: int, prod_account: int, deployment_region: str, **kwargs) -> None:
         super().__init__(scope, construct_id, **kwargs)
 
         ## SSM parameters for the project
+        
+        # TODO: if sets of accounts have overlapping accounts (eg same dev or preprod), the parameter names need to be "parametrized" as well
 
         # DEV parameters
         dev_account_id_param = ssm.StringParameter(
             self,
             "DevAccountIDParameter",
-            parameter_name="/mlops/dev/account_id",
-            string_value=DEV_ACCOUNT,
+            # parameter_name="/mlops/dev/account_id",
+            parameter_name=f"/mlops/{project_name}/dev/account_id",
+            string_value=Aws.ACCOUNT_ID,
+            simple_name=False,
+        )
+
+        dev_region_param = ssm.StringParameter(
+            self,
+            "DevRegionParameter",
+            # parameter_name="/mlops/dev/account_id",
+            parameter_name=f"/mlops/{project_name}/dev/region",
+            string_value=Aws.REGION,
+            simple_name=False,
         )
 
         # PREPROD parameters
         PREPROD_ACCOUNT_id_param = ssm.StringParameter(
             self,
             "PreProdAccountIDParameter",
-            parameter_name="/mlops/preprod/account_id",
-            string_value=PREPROD_ACCOUNT,
+            # parameter_name="/mlops/preprod/account_id",
+            parameter_name=f"/mlops/{project_name}/preprod/account_id",
+            string_value=preprod_account,
+            simple_name=False,
         )
 
         PREPROD_REGION_param = ssm.StringParameter(
             self,
             "PreProdRegionParameter",
-            parameter_name="/mlops/preprod/region",
-            string_value=DEFAULT_DEPLOYMENT_REGION,
+            # parameter_name="/mlops/preprod/region",
+            parameter_name=f"/mlops/{project_name}/preprod/region",
+            string_value=deployment_region,
+            simple_name=False,
         )
 
         # PROD parameters
         prod_account_id_param = ssm.StringParameter(
             self,
             "ProdAccountIDParameter",
-            parameter_name="/mlops/prod/account_id",
-            string_value=PROD_ACCOUNT,
+            # parameter_name="/mlops/prod/account_id",
+            parameter_name=f"/mlops/{project_name}/prod/account_id",
+            string_value=prod_account,
+            simple_name=False,
         )
 
         prod_region_param = ssm.StringParameter(
             self,
             "ProdRegionParameter",
-            parameter_name="/mlops/prod/region",
-            string_value=DEFAULT_DEPLOYMENT_REGION,
+            # parameter_name="/mlops/prod/region",
+            parameter_name=f"/mlops/{project_name}/prod/region",
+            string_value=deployment_region,
+            simple_name=False,
         )

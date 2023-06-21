@@ -18,25 +18,41 @@
 
 import aws_cdk as cdk
 import os
+import json
 from mlops_sm_project_template.pipeline_stack import PipelineStack, CoreStage
 from mlops_sm_project_template.codecommit_stack import CodeCommitStack
-from mlops_sm_project_template.config.constants import DEFAULT_DEPLOYMENT_REGION, PIPELINE_ACCOUNT, DEV_ACCOUNT
+from mlops_sm_project_template.config.constants import DEFAULT_DEPLOYMENT_REGION, PIPELINE_ACCOUNT
+
+
+def load_account_set_config(filename):
+    """
+    Loads config from file
+    """
+
+    with open(filename, "r", encoding="utf-8") as f:
+        config = json.load(f)
+
+    return config
+
 
 app = cdk.App()
 
-pipeline_env = cdk.Environment(account=PIPELINE_ACCOUNT, region=DEFAULT_DEPLOYMENT_REGION)
-deployment_env = cdk.Environment(account=DEV_ACCOUNT, region=DEFAULT_DEPLOYMENT_REGION)
+config_sets = load_account_set_config("mlops_sm_project_template/config/accounts.json")
 
-CodeCommitStack(app, "ml-sg-cc-repo", env=pipeline_env)
-PipelineStack(app, "ml-sg-deploy-pipeline", env=pipeline_env)
+pipeline_env = cdk.Environment(account=PIPELINE_ACCOUNT, region=DEFAULT_DEPLOYMENT_REGION)
+
+CodeCommitStack(app, "ml-sc-cc-repo", env=pipeline_env)
+
+for config_set in config_sets:
+    PipelineStack(app, f"ml-sc-deploy-pipeline-{config_set['SET_NAME']}", env=pipeline_env, config_set=config_set)
 
 # Personal Stacks for testing locally, comment out when committing to repository
-if not os.getenv("CODEBUILD_BUILD_ARN"):
-    CoreStage(
-        app,
-        "Personal",  ## change this to another stack name when doing local tests
-        env=deployment_env,
-    )
+# if not os.getenv("CODEBUILD_BUILD_ARN"):
+#     CoreStage(
+#         app,
+#         "Personal",  ## change this to another stack name when doing local tests
+#         env=deployment_env,
+#     )
 
 
 app.synth()

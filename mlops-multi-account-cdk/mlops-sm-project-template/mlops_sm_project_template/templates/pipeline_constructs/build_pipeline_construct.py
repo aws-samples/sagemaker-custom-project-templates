@@ -78,6 +78,18 @@ class BuildPipelineConstruct(Construct):
             assumed_by=iam.ServicePrincipal("codebuild.amazonaws.com"),
             path="/service-role/",
         )
+        
+        codebuild_role.add_to_policy(
+            iam.PolicyStatement(
+                actions=[
+                    "ssm:*",
+                ],
+                effect=iam.Effect.ALLOW,
+                resources=[
+                    f"arn:aws:ssm:*:{Aws.ACCOUNT_ID}:parameter/mlops/{project_name}*",
+                ],
+            ),
+        )
 
         sagemaker_execution_role = iam.Role(
             self,
@@ -163,7 +175,7 @@ class BuildPipelineConstruct(Construct):
             self,
             "SMPipelineBuild",
             project_name=f"{project_name}-{construct_id}",
-            role=codebuild_role,  # figure out what actually this role would need
+            role=codebuild_role,
             build_spec=codebuild.BuildSpec.from_source_filename("buildspec.yml"),
             environment=codebuild.BuildEnvironment(
                 build_image=codebuild.LinuxBuildImage.STANDARD_5_0,
@@ -192,7 +204,7 @@ class BuildPipelineConstruct(Construct):
         source_artifact = codepipeline.Artifact(artifact_name="GitSource")
 
         build_pipeline = codepipeline.Pipeline(
-            self, "Pipeline", pipeline_name=f"{project_name}-{construct_id}", artifact_bucket=pipeline_artifact_bucket
+            self, "Pipeline", pipeline_name=pipeline_name, artifact_bucket=pipeline_artifact_bucket
         )
 
         # add a source stage
