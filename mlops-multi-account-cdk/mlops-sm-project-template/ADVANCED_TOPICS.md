@@ -42,7 +42,7 @@ This will remove the git settings from this folder so it would go back to the ma
 ## Test the created sagemaker templates
 ***NOTE:** make sure to run `cdk synth` before running any of the commands defined below.*
 
-You will need to deploy the `service catalog stack` as that would setup your account with the required resources and ssm parameters before you can start testing your templates directly. If you don't have the service catalog stack already deployed in your account, you can achieve this by running the following command:
+You will need to deploy the [service catalog stack](mlops_sm_project_template/service_catalog_stack.py) as that would setup your account with the required resources and ssm parameters before you can start testing your templates directly. If you don't have the service catalog stack already deployed in your account, you can achieve this by running the following command:
 ```
 cdk --app ./cdk.out/assembly-Personal deploy —all --profile mlops-dev
 ```
@@ -77,7 +77,7 @@ aws cloudformation deploy \
 ```
 This command will deploy the byoc project stack if you want to deploy other templates just change the `--template-file`, if you want to create a new stack you can change the other fields as well. 
 
-**OPTION 2** It is also possible to use CDK command for this exact purpose but this would require you to add the following to `app.py` file:
+**OPTION 2** It is also possible to use CDK command for this exact purpose but this would require you to add the following to [app.py](mlops_sm_project_template/app.py) file:
 ```
 from mlops_sm_project_template.templates.byoc_project_stack import MLOpsStack
 
