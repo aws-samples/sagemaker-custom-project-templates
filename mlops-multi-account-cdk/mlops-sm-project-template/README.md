@@ -51,13 +51,13 @@ Once this stack is deployed in the account, the template will be usable by Amazo
 ### SageMaker Project Stack
 *This stack is stored as a service catalog product in the DEV Account and is visible in SageMaker Studio Domain*
 
-![project architecture](diagrams/MLOPs%20Foundation%20Architecture-sagemaker%20project%20architecture.jpg)
+![SageMaker project architecture](diagrams/mlops-sm-project-general-architecture.jpg)
 
 The ML solutions' strategy defined in this stack uses two repositories setup: **(a)** building/training repository for training and batch inference ML pipeline development, and **(b)** deployment repository to promote the batch inference pipeline models or instantiate the real time endpoints. The second repository will incorporate also the testing methods including, integration test, stress test, or custom ML tests that the data scientists want to perform to ensure the robustness of the models.
 
 The CI/CD pipelines follow a single branch strategy with deployments to the accounts driven by commits to the `main` branch. The pipeline contains a stage for each account deployment.
 
-The stack expects 2 cloudformation parameters:
+The stack expects at least 2 cloudformation parameters:
 - **Project Name:** This parameter is of type `String` and is mandatory to be created for SageMaker Project. It will be visible in SageMaker Studio Domain and be used to then tag all the resources related to SageMaker and have them visible under the project tab. It must be named `SageMakerProjectName`.
 - **Project ID:** This parameter is of type `String` and is mandatory to be created for SageMaker Project. When creating a project in SageMaker Studio Domain and it will be automatically generated and then used to tag all the resources related to SageMaker and have them visible under the project tab. It must be named `SageMakerProjectId`.
 
@@ -135,7 +135,10 @@ If you are using other sources like github or bitbucket for your repository, you
 
 Make sure the pipelines also point to your targeted branch; by default the pipeline is linked to `main` branch events, this is defined in the `constants.py` file under `PIPELINE_BRANCH` variable.
 
-`constants.py` also contains information about the target accounts you want to use for this repository CI/CD pipeline and the target deployment accounts: **DEV**, **PREPROD** and **PROD**, this information will also be deployed in SSM Parameter in the DEV account for the Deploy App CI/CD pipeline.
+`accounts.json` contains information about the target accounts you want to use for this repository CICD pipeline(s) and the target deployment accounts (DEV/PREPROD/PROD). This information will also be deployed in SSM Parameter in the DEV account(s) for each SageMaker Project's Deploy CI/CD pipeline.
+
+`accounts.json` is created as a list where each entry is a different set of DEV/PREPROD/PROD accounts. By default we recommend starting with one entry of DEV/PREPROD/PROD accounts but this can be used to scale the infrastructure to several organizational units/teams.
+The repository will create one parallel CICD pipeline for each entry. (please ensure all new target accounts you add to the list are bootstrapped)
 
 The pipeline will deploy all stacks and resources to the appropriate accounts.
 
@@ -167,7 +170,8 @@ This is an AWS CDK project written in Python 3.8. Here's what you need to have o
 │   ├── __init__.py
 │   ├── cdk_helper_scripts
 │   ├── config
-│   │   └── constants.py                      <--- global configs to be used in CDK stacks
+│   │   ├── accounts.json                     <--- global configs to be used in CDK stacks
+|   |   └── constants.py                      <--- global configs to be used in CDK stacks
 │   ├── codecommit_stack.py                   <--- stack for creation a codecommit repo based on this folder for the CICD pipeline
 │   ├── pipeline_stack.py                     <--- stack for CICD with code pipeline setup for the repo
 │   ├── service_catalog_stack.py              <--- stack for service catalog setup and template deployment
@@ -219,15 +223,19 @@ aws_session_token = YOUR_SESSION_TOKEN  # this token is generated if you are usi
 ...
 ```
 
-Before you start with the deployment of the solution make sure to bootstrap your accounts. Ensure you add the account details in `mlops_sm_project_template/config/constants.py` mainly the target deployment accounts: **DEV**, **PREPROD** and **PROD**.
+Before you start with the deployment of the solution make sure to bootstrap your accounts. Ensure you add the pipeline/governance account details in `mlops_sm_project_template/config/constants.py`.
 ```
 PIPELINE_ACCOUNT = ""     # account to host the pipeline handling updates of this repository
+```
 
-DEV_ACCOUNT = ""          # account to host the service catalog template and then build sagemaker project
+Additionally, for each organizational units composed of **DEV**, **PREPROD** and **PROD** accounts, create a new entry in `mlops_sm_project_template/config/accounts.json`
 
-PREPROD_ACCOUNT = ""      # account to deploy the sagemaker endpoint
+```
+"DEV_ACCOUNT": "",        # account to host the service catalog template and then build sagemaker project
 
-PROD_ACCOUNT = ""         # account to deploy the sagemaker endpoint
+"PREPROD_ACCOUNT": "",    # account to deploy the sagemaker endpoint or other infrastructure defined by your SageMaker Projects Templates repository
+
+"PROD_ACCOUNT": "",       # account to deploy the sagemaker endpoint or other infrastructure defined by your SageMaker Project Templates deploy repository
 ```
 
 
@@ -259,7 +267,7 @@ cd mlops-sm-project-template-rt
 The script will request the 4 accounts, i.e. governance, dev, preprod and prod, and the corresponding AWS profiles as inputs. If you want to only deploy to 1 account you can use the same id for all account variables or pass the same values in the script.
 
 
-6. (Option 2) If you want to bootstrap the account manually, then run the following command for each account:
+6. (Option 2) If you want to bootstrap the account manually (recommended if bootstrapping across several organization units), then run the following command for each account:
 
 ```
 cdk bootstrap aws://<target account id>/<target region> --profile <target account profile>

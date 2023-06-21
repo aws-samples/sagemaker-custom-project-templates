@@ -20,6 +20,10 @@ This repository contains the resources that are required to deploy the MLOps Fou
     - [Clean-up](#clean-up)
   - [Troubleshooting](#troubleshooting)
 
+## Developer Guide
+
+How to use and customize the repository for your own needs: [Developer Guide](DEVELOPER_GUIDE.md)
+
 ## Solution Architecture
 
 ![mlops foundation infrastruction](diagrams/MLOPs%20Foundation%20Architecture-mlops%20infrastructure%20architecture.jpg)
@@ -78,9 +82,12 @@ If you are using other sources like github or bitbucket for your repository, you
 
 Make sure the pipelines also point to your targeted branch; by default the pipeline is linked to `main` branch events, this is defined in the `constants.py` file under `PIPELINE_BRANCH` variable.
 
-`constants.py` also contains information about the target accounts you want to use for this repository CICD pipeline and the target deployment accounts (DEV/PREPROD/PROD).
+`accounts.json` contains information about the target accounts you want to use for this repository CICD pipeline(s) and the target deployment accounts (DEV/PREPROD/PROD).
 
-The pipeline will deploy all stacks and resources to the appropriate accounts.
+`accounts.json` is created as a list where each entry is a different set of DEV/PREPROD/PROD accounts. By default we recommend starting with one entry of DEV/PREPROD/PROD accounts but this can be used to scale the infrastructure to several organizational units/teams.
+The repository will create one parallel CICD pipeline for each entry. (please ensure all new target accounts you add to the list are bootstrapped)
+
+The CICD pipeline will deploy all stacks and resources to the appropriate accounts.
 
 
 ## Getting Started
@@ -161,15 +168,19 @@ aws_session_token = YOUR_SESSION_TOKEN  # this token is generated if you are usi
 ...
 ```
 
-Before you start with the deployment of the solution make sure to bootstrap your accounts. Ensure you add the account details in `mlops_infra/config/constants.py` mainly the target deployment accounts: **DEV**, **PREPROD** and **PROD**.
+Before you start with the deployment of the solution make sure to bootstrap your accounts. Ensure you add the pipeline/governance account details in `mlops_infra/config/constants.py`.
 ```
 PIPELINE_ACCOUNT = ""     # account to host the pipeline handling updates of this repository
+```
 
-DEV_ACCOUNT = ""          # account to setup sagemaker studio and networking stack
+Additionally, for each organizational units composed of **DEV**, **PREPROD** and **PROD** accounts, create a new entry in `mlops_infra/config/accounts.json`
 
-PREPROD_ACCOUNT = ""      # account to setup networking stack
+```
+"DEV_ACCOUNT": "",        # account to setup sagemaker studio and networking stack
 
-PROD_ACCOUNT = ""         # account to setup networking stack
+"PREPROD_ACCOUNT": "",    # account to setup networking stack
+
+"PROD_ACCOUNT": "",       # account to setup networking stack
 ```
 
 ### Bootstrap AWS Accounts
@@ -201,7 +212,7 @@ The script will request the 4 accounts, i.e. governance, dev, preprod and prod, 
 
 <add screenshot here of sccript execution>
 
-6. (Option 2) If you want to bootstrap the account manually, then run the following command for each account:
+6. (Option 2) If you want to bootstrap the account manually (recommended if bootstrapping across several organization units), then run the following command for each account:
 
 ```
 cdk bootstrap aws://<target account id>/<target region> --profile <target account profile>
