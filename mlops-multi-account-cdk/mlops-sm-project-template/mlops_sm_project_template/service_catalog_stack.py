@@ -122,7 +122,9 @@ class ServiceCatalogStack(Stack):
         products_launch_role.add_managed_policy(
             iam.ManagedPolicy.from_aws_managed_policy_name("AWSCodeCommitFullAccess")
         )
-
+        products_launch_role.add_managed_policy(
+            iam.ManagedPolicy.from_aws_managed_policy_name("AWSCodeBuildAdminAccess")
+        )
         products_launch_role.add_managed_policy(
             iam.ManagedPolicy.from_aws_managed_policy_name("AWSCodePipeline_FullAccess")
         )

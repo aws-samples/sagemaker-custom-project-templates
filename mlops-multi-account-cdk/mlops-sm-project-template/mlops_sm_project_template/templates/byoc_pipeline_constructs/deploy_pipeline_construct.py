@@ -167,7 +167,7 @@ class DeployPipelineConstruct(Construct):
                     },
                     "phases": {
                         "install": {
-                            "runtime-versions": {"ruby": 3.1},
+                            "runtime-versions": {"ruby": 2.7},
                             "commands": [
                                 "export date=`date +%Y-%m-%dT%H:%M:%S.%NZ`",
                                 "echo Installing cfn_nag - `pwd`",
