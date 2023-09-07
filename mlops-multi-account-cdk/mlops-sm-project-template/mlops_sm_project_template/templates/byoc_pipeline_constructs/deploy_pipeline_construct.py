@@ -192,7 +192,7 @@ class DeployPipelineConstruct(Construct):
                 }
             ),
             environment=codebuild.BuildEnvironment(
-                build_image=codebuild.LinuxBuildImage.STANDARD_5_0,
+                build_image=codebuild.LinuxBuildImage.STANDARD_7_0,
             ),
         )
 
