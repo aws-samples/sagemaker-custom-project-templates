@@ -140,7 +140,7 @@ class DeployPipelineConstruct(Construct):
             #     }
             # ),
             environment=codebuild.BuildEnvironment(
-                build_image=codebuild.LinuxBuildImage.STANDARD_5_0,
+                build_image=codebuild.LinuxBuildImage.STANDARD_7_0,
                 environment_variables={
                     "MODEL_PACKAGE_GROUP_NAME": codebuild.BuildEnvironmentVariable(value=model_package_group_name),
                     "PROJECT_ID": codebuild.BuildEnvironmentVariable(value=project_id),
@@ -167,7 +167,7 @@ class DeployPipelineConstruct(Construct):
                     },
                     "phases": {
                         "install": {
-                            "runtime-versions": {"ruby": 3.1},
+                            "runtime-versions": {"ruby": 3.2},
                             "commands": [
                                 "export date=`date +%Y-%m-%dT%H:%M:%S.%NZ`",
                                 "echo Installing cfn_nag - `pwd`",

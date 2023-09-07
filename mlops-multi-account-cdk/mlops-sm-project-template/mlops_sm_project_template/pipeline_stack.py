@@ -102,6 +102,9 @@ class PipelineStack(Stack):
                     commands=[],
                     input=pipeline.synth,
                     primary_output_directory="./report",
+                    build_environment=codebuild.BuildEnvironment(
+                        build_image=codebuild.LinuxBuildImage.STANDARD_7_0,
+                    ),
                     partial_build_spec=codebuild.BuildSpec.from_object(
                         {
                             "version": 0.2,
@@ -114,7 +117,7 @@ class PipelineStack(Stack):
                             },
                             "phases": {
                                 "install": {
-                                    "runtime-versions": {"ruby": 3.1},
+                                    "runtime-versions": {"ruby": 3.2},
                                     "commands": [
                                         "export date=`date +%Y-%m-%dT%H:%M:%S.%NZ`",
                                         "echo Installing cfn_nag - `pwd`",
