@@ -311,11 +311,13 @@ class DeployPipelineConstruct(Construct):
                         self,
                         "PreProdActionRole",
                         f"arn:{Aws.PARTITION}:iam::{preprod_account}:role/cdk-hnb659fds-deploy-role-{preprod_account}-{deployment_region}",
+                        mutable=False,
                     ),
                     deployment_role=iam.Role.from_role_arn(
                         self,
                         "PreProdDeploymentRole",
                         f"arn:{Aws.PARTITION}:iam::{preprod_account}:role/cdk-hnb659fds-cfn-exec-role-{preprod_account}-{deployment_region}",
+                        mutable=False,
                     ),
                     cfn_capabilities=[
                         CfnCapabilities.AUTO_EXPAND,
@@ -344,11 +346,13 @@ class DeployPipelineConstruct(Construct):
                         self,
                         "ProdActionRole",
                         f"arn:{Aws.PARTITION}:iam::{prod_account}:role/cdk-hnb659fds-deploy-role-{prod_account}-{deployment_region}",
+                        mutable=False,
                     ),
                     deployment_role=iam.Role.from_role_arn(
                         self,
                         "ProdDeploymentRole",
                         f"arn:{Aws.PARTITION}:iam::{prod_account}:role/cdk-hnb659fds-cfn-exec-role-{prod_account}-{deployment_region}",
+                        mutable=False,
                     ),
                     cfn_capabilities=[
                         CfnCapabilities.AUTO_EXPAND,
