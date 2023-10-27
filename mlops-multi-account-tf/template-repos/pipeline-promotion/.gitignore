@@ -1,0 +1,7 @@
+.idea
+.terraform*
+terraform*
+.DS_Store
+workshop.tar
+.vscode
+*.zip

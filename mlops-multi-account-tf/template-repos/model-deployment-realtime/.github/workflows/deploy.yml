@@ -1,0 +1,146 @@
+name: Deploy Inference Infrastructure with Terraform
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+      - feature/*
+
+env:
+  AWS_REGION: ${{ vars.AWS_REGION }}
+  AWS_PREPROD_ACCOUNT_NUMBER: ${{ secrets.AWS_PREPROD_ACCOUNT_NUMBER }}
+  AWS_PROD_ACCOUNT_NUMBER: ${{ secrets.AWS_PROD_ACCOUNT_NUMBER }}
+  SAGEMAKER_PROJECT_ARN: ${{ vars.SAGEMAKER_PROJECT_ARN }}
+  SAGEMAKER_PROJECT_ID: ${{ vars.SAGEMAKER_PROJECT_ID }}
+  SAGEMAKER_PROJECT_NAME_ID: ${{ vars.SAGEMAKER_PROJECT_NAME_ID }}
+  SAGEMAKER_PROJECT_NAME: ${{ vars.SAGEMAKER_PROJECT_NAME }}
+  AWS_DEV_ACCOUNT_NUMBER: ${{ secrets.AWS_DEV_ACCOUNT_NUMBER }}
+  IAC_CODE: "tf"
+  S3_PREFIX: "terraform-state"
+  DYNAMODB_PREFIX: "terraform-state-locks"
+
+jobs:
+  preprod:
+    name: Deploy Inference Infra to PreProd Account
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      contents: read
+    steps:
+      - uses: actions/checkout@v3
+      - uses: hashicorp/setup-terraform@v2
+        with: 
+          terraform_version: 1.5.2
+
+      - name: Install requirements
+        run: |
+          pip3 install --upgrade boto3
+
+      - name: Assume AWS Dev Account Credentials
+        uses: aws-actions/configure-aws-credentials@v1
+        with:
+          role-to-assume: arn:aws:iam::${{ env.AWS_DEV_ACCOUNT_NUMBER }}:role/aws-github-oidc-role
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Save AWS profile for dev account
+        run: |
+          aws configure set aws_access_key_id $AWS_ACCESS_KEY_ID --profile dev
+          aws configure set aws_secret_access_key $AWS_SECRET_ACCESS_KEY --profile dev
+          aws configure set aws_session_token $AWS_SESSION_TOKEN --profile dev
+
+      - name: Assume AWS PreProd Account Credentials
+        uses: aws-actions/configure-aws-credentials@v1
+        with:
+          role-to-assume: arn:aws:iam::${{ env.AWS_PREPROD_ACCOUNT_NUMBER }}:role/aws-github-oidc-role
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Save AWS profile for target account (preprod)
+        run: |
+          aws configure set aws_access_key_id $AWS_ACCESS_KEY_ID --profile target
+          aws configure set aws_secret_access_key $AWS_SECRET_ACCESS_KEY --profile target
+          aws configure set aws_session_token $AWS_SESSION_TOKEN --profile target
+
+      - name: Deploy to target account
+        run: |
+          python3 build.py \
+            --sagemaker-project-name "$SAGEMAKER_PROJECT_NAME"  \
+            --sagemaker-project-id "$SAGEMAKER_PROJECT_ID" --model-package-group-name "$SAGEMAKER_PROJECT_NAME_ID" \
+            --stage staging --training-id "$AWS_DEV_ACCOUNT_NUMBER" \
+            --target-id "$AWS_PREPROD_ACCOUNT_NUMBER" --environment preprod --code "$IAC_CODE"\
+            --import-config pre-prod-config.tfvars.json --export-config pre-prod-config-extended.tfvars.json
+
+          make tf-apply \
+          bucket=${{ env.S3_PREFIX }}-preprod-${{ env.AWS_REGION }}-${{ env.AWS_PREPROD_ACCOUNT_NUMBER }} \
+          region=${{ env.AWS_REGION }} \
+          key=mlops-terraform-preprod-${{ env.SAGEMAKER_PROJECT_NAME }}.state \
+          table=${{ env.DYNAMODB_PREFIX }}-preprod \
+          var_file=./pre-prod-config-extended.tfvars.json
+
+      - name: Test target account deployment
+        run: |
+          python3 test/test.py --endpoint-name "${SAGEMAKER_PROJECT_NAME}-preprod" --export-test-results test-results
+          cat test-results
+  prod:
+    name: Deploy Inference Infra to Prod Account
+    runs-on: ubuntu-latest
+    needs: [preprod]
+    environment: production
+    permissions:
+      id-token: write
+      contents: read
+    steps:
+      - uses: actions/checkout@v3
+      - uses: hashicorp/setup-terraform@v2
+        with: 
+          terraform_version: 1.5.2
+
+      - name: Install requirements
+        run: |
+          pip3 install --upgrade boto3
+
+      - name: Assume AWS Dev Account Credentials
+        uses: aws-actions/configure-aws-credentials@v1
+        with:
+          role-to-assume: arn:aws:iam::${{ env.AWS_DEV_ACCOUNT_NUMBER }}:role/aws-github-oidc-role
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Save AWS profile for dev account
+        run: |
+          aws configure set aws_access_key_id $AWS_ACCESS_KEY_ID --profile dev
+          aws configure set aws_secret_access_key $AWS_SECRET_ACCESS_KEY --profile dev
+          aws configure set aws_session_token $AWS_SESSION_TOKEN --profile dev
+
+      - name: Assume AWS Prod Account Credentials
+        uses: aws-actions/configure-aws-credentials@v1
+        with:
+          role-to-assume: arn:aws:iam::${{ env.AWS_PROD_ACCOUNT_NUMBER }}:role/aws-github-oidc-role
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Save AWS profile for target account (prod)
+        run: |
+          aws configure set aws_access_key_id $AWS_ACCESS_KEY_ID --profile target
+          aws configure set aws_secret_access_key $AWS_SECRET_ACCESS_KEY --profile target
+          aws configure set aws_session_token $AWS_SESSION_TOKEN --profile target
+
+      - name: Deploy to target account
+        run: |
+          python3 build.py \
+            --sagemaker-project-name "$SAGEMAKER_PROJECT_NAME"  \
+            --sagemaker-project-id "$SAGEMAKER_PROJECT_ID" --model-package-group-name "$SAGEMAKER_PROJECT_NAME_ID" \
+            --stage prod --training-id "$AWS_DEV_ACCOUNT_NUMBER" \
+            --target-id "$AWS_PROD_ACCOUNT_NUMBER" --environment prod --code "$IAC_CODE"\
+            --import-config prod-config.tfvars.json --export-config  prod-config-extended.tfvars.json
+            
+          make tf-apply \
+          bucket=${{ env.S3_PREFIX }}-prod-${{ env.AWS_REGION }}-${{ env.AWS_PROD_ACCOUNT_NUMBER }} \
+          region=${{ env.AWS_REGION }} \
+          key=mlops-terraform-prod-${{ env.SAGEMAKER_PROJECT_NAME }}.state \
+          table=${{ env.DYNAMODB_PREFIX }}-prod \
+          var_file=./prod-config-extended.tfvars.json
+
+
+
+      - name: Test target account deployment
+        run: |
+          python3 test/test.py --endpoint-name "${SAGEMAKER_PROJECT_NAME}-prod" --export-test-results test-results
+          cat test-results

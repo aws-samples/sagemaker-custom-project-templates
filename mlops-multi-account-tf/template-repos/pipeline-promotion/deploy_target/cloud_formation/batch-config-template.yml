@@ -1,0 +1,181 @@
+Description:
+  This template is built and deployed by the infrastructure pipeline in various stages (staging/production) as required for Pipeline Promotion
+  It specifies the resources that need to be created, like the SageMaker Pipeline. It can be extended to include resources as required.
+Parameters:
+  SageMakerProjectName:
+    Type: String
+    Description: Name of the project
+    MinLength: 1
+    MaxLength: 32
+    AllowedPattern: ^[a-zA-Z](-*[a-zA-Z0-9])*
+  SageMakerProjectId:
+    Type: String
+    Description: ID of the project
+  BatchPipeline:
+    Type: String
+    Description: Name Sagemaker pipeline
+  PipelineDefinitionS3Key:
+    Type: String
+    Description: The S3 key for pipeline definition.
+  ProjectBucket:
+    Type: String
+    Description: Output bucket in the target account
+  Environment:
+    Description: Environment where is deployed
+    Type: String
+
+  ## Static from config files
+  ProcessingInstanceCount:
+    Type: Number
+    Description: The number of instance used for preprocessing step.
+  ProcessingInstanceType:
+    Type: String
+    Description: The type of instance used for preprocessing.
+  TrainingInstanceCount:
+    Type: Number
+    Description: The number of instance used for training step.
+  InferenceInstanceCount:
+    Type: Number
+    Description: The number of instance used for inference step.
+  InferenceInstanceType:
+    Type: String
+    Description: The type of instance used for inference.
+  MseThreshold:
+    Type: Number
+    Description: Maximun MSE allowed for create the model.
+  TriggerState:
+    Type: String
+    Description: Whether or not to enable the event rule
+    Default: DISABLED
+    AllowedValues:
+      - ENABLED
+      - DISABLED
+  BatchDataUrl:
+    Type: String
+    Description: Url for data for batch inference
+  InputDataUrl:
+    Type: String
+    Description: Url for data for train the model
+  ScheduleExpressionforPipeline:
+    Type: String
+    Description: The rate of execution of your pipeline (default 1 day)
+    Default: 1 day
+  StageName:
+    Type: String
+    Description:
+      The name for a project pipeline stage, such as Pre Prod or Prod, for
+      which resources are provisioned and deployed.
+
+Resources:
+  BatchInferencePipeline:
+    Type: AWS::SageMaker::Pipeline
+    Properties:
+      PipelineDescription: The SM Pipeline that executes the batch inference
+      PipelineName: !Ref BatchPipeline
+      RoleArn: !Sub "{{resolve:ssm:/${Environment}/sagemaker_role_arn}}"
+      PipelineDefinition:
+        PipelineDefinitionS3Location:
+          Bucket: !Ref ProjectBucket
+          Key: !Ref PipelineDefinitionS3Key
+      Tags:
+        - Key: "sagemaker:project-name"
+          Value: !Sub "${SageMakerProjectName}"
+        - Key: "sagemaker:project-id"
+          Value: !Sub "${SageMakerProjectId}"
+
+  EventRule:
+    Type: AWS::Events::Rule
+    Properties:
+      Name: !Sub ${SageMakerProjectName}-${StageName}-SchedExecRule
+      ScheduleExpression: !Sub rate(${ScheduleExpressionforPipeline})
+      State: !Ref TriggerState
+      Targets:
+        - Arn: !Sub arn:aws:sagemaker:${AWS::Region}:${AWS::AccountId}:pipeline/${BatchPipeline}
+          Id: MyBatchInferenceTarget
+          RoleArn: !Sub "{{resolve:ssm:/${Environment}/sagemaker_role_arn}}"
+          SageMakerPipelineParameters:
+            PipelineParameterList:
+              - Name: ProcessingInstanceCount
+                Value: !Ref ProcessingInstanceCount
+              - Name: ProcessingInstanceType
+                Value: !Ref ProcessingInstanceType
+              - Name: InferenceInstanceCount
+                Value: !Ref InferenceInstanceCount
+              - Name: InferenceInstanceType
+                Value: !Ref InferenceInstanceType
+              - Name: TrainingInstanceCount
+                Value: !Ref TrainingInstanceCount
+              - Name: MseThreshold
+                Value: !Ref MseThreshold
+              - Name: BatchDataUrl
+                Value: !Ref BatchDataUrl
+              - Name: InputDataUrl
+                Value: !Ref InputDataUrl
+
+  CloudWatchDashboard:
+    Type: AWS::CloudWatch::Dashboard
+    Properties:
+      DashboardName: !Sub "${SageMakerProjectName}-${SageMakerProjectId}-${StageName}-dashboard"
+      DashboardBody: !Sub |
+        {
+        "widgets": [
+            {
+                "type": "metric",
+                "x": 0,
+                "y": 0,
+                "width": 12,
+                "height": 3,
+                "properties": {
+                    "metrics": [
+                        [ "AWS/Sagemaker/ModelBuildingPipeline", "ExecutionSucceeded", "PipelineName", "${BatchPipeline}" ],
+                        [ ".", "ExecutionFailed", ".", "." ]
+                    ],
+                    "view": "singleValue",
+                    "stacked": false,
+                    "region": "${AWS::Region}",
+                    "stat": "Sum",
+                    "period": 604800,
+                    "setPeriodToTimeRange": true,
+                    "title": "Number of Successful and Failed Runs"
+                }
+            },
+            {
+                "type": "metric",
+                "x": 12,
+                "y": 0,
+                "width": 12,
+                "height": 3,
+                "properties": {
+                    "metrics": [
+                        [ { "expression": "m1/60000", "label": "Average Duration Minute", "id": "e1" } ],
+                        [ "AWS/Sagemaker/ModelBuildingPipeline", "ExecutionDuration", "PipelineName", "${BatchPipeline}", { "id": "m1", "visible": false } ]
+                    ],
+                    "view": "singleValue",
+                    "stacked": false,
+                    "region": "${AWS::Region}",
+                    "stat": "Average",
+                    "period": 604800,
+                    "title": "Pipeline Average Duration"
+                }
+            },
+            {
+                "type": "metric",
+                "x": 0,
+                "y": 3,
+                "width": 12,
+                "height": 3,
+                "properties": {
+                    "metrics": [
+                        [ "AWS/Events", "Invocations", "RuleName", "${SageMakerProjectName}-${StageName}-SchedExecRule" ],
+                        [ ".", "FailedInvocations", ".", "." ]
+                    ],
+                    "view": "singleValue",
+                    "stacked": false,
+                    "region": "${AWS::Region}",
+                    "stat": "SampleCount",
+                    "period": 604800,
+                    "title": "Pipeline Triggers"
+                }
+            }
+          ]
+        }

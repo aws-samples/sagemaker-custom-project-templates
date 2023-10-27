@@ -1,0 +1,8 @@
+{
+  "business_unit_1": {
+    "region": "eu-west-2",
+    "dev_account_number": "097163722660",
+    "preprod_account_number": "051093648379",
+    "prod_account_number": "466724818505"
+  }
+}
