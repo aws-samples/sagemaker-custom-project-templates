@@ -1,0 +1,128 @@
+---
+name: Destroy infrastructure
+on: 
+  workflow_dispatch:
+env: 
+  AWS_ASSUME_ROLE_NAME: ${{ secrets.AWS_ASSUME_ROLE_NAME}}
+  S3_PREFIX: "terraform-state"
+  DYNAMODB_PREFIX: "terraform-state-locks"
+  PAT_GITHUB: ${{ secrets.PAT_GITHUB}}
+jobs:
+  tf-destroy-dev:
+    name: Terraform Destroy Dev
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        business_unit: ["business_unit_1"] 
+    permissions: 
+      actions: read
+      contents: write
+      security-events: write
+      id-token: write
+      packages: write
+    steps: 
+      - uses: actions/checkout@v3
+      - uses: hashicorp/setup-terraform@v2
+        with: 
+          terraform_version: 1.5.2
+      - name: Get Env Variables
+        run: env
+      - name: Set Environment Variables
+        run: |
+          echo "AWS_DEV_ACCOUNT_NUMBER=$(jq -r ".${{ matrix.business_unit }}.dev_account_number" config.json)" >> $GITHUB_ENV
+          echo "AWS_PREPROD_ACCOUNT_NUMBER=$(jq -r .${{ matrix.business_unit }}.preprod_account_number config.json)" >> $GITHUB_ENV
+          echo "AWS_PROD_ACCOUNT_NUMBER=$(jq -r ".${{ matrix.business_unit }}.prod_account_number" config.json)" >> $GITHUB_ENV
+          echo "AWS_REGION=$(jq -r ".${{ matrix.business_unit }}.region" config.json)" >> $GITHUB_ENV
+      - name: Assume Dev Role
+        uses: aws-actions/configure-aws-credentials@v1
+        with: 
+          role-to-assume: arn:aws:iam::${{ env.AWS_DEV_ACCOUNT_NUMBER }}:role/${{ env.AWS_ASSUME_ROLE_NAME }}
+          aws-region: ${{ env.AWS_REGION }}
+      - name: Terraform Destroy Dev
+        run: | 
+          make tf-destroy env=dev \
+          bucket=terraform-state-dev-${{ env.AWS_REGION }}-${{ env.AWS_DEV_ACCOUNT_NUMBER }} \
+          region=${{ env.AWS_REGION }} \
+          key=${{ env.S3_PREFIX }}-dev.state \
+          table=${{ env.DYNAMODB_PREFIX }}-dev \
+          preprod=${{ env.AWS_PREPROD_ACCOUNT_NUMBER }} \
+          prod=${{ env.AWS_PROD_ACCOUNT_NUMBER }} \
+          pat_github= ${{ env.PAT_GITHUB}}
+  tf-destroy-preprod: 
+    name: Terraform Destroy PreProd
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        business_unit: ["business_unit_1"] 
+    permissions: 
+      actions: read
+      contents: write
+      security-events: write
+      id-token: write
+      packages: write
+    steps: 
+      - uses: actions/checkout@v3
+      - uses: hashicorp/setup-terraform@v2
+        with: 
+          terraform_version: 1.5.2
+      - name: Get Env Variables
+        run: env
+      - name: Set Environment Variables
+        run: |
+          echo "AWS_PREPROD_ACCOUNT_NUMBER=$(jq -r .${{ matrix.business_unit }}.preprod_account_number config.json)" >> $GITHUB_ENV
+          echo "AWS_PROD_ACCOUNT_NUMBER=$(jq -r ".${{ matrix.business_unit }}.prod_account_number" config.json)" >> $GITHUB_ENV
+          echo "AWS_REGION=$(jq -r ".${{ matrix.business_unit }}.region" config.json)" >> $GITHUB_ENV
+      - name: Assume PreProd Role
+        uses: aws-actions/configure-aws-credentials@v1
+        with: 
+          role-to-assume: arn:aws:iam::${{ env.AWS_PREPROD_ACCOUNT_NUMBER }}:role/${{ env.AWS_ASSUME_ROLE_NAME }}
+          aws-region: ${{ env.AWS_REGION }}
+      - name: Terraform Destroy PreProd
+        run: | 
+          make tf-destroy env=preprod \
+          bucket=terraform-state-preprod-${{ env.AWS_REGION }}-${{ env.AWS_PREPROD_ACCOUNT_NUMBER }} \
+          region=${{ env.AWS_REGION }} \
+          key=${{ env.S3_PREFIX }}-preprod.state \
+          table=${{ env.DYNAMODB_PREFIX }}-preprod \
+          preprod=${{ env.AWS_PREPROD_ACCOUNT_NUMBER }} \
+          prod=${{ env.AWS_PROD_ACCOUNT_NUMBER }} \
+          pat_github= ${{ env.PAT_GITHUB}}
+  tf-destroy-prod: 
+    name: Terraform Destroy Prod
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        business_unit: ["business_unit_1"] 
+    permissions: 
+      actions: read
+      contents: write
+      security-events: write
+      id-token: write
+      packages: write
+    steps: 
+      - uses: actions/checkout@v3
+      - uses: hashicorp/setup-terraform@v2
+        with: 
+          terraform_version: 1.5.2
+      - name: Get Env Variables
+        run: env
+      - name: Set Environment Variables
+        run: |
+          echo "AWS_PREPROD_ACCOUNT_NUMBER=$(jq -r .${{ matrix.business_unit }}.preprod_account_number config.json)" >> $GITHUB_ENV
+          echo "AWS_PROD_ACCOUNT_NUMBER=$(jq -r ".${{ matrix.business_unit }}.prod_account_number" config.json)" >> $GITHUB_ENV
+          echo "AWS_REGION=$(jq -r ".${{ matrix.business_unit }}.region" config.json)" >> $GITHUB_ENV
+      - name: Assume Prod Role
+        uses: aws-actions/configure-aws-credentials@v1
+        with: 
+          role-to-assume: arn:aws:iam::${{ env.AWS_PROD_ACCOUNT_NUMBER }}:role/${{ env.AWS_ASSUME_ROLE_NAME }}
+          aws-region: ${{ env.AWS_REGION }}
+      - name: Terraform Destroy Prod
+        run: | 
+          make tf-destroy env=prod \
+          bucket=terraform-state-prod-${{ env.AWS_REGION }}-${{ env.AWS_PROD_ACCOUNT_NUMBER }} \
+          region=${{ env.AWS_REGION }} \
+          key=${{ env.S3_PREFIX }}-prod.state \
+          table=${{ env.DYNAMODB_PREFIX }}-prod \
+          preprod=${{ env.AWS_PREPROD_ACCOUNT_NUMBER }} \
+          prod=${{ env.AWS_PROD_ACCOUNT_NUMBER }} \
+          pat_github= ${{ env.PAT_GITHUB}}

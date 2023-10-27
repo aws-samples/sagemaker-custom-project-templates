@@ -1,0 +1,9 @@
+{
+    "Parameters": {
+        "ProcessingInstanceCount": "1",
+        "ProcessingInstanceType": "ml.m5.large",
+        "InferenceInstanceCount": "1",
+        "InferenceInstanceType": "ml.m5.large",
+        "ScheduleExpressionforPipeline": "1 day"
+    }
+}

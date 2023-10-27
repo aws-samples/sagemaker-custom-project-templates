@@ -1,0 +1,83 @@
+name: Endpoint Custom Image
+run-name: Endpoint Custom Image
+on: 
+  workflow_dispatch:
+  push:
+    branches: [ main]
+    paths:
+      - 'endpoint/**'
+env:
+  AWS_REGION: ${{ vars.AWS_REGION }}
+  SAGEMAKER_PROJECT_NAME: ${{ vars.SAGEMAKER_PROJECT_NAME }}
+  SAGEMAKER_PROJECT_ID: ${{ vars.SAGEMAKER_PROJECT_ID }}
+  AWS_DEV_ACCOUNT_NUMBER: ${{ secrets.AWS_DEV_ACCOUNT_NUMBER }}
+  AWS_PROD_ACCOUNT_NUMBER: ${{ secrets.AWS_PROD_ACCOUNT_NUMBER }}
+  AWS_PREPROD_ACCOUNT_NUMBER: ${{ secrets.AWS_PREPROD_ACCOUNT_NUMBER }}
+  XGBOOST_LATEST_VERSION: "1.0-1-cpu-py3"
+
+jobs:
+  dev:
+    name: Dev
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      contents: read
+    env:
+      ECR_REGISTRY: $AWS_DEV_ACCOUNT_NUMBER.dkr.ecr.$AWS_REGION.amazonaws.com
+    steps:
+    - name: Check out code
+      uses: actions/checkout@v3
+
+    - uses: ./.github/actions/ecr-build-and-push
+      with:
+        ROLE_TO_ASSUME_ACCOUNT_ID: ${{ env.AWS_DEV_ACCOUNT_NUMBER }}
+        AWS_REGION: ${{ env.AWS_REGION }}
+        ECR_REPOSITORY_NAME: mlops-${{ env.SAGEMAKER_PROJECT_NAME }}-endpoint-dev
+        ECR_REGISTRY: ${{ env.ECR_REGISTRY }}
+        DOCKER_FILE_PATH: endpoint
+        XGBOOST_LATEST_VERSION: ${{ env.XGBOOST_LATEST_VERSION }}
+
+  preprod:
+    name: Staging
+    runs-on: ubuntu-latest
+    needs: [dev]
+    environment: pre-production
+    env:
+      ECR_REGISTRY: $AWS_PREPROD_ACCOUNT_NUMBER.dkr.ecr.$AWS_REGION.amazonaws.com
+    permissions:
+      id-token: write
+      contents: read
+    steps:
+    - name: Check out code
+      uses: actions/checkout@v3
+
+    - uses: ./.github/actions/ecr-build-and-push
+      with:
+        ROLE_TO_ASSUME_ACCOUNT_ID: ${{ env.AWS_PREPROD_ACCOUNT_NUMBER }}
+        AWS_REGION: ${{ env.AWS_REGION }}
+        ECR_REPOSITORY_NAME: mlops-${{ env.SAGEMAKER_PROJECT_NAME }}-endpoint-staging
+        ECR_REGISTRY: ${{ env.ECR_REGISTRY }}
+        DOCKER_FILE_PATH: endpoint
+        XGBOOST_LATEST_VERSION: ${{ env.XGBOOST_LATEST_VERSION }}
+
+  prod:
+    name: Prod
+    runs-on: ubuntu-latest
+    needs: [preprod]
+    environment: production
+    env:
+      ECR_REGISTRY: $AWS_PROD_ACCOUNT_NUMBER.dkr.ecr.$AWS_REGION.amazonaws.com
+    permissions:
+      id-token: write
+      contents: read
+    steps:
+    - name: Check out code
+      uses: actions/checkout@v3
+    - uses: ./.github/actions/ecr-build-and-push
+      with:
+        ROLE_TO_ASSUME_ACCOUNT_ID: ${{ env.AWS_PROD_ACCOUNT_NUMBER }}
+        AWS_REGION: ${{ env.AWS_REGION }}
+        ECR_REPOSITORY_NAME: mlops-${{ env.SAGEMAKER_PROJECT_NAME }}-endpoint-prod
+        ECR_REGISTRY: ${{ env.ECR_REGISTRY }}
+        DOCKER_FILE_PATH: endpoint
+        XGBOOST_LATEST_VERSION: ${{ env.XGBOOST_LATEST_VERSION }}

@@ -1,0 +1,166 @@
+Description: Provisions custom project for sagemaker for workflow promotion pattern.
+Parameters:
+  SageMakerProjectName:
+    Type: String
+    Description: Name of the project
+    MinLength: 1
+    MaxLength: 32
+    AllowedPattern: "^[a-zA-Z](-*[a-zA-Z0-9])*"
+  SageMakerProjectId:
+    Type: String
+    Description: Service generated Id of the project.
+  ModelGroupDescription:
+    Type: String
+    Description: Description of Model
+    AllowedPattern: .*
+  PreProdAccountId:
+    Type: String
+    Description: set to 'default' to read the value from Parameters Store - Pre-prod Account Number to which your modelpackagegroup would be shared
+    Default: "default"
+  ProdAccountId:
+    Type: String
+    Description: set to 'default' to read the value from Parameters Store - Prod Account Number to which your modelpackagegroup would be shared
+    Default: "default"
+  GitUser:
+    Type: String
+    Description: Git user to give admin over the project repositories
+
+Conditions: 
+  ProdAccount: !Equals
+      - !Ref ProdAccountId
+      - "default"
+  PreProdAccount: !Equals
+      - !Ref PreProdAccountId
+      - "default"
+Resources:
+  MlOpsArtifactsBucket:
+    Type: "AWS::S3::Bucket"
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
+    Properties:
+      BucketName: !Sub >-
+        mlops-workflow-${SageMakerProjectName}-${AWS::AccountId}
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault:
+              SSEAlgorithm: AES256
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: TRUE
+        BlockPublicPolicy: TRUE
+        IgnorePublicAcls: TRUE
+      VersioningConfiguration:
+        Status: Enabled
+
+
+  MLOpsModelPackageGroup:
+    Type: "AWS::SageMaker::ModelPackageGroup"
+    Properties:
+      ModelPackageGroupName: !Sub "${SageMakerProjectName}-${SageMakerProjectId}"
+      ModelPackageGroupDescription: !Ref ModelGroupDescription
+      Tags:
+        - Key: "sagemaker:project-name"
+          Value: !Sub "${SageMakerProjectName}"
+        - Key: "sagemaker:project-id"
+          Value: !Sub "${SageMakerProjectId}"
+
+  PipelineProductUseRole:
+    Type: "AWS::IAM::Role"
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - sagemaker.amazonaws.com
+            Action: "sts:AssumeRole"
+      Description: Role to use for launching the SageMaker Project
+      ManagedPolicyArns:
+        - "{{resolve:ssm:arn_sagemaker_execution_policy}}"
+        - "{{resolve:ssm:arn_sagemaker_related_policy}}"
+        - "{{resolve:ssm:arn_sagemaker_pass_role_policy}}"
+        - "{{resolve:ssm:arn_sagemaker_s3_policy}}"
+        - "{{resolve:ssm:arn_sagemaker_vpc_policy}}"
+        - "{{resolve:ssm:arn_deny_sagemaker_jobs_outside_vpc}}"
+      Policies:
+        - PolicyName: sagemaker_s3_service_catalog_bucket
+          PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+              - Effect: Allow
+                Action:
+                  - "s3:Get*"
+                  - "s3:Put*"
+                Resource:
+                  - !Sub "arn:aws:s3:::${MlOpsArtifactsBucket}/*"
+                  - !Sub "arn:aws:s3:::${MlOpsArtifactsBucket}"
+              - Effect: Deny
+                Action:
+                  - "sagemaker:DeleteModelPackage"
+                  - "sagemaker:DeleteModelPackageGroup"
+                Resource:
+                  - !Sub >-
+                    arn:aws:sagemaker:${AWS::Region}:${AWS::AccountId}:model-package-group/*
+                  - !Sub >-
+                    arn:aws:sagemaker:${AWS::Region}:${AWS::AccountId}:model-package/*
+              - Effect: Allow
+                Action:
+                  - "sagemaker:AddTags"
+                Resource:
+                  - !Sub "arn:aws:sagemaker:${AWS::Region}:${AWS::AccountId}:experiment-trial-component/*"
+                  - !Sub "arn:aws:sagemaker:${AWS::Region}:${AWS::AccountId}:experiment-trial/*"
+                  - !Sub "arn:aws:sagemaker:${AWS::Region}:${AWS::AccountId}:experiment/*"
+                  - !Sub "arn:aws:sagemaker:${AWS::Region}:${AWS::AccountId}:model/*"
+                  - !Sub "arn:aws:sagemaker:${AWS::Region}:${AWS::AccountId}:pipeline/*"
+                  - !Sub "arn:aws:sagemaker:${AWS::Region}:${AWS::AccountId}:processing-job/*"
+                  - !Sub "arn:aws:sagemaker:${AWS::Region}:${AWS::AccountId}:project/*"
+                  - !Sub "arn:aws:sagemaker:${AWS::Region}:${AWS::AccountId}:training-job/*"
+                  - !Sub "arn:aws:sagemaker:${AWS::Region}:${AWS::AccountId}:transform-job/*"
+                  - !Sub "arn:aws:sagemaker:${AWS::Region}:${AWS::AccountId}:model-package-group/*"
+              - Effect: Allow
+                Action:
+                  - "secretsmanager:GetSecretValue"
+                Resource: !Sub "arn:aws:secretsmanager:${AWS::Region}:${AWS::AccountId}:*"
+              - Effect: Allow
+                Action:
+                  - "ssm:GetParameter"
+                Resource: !Sub "arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/*"
+
+  CustomResourceLambdaRepoBuild:
+    Type: "Custom::LambdaCloneRepoPipelinePattern"
+    Properties:
+      GIT_USER: !Ref GitUser
+      ORGANIZATION: "{{resolve:ssm:github_organization}}"
+      REPO_NAME: !Sub "mlops-${SageMakerProjectName}-${SageMakerProjectId}-pipeline-promotion"
+      VAR_ARTIFACT_BUCKET: !Ref MlOpsArtifactsBucket
+      VAR_AWS_REGION: !Ref "AWS::Region"
+      VAR_SAGEMAKER_PIPELINE_ROLE_ARN: !GetAtt PipelineProductUseRole.Arn
+      VAR_SAGEMAKER_PROJECT_ARN: !Sub "arn:aws:sagemaker:${AWS::Region}:${AWS::AccountId}:project/${SageMakerProjectName}"
+      VAR_SAGEMAKER_PROJECT_ID: !Ref SageMakerProjectId
+      VAR_SAGEMAKER_PROJECT_NAME_ID: !Sub "${SageMakerProjectName}-${SageMakerProjectId}"
+      VAR_SAGEMAKER_PROJECT_NAME: !Ref SageMakerProjectName
+      SECRET_AWS_DEV_ACCOUNT_NUMBER: !Ref "AWS::AccountId"
+      SECRET_AWS_PREPROD_ACCOUNT_NUMBER: !If
+        - PreProdAccount
+        - !Sub "{{resolve:ssm:preprod_account_number}}"
+        - !Ref PreProdAccountId
+      SECRET_AWS_PROD_ACCOUNT_NUMBER: !If
+        - ProdAccount
+        - !Sub "{{resolve:ssm:prod_account_number}}"
+        - !Ref ProdAccountId
+      ServiceToken: "{{resolve:ssm:arn_clone_repo_lambda}}"
+      TEMPLATE_REPO: "{{resolve:ssm:github_workflow_repo_template}}"
+
+  ModelBuildSagemakerCodeRepository:
+    Type: "AWS::SageMaker::CodeRepository"
+    DependsOn: CustomResourceLambdaRepoBuild
+    Properties:
+      CodeRepositoryName: !Sub "aws-mlops-${SageMakerProjectName}-${SageMakerProjectId}-pipeline-promotion"
+      GitConfig:
+        Branch: main
+        RepositoryUrl: !Sub "https://github.com/{{resolve:ssm:github_organization}}/mlops-${SageMakerProjectName}-${SageMakerProjectId}-pipeline-promotion.git"
+      Tags:
+        - Key: "sagemaker:project-id"
+          Value: !Sub ${SageMakerProjectId}
+        - Key: "sagemaker:project-name"
+          Value: !Sub ${SageMakerProjectName}

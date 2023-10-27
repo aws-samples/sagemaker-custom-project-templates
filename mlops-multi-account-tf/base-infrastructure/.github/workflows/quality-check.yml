@@ -1,0 +1,156 @@
+---
+name: Quality Checks
+on: 
+  pull_request: 
+    branches: 
+      - main
+    paths: 
+      - terraform/**
+  workflow_dispatch: 
+env: 
+  AWS_ASSUME_ROLE_NAME: ${{ secrets.AWS_ASSUME_ROLE_NAME}}
+  S3_PREFIX: "terraform-state"
+  DYNAMODB_PREFIX: "terraform-state-locks"
+  PAT_GITHUB: ${{ secrets.PAT_GITHUB}}
+jobs:
+  checkov: 
+    name: Checkov
+    runs-on: ubuntu-latest
+    permissions: 
+      actions: read
+      contents: write
+      security-events: write
+      id-token: write
+      packages: write
+    steps:
+      - uses: actions/checkout@v2
+      - name: Set up Python 3.8
+        uses: actions/setup-python@v4
+        with:
+          python-version: 3.8
+      - name: Test with Checkov
+        id: checkov
+        uses: bridgecrewio/checkov-action@master
+        with:
+          directory: terraform/
+          framework: terraform 
+          quiet: true
+          skip_check: "CKV_AWS_356,CKV_AWS_337,CKV2_AWS_34,CKV2_AWS_62,CKV_AWS_355,CKV_AWS_111,CKV_AWS_109,CKV_AWS_108,CKV_AWS_272,CKV_AWS_116,CKV_AWS_173,CKV_AWS_158,CKV_AWS_290,CKV_AWS_187,CKV_AWS_286,CKV_AWS_289,CKV2_AWS_12"
+  tf-plan-dev: 
+    name: Terraform Plan Dev
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        business_unit: ["business_unit_1"] 
+    permissions: 
+      actions: read
+      contents: write
+      security-events: write
+      id-token: write
+      packages: write
+    steps: 
+      - uses: actions/checkout@v3
+      - uses: hashicorp/setup-terraform@v2
+        with: 
+          terraform_version: 1.5.2
+      - name: Get Env Variables
+        run: env
+      - name: Set Environment Variables
+        run: |
+          echo "AWS_DEV_ACCOUNT_NUMBER=$(jq -r ".${{ matrix.business_unit }}.dev_account_number" config.json)" >> $GITHUB_ENV
+          echo "AWS_PREPROD_ACCOUNT_NUMBER=$(jq -r .${{ matrix.business_unit }}.preprod_account_number config.json)" >> $GITHUB_ENV
+          echo "AWS_PROD_ACCOUNT_NUMBER=$(jq -r ".${{ matrix.business_unit }}.prod_account_number" config.json)" >> $GITHUB_ENV
+          echo "AWS_REGION=$(jq -r ".${{ matrix.business_unit }}.region" config.json)" >> $GITHUB_ENV
+      - name: Assume Dev Role
+        uses: aws-actions/configure-aws-credentials@v1
+        with: 
+          role-to-assume: arn:aws:iam::${{ env.AWS_DEV_ACCOUNT_NUMBER }}:role/${{ env.AWS_ASSUME_ROLE_NAME }}
+          aws-region: ${{ env.AWS_REGION }}
+      - name: Terraform Plan Dev
+        run: | 
+          make tf-plan env=dev \
+          bucket=${{ env.S3_PREFIX }}-dev-${{ env.AWS_REGION }}-${{ env.AWS_DEV_ACCOUNT_NUMBER }} \
+          region=${{ env.AWS_REGION }} \
+          key=mlops-terraform-dev.state \
+          table=${{ env.DYNAMODB_PREFIX }}-dev \
+          preprod=${{ env.AWS_PREPROD_ACCOUNT_NUMBER }} \
+          prod=${{ env.AWS_PROD_ACCOUNT_NUMBER }} \
+          pat_github=${{ env.PAT_GITHUB }}
+  tf-plan-preprod: 
+    name: Terraform Plan PreProd
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        business_unit: ["business_unit_1"] 
+    permissions: 
+      actions: read
+      contents: write
+      security-events: write
+      id-token: write
+      packages: write
+    steps: 
+      - uses: actions/checkout@v3
+      - uses: hashicorp/setup-terraform@v2
+        with: 
+          terraform_version: 1.5.2
+      - name: Get Env Variables
+        run: env
+      - name: Set Environment Variables
+        run: |
+          echo "AWS_PREPROD_ACCOUNT_NUMBER=$(jq -r .${{ matrix.business_unit }}.preprod_account_number config.json)" >> $GITHUB_ENV
+          echo "AWS_PROD_ACCOUNT_NUMBER=$(jq -r ".${{ matrix.business_unit }}.prod_account_number" config.json)" >> $GITHUB_ENV
+          echo "AWS_REGION=$(jq -r ".${{ matrix.business_unit }}.region" config.json)" >> $GITHUB_ENV
+      - name: Assume PreProd Role
+        uses: aws-actions/configure-aws-credentials@v1
+        with: 
+          role-to-assume: arn:aws:iam::${{ env.AWS_PREPROD_ACCOUNT_NUMBER }}:role/${{ env.AWS_ASSUME_ROLE_NAME }}
+          aws-region: ${{ env.AWS_REGION }}
+      - name: Terraform Plan PreProd
+        run: | 
+          make tf-plan env=preprod \
+          bucket=${{ env.S3_PREFIX }}-preprod-${{ env.AWS_REGION }}-${{ env.AWS_PREPROD_ACCOUNT_NUMBER }} \
+          region=${{ env.AWS_REGION }} \
+          key=mlops-terraform-preprod.state \
+          table=${{ env.DYNAMODB_PREFIX }}-preprod \
+          preprod=${{ env.AWS_PREPROD_ACCOUNT_NUMBER }} \
+          prod=${{ env.AWS_PROD_ACCOUNT_NUMBER }} \
+          pat_github=${{ env.PAT_GITHUB }}
+  tf-plan-prod: 
+    name: Terraform Plan Prod
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        business_unit: ["business_unit_1"] 
+    permissions: 
+      actions: read
+      contents: write
+      security-events: write
+      id-token: write
+      packages: write
+    steps: 
+      - uses: actions/checkout@v3
+      - uses: hashicorp/setup-terraform@v2
+        with: 
+          terraform_version: 1.5.2
+      - name: Get Env Variables
+        run: env
+      - name: Set Environment Variables
+        run: |
+          echo "AWS_PREPROD_ACCOUNT_NUMBER=$(jq -r .${{ matrix.business_unit }}.preprod_account_number config.json)" >> $GITHUB_ENV
+          echo "AWS_PROD_ACCOUNT_NUMBER=$(jq -r ".${{ matrix.business_unit }}.prod_account_number" config.json)" >> $GITHUB_ENV
+          echo "AWS_REGION=$(jq -r ".${{ matrix.business_unit }}.region" config.json)" >> $GITHUB_ENV
+      - name: Assume Prod Role
+        uses: aws-actions/configure-aws-credentials@v1
+        with: 
+          role-to-assume: arn:aws:iam::${{ env.AWS_PROD_ACCOUNT_NUMBER }}:role/${{ env.AWS_ASSUME_ROLE_NAME }}
+          aws-region: ${{ env.AWS_REGION }}
+      - name: Terraform Plan Prod
+        run: | 
+          make tf-apply env=prod \
+          bucket=${{ env.S3_PREFIX }}-prod-${{ env.AWS_REGION }}-${{ env.AWS_PROD_ACCOUNT_NUMBER }} \
+          region=${{ env.AWS_REGION }} \
+          key=mlops-terraform-prod.state \
+          table=${{ env.DYNAMODB_PREFIX }}-prod \
+          preprod=${{ env.AWS_PREPROD_ACCOUNT_NUMBER }} \
+          prod=${{ env.AWS_PROD_ACCOUNT_NUMBER }} \
+          pat_github=${{ env.PAT_GITHUB }}

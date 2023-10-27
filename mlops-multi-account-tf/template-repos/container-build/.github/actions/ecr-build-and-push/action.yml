@@ -1,0 +1,56 @@
+name: 'Composite Actions for endpoint, processing and trainings'
+description: 'Composite Actions for endpoint, processing and trainings'
+inputs:
+  ROLE_TO_ASSUME_ACCOUNT_ID:
+    description: 'Assume Role Account ID'
+    required: true
+  AWS_REGION:
+    description: 'AWS Region'
+    required: true
+  ECR_REPOSITORY_NAME:
+    required: true
+    description: 'ECR Repository'
+  ECR_REGISTRY:
+    description: 'ECR Registry'
+    required: true
+  DOCKER_FILE_PATH:
+    description: 'Docker main path'
+    required: true
+  XGBOOST_LATEST_VERSION:
+    description: 'Latest XGBOOST Version'
+    required: true
+
+runs:
+  using: "composite"
+  steps:
+    - name: Check out code
+      uses: actions/checkout@v3
+    - name: Assume role
+      uses: aws-actions/configure-aws-credentials@v1
+      with:
+        role-to-assume: arn:aws:iam::${{ inputs.ROLE_TO_ASSUME_ACCOUNT_ID }}:role/aws-github-oidc-role
+        aws-region: ${{ inputs.AWS_REGION }}
+    - name: Container Build
+      env:
+        IMAGE_TAG: latest
+      shell: bash
+      run: |
+        cd ${{ inputs.DOCKER_FILE_PATH }}
+        echo "Logging in to Amazon ECR for fetching base repo..."
+        echo "Creating latest XGboost version ${{ inputs.XGBOOST_LATEST_VERSION }}..."
+        ECR_ENDPOINT=`jq --arg region "${{ inputs.AWS_REGION }}" '.[$region]' xgboost-${{ inputs.XGBOOST_LATEST_VERSION }}.json | sed 's/"//g'`
+        echo "ECR Endpoint $ECR_ENDPOINT"
+        aws --region ${{ inputs.AWS_REGION }} ecr get-login-password | docker login --username AWS --password-stdin $ECR_ENDPOINT
+
+        echo "Building the Docker image..."
+        docker build --build-arg ECR_ENDPOINT=$ECR_ENDPOINT --build-arg XGBOOST_LATEST_VERSION=${{ inputs.XGBOOST_LATEST_VERSION }} -t ${{ inputs.ECR_REPOSITORY_NAME }}:latest .
+    - name: Push image
+      shell: bash
+      run: |
+        aws --region ${{ inputs.AWS_REGION }} ecr get-login-password | docker login --username AWS --password-stdin ${{ inputs.ECR_REGISTRY }}
+
+        # If the repository doesn't exist in ECR, create it.
+        aws ecr describe-repositories --repository-names ${{ inputs.ECR_REPOSITORY_NAME }} || aws ecr create-repository --repository-name ${{ inputs.ECR_REPOSITORY_NAME }}
+
+        docker tag ${{ inputs.ECR_REPOSITORY_NAME }}:latest ${{ inputs.ECR_REGISTRY }}/${{ inputs.ECR_REPOSITORY_NAME }}:latest
+        docker push ${{ inputs.ECR_REGISTRY }}/${{ inputs.ECR_REPOSITORY_NAME }}:latest
