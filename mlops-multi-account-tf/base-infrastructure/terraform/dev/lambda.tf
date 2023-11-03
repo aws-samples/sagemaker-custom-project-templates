@@ -1,7 +1,17 @@
+resource "null_resource" "layers_zip" {
+  provisioner "local-exec" {
+    command = "cd lambdas/layers/ && bash -x ./build.sh"
+  }
+  triggers = {
+    build_number = "${timestamp()}"
+  }
+}
+
 resource "aws_lambda_layer_version" "pygithub_lambda_layer" {
-  filename            = "./lambdas/layers/python_github_layer.zip"
-  layer_name          = "pygithub_lambda_layer"
-  compatible_runtimes = ["python3.8"]
+  depends_on          = [resource.null_resource.layers_zip]
+  filename            = "./lambdas/layers/packages/python_github.zip"
+  layer_name          = "pygithub_lambda_layer_311"
+  compatible_runtimes = ["python3.11"]
 }
 
 data "archive_file" "clone_repo_zip_code" {
@@ -24,7 +34,7 @@ module "clone_repo_lambda" {
   role                           = aws_iam_role.service_catalog_lambda_iam_role.arn
   handler                        = "lambda_function.lambda_handler"
   timeout                        = 200
-  runtime                        = "python3.8"
+  runtime                        = "python3.11"
   source_code_hash               = data.archive_file.clone_repo_zip_code.output_base64sha256
   layers                         = [aws_lambda_layer_version.pygithub_lambda_layer.arn]
   reserved_concurrent_executions = 5
@@ -44,7 +54,7 @@ module "trigger_workflow_lambda" {
   role                           = aws_iam_role.service_catalog_lambda_iam_role.arn
   handler                        = "lambda_function.lambda_handler"
   timeout                        = 200
-  runtime                        = "python3.8"
+  runtime                        = "python3.11"
   source_code_hash               = data.archive_file.trigger_workflow_zip_code.output_base64sha256
   layers                         = [aws_lambda_layer_version.pygithub_lambda_layer.arn]
   reserved_concurrent_executions = 5
