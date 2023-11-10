@@ -123,7 +123,7 @@ class PipelineStack(Stack):
                             },
                             "phases": {
                                 "install": {
-                                    "runtime-versions": {"ruby": 3.1},
+                                    "runtime-versions": {"ruby": 3.2},
                                     "commands": [
                                         "export date=`date +%Y-%m-%dT%H:%M:%S.%NZ`",
                                         "echo Installing cfn_nag - `pwd`",
