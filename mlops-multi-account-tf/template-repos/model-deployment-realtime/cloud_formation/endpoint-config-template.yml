@@ -1,0 +1,203 @@
+Description:
+  This template is built and deployed by the infrastructure pipeline in various stages (staging/production) as required.
+  It specifies the resources that need to be created, like the SageMaker Endpoint. It can be extended to include resources like
+  AutoScalingPolicy, API Gateway, etc,. as required.
+Parameters:
+  SageMakerProjectName:
+    Type: String
+    Description: Name of the project
+    MinLength: 1
+    MaxLength: 32
+    AllowedPattern: ^[a-zA-Z](-*[a-zA-Z0-9])*
+  SageMakerProjectId:
+    Type: String
+    Description: ID of the project
+  ModelPackageName:
+    Type: String
+    Description: ARN model to deploy
+  ProjectBucket:
+    Type: String
+    Description: S3 Bucket for this project.
+
+  ## Static from config files
+  StageName:
+    Type: String
+    Description:
+      The name for a project pipeline stage, such as Pre Prod or Prod, for
+      which resources are provisioned and deployed.
+  EndpointInstanceCount:
+    Type: Number
+    Description: Number of instances to launch for the endpoint.
+    MinValue: 1
+  EndpointInstanceType:
+    Type: String
+    Description: The ML compute instance type for the endpoint.
+  SamplingPercentage:
+    Type: Number
+    Description: The sampling percentage
+    MinValue: 0
+    MaxValue: 100
+  EnableDataCapture:
+    Description: Enable Data capture.
+    Default: "true"
+    Type: String
+    AllowedValues: [true, false]
+  Environment:
+    Description: Environment where is deployed
+    Type: String
+  SubnetIds:
+    Description: List private subents
+    Type: CommaDelimitedList
+  SGIds:
+    Description: List security groups
+    Type: CommaDelimitedList
+
+Resources:
+  Model:
+    Type: AWS::SageMaker::Model
+    Properties:
+      Containers:
+        - ModelPackageName: !Ref ModelPackageName
+      ExecutionRoleArn: !Sub "{{resolve:ssm:/${Environment}/sagemaker_role_arn}}"
+      VpcConfig:
+        SecurityGroupIds: !Ref SGIds
+        Subnets: !Ref SubnetIds
+      Tags:
+        - Key: "sagemaker:project-name"
+          Value: !Sub "${SageMakerProjectName}"
+        - Key: "sagemaker:project-id"
+          Value: !Sub "${SageMakerProjectId}"
+
+  EndpointConfig:
+    Type: AWS::SageMaker::EndpointConfig
+    Properties:
+      ProductionVariants:
+        - InitialInstanceCount: !Ref EndpointInstanceCount
+          InitialVariantWeight: 1.0
+          InstanceType: !Ref EndpointInstanceType
+          ModelName: !GetAtt Model.ModelName
+          VariantName: AllTraffic
+      DataCaptureConfig:
+        EnableCapture: !Ref EnableDataCapture
+        InitialSamplingPercentage: !Ref SamplingPercentage
+        DestinationS3Uri: !Sub s3://${ProjectBucket}/${SageMakerProjectName}-${SageMakerProjectId}/datacapture
+        CaptureOptions:
+          - CaptureMode: Input
+          - CaptureMode: Output
+        CaptureContentTypeHeader:
+          CsvContentTypes:
+            - "text/csv"
+      Tags:
+        - Key: "sagemaker:project-name"
+          Value: !Sub "${SageMakerProjectName}"
+        - Key: "sagemaker:project-id"
+          Value: !Sub "${SageMakerProjectId}"
+
+  Endpoint:
+    Type: AWS::SageMaker::Endpoint
+    Properties:
+      EndpointName: !Sub ${SageMakerProjectName}-${Environment}
+      EndpointConfigName: !GetAtt EndpointConfig.EndpointConfigName
+      Tags:
+        - Key: "sagemaker:project-name"
+          Value: !Sub "${SageMakerProjectName}"
+        - Key: "sagemaker:project-id"
+          Value: !Sub "${SageMakerProjectId}"
+
+  CloudWatchDashboard:
+    Type: AWS::CloudWatch::Dashboard
+    Properties:
+      DashboardName: !Sub "${SageMakerProjectName}-${SageMakerProjectId}-${StageName}-dashboard"
+      DashboardBody: !Sub |
+        {
+          "start": "-PT9H",
+          "periodOverride": "inherit",
+          "widgets": [            
+            {
+              "type":"metric",
+              "width":12,
+              "height":6,
+              "properties":{
+                "metrics":[
+                  [
+                    "AWS/SageMaker",
+                    "InvocationsPerInstance",
+                    "EndpointName", "${Endpoint.EndpointName}",
+                    "VariantName", "AllTraffic"
+                  ],
+                  [
+                    "AWS/SageMaker",
+                    "Invocations",
+                    "EndpointName", "${Endpoint.EndpointName}",
+                    "VariantName", "AllTraffic"
+                  ]
+                ],
+                "period":60,
+                "stat":"Sum",
+                "region":"${AWS::Region}",
+                "title":"Number of invocations",
+                "stacked":false,
+                "view":"timeSeries",
+                "liveData":false
+              }
+            },
+
+            {
+              "type":"metric",
+              "width":12,
+              "height":6,
+              "properties":{
+                "metrics":[
+                  [
+                    "AWS/SageMaker",
+                    "Invocation4XXErrors",
+                    "EndpointName", "${Endpoint.EndpointName}",
+                    "VariantName", "AllTraffic"
+                  ],
+                  [
+                    "AWS/SageMaker",
+                    "Invocation5XXErrors",
+                    "EndpointName", "${Endpoint.EndpointName}",
+                    "VariantName", "AllTraffic"
+                  ]
+                ],
+                "period":60,
+                "stat":"Sum",
+                "region":"${AWS::Region}",
+                "title":"Number of errors",
+                "stacked":false,
+                "view":"timeSeries",
+                "liveData":false
+              }
+            },
+
+            {
+              "type":"metric",
+              "width":12,
+              "height":6,
+              "properties":{
+                "metrics":[
+                  [
+                    "AWS/SageMaker",
+                    "ModelLatency",
+                    "EndpointName", "${Endpoint.EndpointName}",
+                    "VariantName", "AllTraffic"
+                  ],
+                  [
+                    "AWS/SageMaker",
+                    "OverheadLatency",
+                    "EndpointName", "${Endpoint.EndpointName}",
+                    "VariantName", "AllTraffic"
+                  ]
+                ],
+                "period":60,
+                "stat":"Average",
+                "region":"${AWS::Region}",
+                "title":"Latency",
+                "stacked":false,
+                "view":"timeSeries",
+                "liveData":false
+              }
+            }
+          ]
+        }

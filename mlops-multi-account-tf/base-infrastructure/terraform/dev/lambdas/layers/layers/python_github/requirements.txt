@@ -1,0 +1,7 @@
+PyGithub==2.1.1
+requests
+urllib3>=1.26.0,<2.0
+botocore
+charset-normalizer<4,>=2
+certifi>=2017.4.17
+idna

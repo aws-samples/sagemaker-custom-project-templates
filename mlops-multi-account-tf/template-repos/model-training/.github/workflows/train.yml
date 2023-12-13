@@ -1,0 +1,47 @@
+name: Seedjob that runs Sagemaker Pipeline for training the model
+on:
+  push:
+    branches:
+      - main
+env:
+  ARTIFACT_BUCKET: ${{ vars.ARTIFACT_BUCKET }}
+  AWS_REGION: ${{ vars.AWS_REGION }}
+  SAGEMAKER_PIPELINE_ROLE_ARN: ${{ vars.SAGEMAKER_PIPELINE_ROLE_ARN }}
+  SAGEMAKER_PROJECT_ARN: ${{ vars.SAGEMAKER_PROJECT_ARN }}
+  SAGEMAKER_PROJECT_ID: ${{ vars.SAGEMAKER_PROJECT_ID }}
+  SAGEMAKER_PROJECT_NAME_ID: ${{ vars.SAGEMAKER_PROJECT_NAME_ID }}
+  SAGEMAKER_PROJECT_NAME: ${{ vars.SAGEMAKER_PROJECT_NAME }}
+  AWS_DEV_ACCOUNT_NUMBER: ${{ secrets.AWS_DEV_ACCOUNT_NUMBER }}
+  DEV_ACCOUNT_ROLE: ${{ secrets.AWS_ASSUME_ROLE_DEV}}
+jobs:
+  sagemaker-pipeline:
+    name: Update and run ML Pipeline
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      contents: read
+    steps:
+      - name: Git Checkout
+        uses: actions/checkout@v3
+
+      - name: Get Env Variables
+        run: env
+
+      - name: Assume AWS Dev Account Credentials
+        uses: aws-actions/configure-aws-credentials@v1
+        with:
+          role-to-assume: arn:aws:iam::${{ env.AWS_DEV_ACCOUNT_NUMBER }}:role/aws-github-oidc-role
+          aws-region: ${{ env.AWS_REGION }}
+      - name: Install requirements
+        run: |
+          pip3 install --upgrade . awscliv2
+
+      - name: SageMaker Pipeline
+        run: |
+          export PYTHONUNBUFFERED=TRUE
+          run-pipeline --module-name pipelines.abalone.pipeline \
+          --role-arn $SAGEMAKER_PIPELINE_ROLE_ARN \
+          --tags "[{\"Key\":\"sagemaker:project-name\", \"Value\":\"${SAGEMAKER_PROJECT_NAME}\"}, {\"Key\":\"sagemaker:project-id\", \"Value\":\"${SAGEMAKER_PROJECT_ID}\"}]" \
+          --kwargs "{\"region\":\"${AWS_REGION}\",\"account_id\":\"${AWS_DEV_ACCOUNT_NUMBER}\",\"role\":\"${SAGEMAKER_PIPELINE_ROLE_ARN}\",\"default_bucket\":\"${ARTIFACT_BUCKET}\",\"pipeline_name\":\"${SAGEMAKER_PROJECT_NAME_ID}\",\"model_package_group_name\":\"${SAGEMAKER_PROJECT_NAME_ID}\",\"base_job_prefix\":\"${SAGEMAKER_PROJECT_NAME_ID}\"}"
+
+          echo "Create/Update of the SageMaker Pipeline and execution completed."

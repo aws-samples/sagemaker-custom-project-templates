@@ -1,0 +1,15 @@
+{
+    "Parameters": {
+        "StageName": "prod",
+        "ProcessingInstanceCount": "1",
+        "ProcessingInstanceType": "ml.m5.large",
+        "InferenceInstanceCount": "1",
+        "InferenceInstanceType": "ml.m5.large",
+        "MseThreshold": "8.0",
+        "TrainingInstanceCount": "1",
+        "InputDataUrl": "s3: //sagemaker-servicecatalog-seedcode-us-east-1/dataset/abalone-dataset.csv",
+        "BatchDataUrl": "sagemaker-servicecatalog-seedcode-us-east-1/dataset/abalone-dataset-batch",
+        "ScheduleExpressionforPipeline": "1 day",
+        "TriggerState": "DISABLED"
+    }
+}
