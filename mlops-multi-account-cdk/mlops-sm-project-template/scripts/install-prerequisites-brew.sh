@@ -4,6 +4,12 @@
 # install miniconda to manage python packages
 brew install --cask miniconda
 
+# conda doesn't initialize from shell, below step to fix that
+# https://github.com/conda/conda/issues/7980
+CONDA_BASE=$(conda info --base)
+source "$CONDA_BASE"/etc/profile.d/conda.sh
+conda init
+
 # install nodejs (required for aws cdk)
 brew install node
 
