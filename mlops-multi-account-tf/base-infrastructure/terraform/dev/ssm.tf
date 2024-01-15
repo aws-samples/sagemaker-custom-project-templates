@@ -37,7 +37,7 @@ resource "aws_ssm_parameter" "github_build_repo_template" {
   description = "Template repository name for building"
   type        = "String"
   overwrite   = true
-  value       = "model-training"
+  value       = "sagemaker-mlops-terraform-training-template"
 }
 
 resource "aws_ssm_parameter" "github_deploy_rt_repo_template" {
@@ -45,7 +45,7 @@ resource "aws_ssm_parameter" "github_deploy_rt_repo_template" {
   description = "Template repository name for deploying Real time inference"
   type        = "String"
   overwrite   = true
-  value       = "model-deployment-realtime"
+  value       = "sagemaker-mlops-terraform-deploy-rt-template"
 }
 
 resource "aws_ssm_parameter" "github_deploy_batch_repo_template" {
@@ -53,16 +53,16 @@ resource "aws_ssm_parameter" "github_deploy_batch_repo_template" {
   description = "Template repository name for deploying inference in batch"
   type        = "String"
   overwrite   = true
-  value       = "model-deployment-batch"
+  value       = "sagemaker-mlops-terraform-deploy-batch-template"
 
 }
 
 resource "aws_ssm_parameter" "github_byoc_repo_template" {
-  name        = "github_container_repo_template"
+  name        = "github_byoc_repo_template"
   description = "Template repository name for deploying inference in batch"
   type        = "String"
   overwrite   = true
-  value       = "container-build"
+  value       = "sagemaker-mlops-terraform-byoc-template"
 }
 
 resource "aws_ssm_parameter" "github_workflow_repo_template" {
@@ -70,7 +70,7 @@ resource "aws_ssm_parameter" "github_workflow_repo_template" {
   description = "Template repository name for workflow promotion"
   type        = "String"
   overwrite   = true
-  value       = "pipeline-promotion"
+  value       = "sagemaker-mlops-terraform-workflow-template"
 }
 
 
