@@ -1,0 +1,3 @@
+[submodule "mlops-multi-account-tf"]
+	path = mlops-multi-account-tf
+	url = https://github.com/aws-samples/mlops-multi-account-terraform.git
