@@ -369,7 +369,10 @@ Resources:
               StringEquals:
                 's3:ExistingObjectTag/servicecatalog:provisioning': 'true'
           - Effect: Allow
-            Action: 's3:GetObject'
+            Action:
+              - 's3:GetObject'
+              - 's3:GetObjectTagging'
+              - 's3:GetObjectVersionTagging'
             Resource:
               - 'arn:aws:s3:::sagemaker-*'
           - Effect: Allow
@@ -378,11 +381,13 @@ Resources:
               - 's3:DeleteBucket'
               - 's3:DeleteBucketPolicy'
               - 's3:GetBucketPolicy'
+              - 's3:GetBucketTagging'
               - 's3:PutBucketAcl'
               - 's3:PutBucketNotification'
               - 's3:PutBucketPolicy'
               - 's3:PutBucketPublicAccessBlock'
               - 's3:PutBucketLogging'
+              - 's3:PutBucketTagging'
               - 's3:PutEncryptionConfiguration'
             Resource: 'arn:aws:s3:::sagemaker*'
           - Action:
@@ -503,6 +508,7 @@ Resources:
               - 'iam:PassRole'
             Resource:
               - 'arn:aws:iam::*:role/*custom-project*'
+              - 'arn:aws:iam::*:role/*SMCustomProject*'
             Effect: Allow
           - Effect: Allow
             Action:
@@ -532,7 +538,18 @@ Resources:
           - Effect: Allow
             Action:
               - 's3:*'
-            Resource: 'arn:aws:s3:::*sagemaker-custom-project-*'
+            Resource:
+              - 'arn:aws:s3:::*sagemaker-custom-project-*'
+          - Effect: Allow
+            Action:
+              - 's3:GetObject'
+            Resource:
+              - 'arn:aws:s3:::*sagemaker*/*'
+          - Effect: Allow
+            Action:
+              - 's3:ListBucket'
+            Resource:
+              - 'arn:aws:s3:::*sagemaker*'
           - Effect: Allow
             Action:
               - 'sagemaker:*'
@@ -644,7 +661,7 @@ Resources:
       PortfolioId: !Ref PortfolioIDParameter
       ProductId: !Ref ServiceCatalogProduct
 
-  ServiceCatalogProductRoleLaunchContstraint:
+  ServiceCatalogProductRoleLaunchConstraint:
     Type: AWS::ServiceCatalog::LaunchRoleConstraint
     DependsOn: 
       - ServiceCatalogProductAssociation
