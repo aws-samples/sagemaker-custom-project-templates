@@ -1,3 +1,0 @@
-requests==2.29.0
-urllib3<2
-cfnresponse
