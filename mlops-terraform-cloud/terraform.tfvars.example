@@ -1,0 +1,4 @@
+tfc_organization = "my-tfc-organization"
+tfc_team = "aws-service-catalog"
+token_rotation_interval_in_days = 30
+sagemaker_user_role_arns        = ["arn:aws:iam::012345678910:role/service-role/AmazonSageMaker-ExecutionRole"]
