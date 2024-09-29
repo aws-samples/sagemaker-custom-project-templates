@@ -92,8 +92,8 @@ def get_pipeline(
     #### SAGEMAKER CONSTRUCTS
     transform = Transformer(
         model_name=model_name,
-        instance_count=1,
-        instance_type='ml.m5.xlarge',
+        instance_count=batch_inference_instance_count,
+        instance_type=batch_inference_instance_type,
         output_path=output_path,
         base_transform_job_name=f"{base_job_prefix}/batch-transform-job",
         max_payload=10,
