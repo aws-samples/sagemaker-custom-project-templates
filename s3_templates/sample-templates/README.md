@@ -41,13 +41,11 @@ Verify the templates are visible in the SageMaker AI Studio console
 
 ### 2. Required IAM Roles and Policies
 
-SageMaker Projects require a set of IAM roles that fall under two categories:
+SageMaker Projects use two distinct types of IAM roles to maintain security and separation of concerns:
 
-* `Use Roles` – Used within the template by each resource for the required operations. For each operation in the product template, the Use Role is assumed by the respective AWS Service Principal.
-* `Launch Role` – Used to define permissions to provision the underlying resources specified by the template. This allows developers to create projects using templates without needing their SageMaker Execution Role to have all the policies needed. SageMaker Projects uses the launch role while creating the project so that the developers using the project can have their roles limited to the specific policies they need.
+#### Use Roles
 
-These are roles and policies assumed by the underlying services, e.g., AWS CodePipelines, AWS CodeBuild, AWS Lambda, to allow them to perform the actions needed.
-Here are the list of service roles defined by this template:
+These are service-specific execution roles that AWS services assume to perform their designated tasks within your MLOps pipeline:
 
 - **AmazonSageMakerProjectsCloudformationRole** - Role for CloudFormation to manage SageMaker resources
 - **AmazonSageMakerProjectsCodeBuildRole** - Role for CodeBuild projects to build and push container images
@@ -56,8 +54,23 @@ Here are the list of service roles defined by this template:
 - **AmazonSageMakerProjectsLambdaRole** - Role for Lambda functions used in MLOps workflows
 - **AmazonSageMakerProjectsUseRole** - General-purpose role for various SageMaker project services
 
-Furthermore, it defines a "Launch Role" (**AmazonSageMakerProjectsLaunchRole**) that the SageMaker Execution role can assume.
-In this way, the Launch Role encapsulates all necessary permissions without the need to extend the scope of the SageMaker Execution role directly.
+Each AWS service (CodePipeline, CodeBuild, etc.) assumes its corresponding Use Role to perform only the actions it needs, following the principle of least 
+privilege.
+
+#### Launch Role
+
+**AmazonSageMakerProjectsLaunchRole** is a provisioning role that acts as an intermediary during project creation:
+
+- **Purpose**: Contains all permissions needed to create the project's infrastructure (IAM roles, S3 buckets, CodePipeline, etc.)
+- **Benefit**: ML engineers and data scientists can create projects without having broader permissions
+- **Security**: Their personal SageMaker Execution Role remains limited - they just need permission to assume the Launch Role itself
+
+#### Why This Separation Matters
+
+Without Launch Roles, every ML practitioner would need extensive IAM permissions to create CodePipeline, CodeBuild projects, S3 buckets, and other AWS resources. 
+With Launch Roles, they only need permission to assume a pre-configured role that handles the provisioning, keeping their personal permissions minimal and secure.
+
+#### Provision IAM roles and IAM policies
 
 Lets identify the SageMaker Execution role of the SageMaker user profile.
 We intend to grant him permissions to deploy the provisioned custom template.
@@ -81,7 +94,7 @@ This creates the necessary launch and execution roles that SageMaker projects re
 ### 2a. Additional Permissions
 **SageMaker Execution Role**
 
-Permission to `iam:PassRole` to `AmazonSageMakerProjectsLaunchRole`**
+Permission to `iam:PassRole` to **`AmazonSageMakerProjectsLaunchRole`**
 
 ```bash
 cat > iam/pass-role-policy.json << EOF
@@ -124,6 +137,7 @@ aws iam put-role-policy \
 
 - **[sagemaker-projects-roles-and-policies.yaml](./iam/sagemaker-projects-roles-and-policies.yaml)** - Contains the necessary IAM roles and policies required by these templates
 - **[s3-tagging-policy.json](./iam/s3-tagging-policy.json)** - Additional S3 GetObjectTagging policy for SageMaker buckets
+- **[cfn-stack-sm-projects.json](./iam/cfn-stack-sm-projects.json)** - CloudFormation permissions policy allowing SageMaker execution role to create and manage CloudFormation stacks for SageMaker AI Projects
 
 ## Launch a custom template
 
@@ -132,7 +146,7 @@ aws iam put-role-policy \
 2. Navigate to **Deployments** > **Projects** > **Create project**
 3. Choose **Organization templates** > **S3 Templates**
 4. Select your template and click **Next**
-5. Enter project details - make sure that in the `Role ARN` field, you pass the ARN of the **AmazonSageMakerProjectsLaunchRole**
+5. Enter project details - make sure that in the `Role ARN` field, you pass the ARN of the **AmazonSageMakerProjectsLaunchRole**. While the `Role ARN` is not a mandatory field, we reccommend to encapsulate the permission within this role, otherwise you need to extend the SageMaker Execution role itself.
 ![](./images/LaunchRole.png)
 6. Click **Create**.
 

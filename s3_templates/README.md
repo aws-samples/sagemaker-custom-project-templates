@@ -126,7 +126,7 @@ aws sagemaker add-tags --resource-arn arn:aws:sagemaker:$AWS_REGION:$AWS_ACCOUNT
 SageMaker AI Projects require a set of IAM roles that fall under two categories:
 
 * `Use Roles` – Used within the template by each resource for the required operations. For each operation in the product template, the Use Role is assumed by the respective AWS Service Principal.
-* `Launch Role` – Used to define permissions to provision the underlying resources specified by the template. This allows developers to create projects using templates without needing their SageMaker AI Execution Role to have all the policies needed. SageMaker AI Projects uses the launch role while creating the project so that the developers using the project can have their roles limited to the specific policies they need.
+* `Launch Role` – Used to define permissions to provision the underlying resources specified by the template. This allows ML engineers and/or data scientists to create projects using templates without needing their SageMaker AI Execution Role to have all the policies necessary. SageMaker AI Projects uses the launch role while creating the project so that the ML engineers and data scientists using the project can have their roles limited to the specific policies they need.
 
 We provide instructions for each custom template that ensures roles and policies to facilitate the deployment of the necessary roles and policies.
 
