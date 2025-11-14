@@ -15,13 +15,23 @@ S3-based templates provide the recommended approach for custom SageMaker AI proj
 
 ![](../images/sagemaker_projects_s3.png)
 
+
+## S3 based template examples 
+In this repository we have provided the following SageMaker AI project S3 based template examples. See the setup instructions to get started. 
+
+| # | Sample | Location | Description |
+|--------|----------|-------|-----------------|
+|1. | Multiple sample templates converted to S3 based SageMaker AI projects | [`sample-templates/`](./sample-templates/) | Multiple existing templates that are converted to S3 based SageMaker AI projects |
+|2. | MLOps with GitHub Actions S3 based SageMaker AI project template | [`mlops-github-actions/`](./mlops-github-actions/) | Complete MLOps pipeline using GitHub Actions for CI/CD: SageMaker AI Pipelines for model training, GitHub Actions workflows for build and deployment, EventBridge integration for automated deployments, Model Registry approval workflows, Multi-environment deployment (staging/production) |
+
+
 ## Prerequisites
 
 - AWS CLI configured with appropriate permissions
 - SageMaker AI Studio domain set up
 - S3 bucket for storing templates
 
-## Setup Instructions
+## Setup Instructions for S3 based templates
 
 ### 0. Set Environment Variables
 
@@ -121,14 +131,6 @@ SageMaker AI Projects require a set of IAM roles that fall under two categories:
 We provide instructions for each custom template that ensures roles and policies to facilitate the deployment of the necessary roles and policies.
 
 **NOTE** - These samples are for demonstration only. Please ensure that the IAM roles and IAM policies are inline with your security requirements.
-
-## S3 based template examples 
-In this repository we have provided the following SageMaker AI project S3 based template examples.
-
-| # | Sample | Location | Description |
-|--------|----------|-------|-----------------|
-|1. | Multiple sample templates converted to S3 based SageMaker AI projects | [`sample-templates/`](./sample-templates/) | Multiple existing templates that are converted to S3 based SageMaker AI projects |
-|2. | MLOps with GitHub Actions S3 based SageMaker AI project template | [`mlops-github-actions/`](./mlops-github-actions/) | Complete MLOps pipeline using GitHub Actions for CI/CD: SageMaker AI Pipelines for model training, GitHub Actions workflows for build and deployment, EventBridge integration for automated deployments, Model Registry approval workflows, Multi-environment deployment (staging/production) |
 
 ## Troubleshooting
 
