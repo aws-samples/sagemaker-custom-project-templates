@@ -122,40 +122,13 @@ We provide instructions for each custom template that ensures roles and policies
 
 **NOTE** - These samples are for demonstration only. Please ensure that the IAM roles and IAM policies are inline with your security requirements.
 
-## Template Examples
+## S3 based template examples 
+In this repository we have provided the following SageMaker AI project S3 based template examples.
 
-### Sample templates
-**Location:** [`sample-templates/`](./sample-templates/)
-
-### MLOps with GitHub Actions
-**Location:** [`mlops-github-actions/`](./mlops-github-actions/)
-
-Complete MLOps pipeline using GitHub Actions for CI/CD:
-- SageMaker AI Pipelines for model training
-- GitHub Actions workflows for build and deployment
-- EventBridge integration for automated deployments
-- Model Registry approval workflows
-- Multi-environment deployment (staging/production)
-
-### Best Practises
-
-#### Template Design
-- Keep templates focused on specific use cases
-- Use descriptive parameter names and documentation
-- Include comprehensive README files
-- Provide working seed code examples
-
-#### Security
-- Use least-privilege IAM roles
-- Enable encryption for S3 buckets
-- Implement proper access controls
-- Regular security reviews
-
-#### Maintenance
-- Version your templates using S3 object versioning
-- Test templates in development environments
-- Document changes and migration paths
-- Monitor template usage and performance
+|#|What|**Location:**|Description|
+|---|---|---|
+|1. | Multiple sample templates converted to S3 based SageMaker AI projects |[`sample-templates/`](./sample-templates/)|Multiple existing templates that are converted to S3 based SageMaker AI projects|
+|2. | MLOps with GitHub Actions S3 based SageMaker AI project template |[`sample-templates/`](./sample-templates/)|Complete MLOps pipeline using GitHub Actions for CI/CD: SageMaker AI Pipelines for model training, GitHub Actions workflows for build and deployment, EventBridge integration for automated deployments, Model Registry approval workflows, Multi-environment deployment (staging/production)|
 
 ## Troubleshooting
 
