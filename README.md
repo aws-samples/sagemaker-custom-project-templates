@@ -19,7 +19,7 @@ You have two deployment options to deploy the custom MLOps templates using SageM
 
 ### Method 1: Provision via Amazon S3 (⭐ Recommended)
 
-The SageMaker AI projects based on S3 templates is a (newly released support)[https://aws.amazon.com/about-aws/whats-new/2025/10/amazon-sagemaker-ai-projects-custom-template-s3-provisioning/] in SageMaker AI projects allowing for provisioning custom machine learning (ML) project templates directly from Amazon S3. 
+The SageMaker AI projects based on S3 templates is a [newly released support](https://aws.amazon.com/about-aws/whats-new/2025/10/amazon-sagemaker-ai-projects-custom-template-s3-provisioning/) in SageMaker AI projects allowing for provisioning custom machine learning (ML) project templates directly from Amazon S3. 
 
 ![](images/custom_temp_s3.png)
 
