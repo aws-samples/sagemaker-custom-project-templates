@@ -13,7 +13,7 @@ S3-based templates provide the recommended approach for custom SageMaker AI proj
 - **Flexible template structures** for various use cases
 - **Cost-effective** solution for most scenarios
 
-![](../images/custom_temp_s3.png)
+![](../images/sagemaker_projects_s3.png)
 
 ## Prerequisites
 

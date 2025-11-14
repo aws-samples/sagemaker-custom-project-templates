@@ -1,6 +1,6 @@
 # SageMaker Projects Provided Templates
 
-This folder contains 5 SageMaker project templates that are normally available through AWS Service Catalog in SageMaker AI Studio.
+This folder contains 5 SageMaker project templates that were normally available through AWS Service Catalog in SageMaker AI Studio.
 The original templates are provided and supported by the SageMaker Service Team. They can be deployed as custom templates.
 
 ## Available Templates

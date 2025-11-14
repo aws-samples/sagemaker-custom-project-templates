@@ -1,14 +1,17 @@
 # Custom Project Templates in SageMaker
 
-This repository contains custom [SageMaker AI Project](https://docs.aws.amazon.com/sagemaker/latest/dg/sagemaker-projects-whatis.html) templates that can be deployed using two different methods:
-- **S3**: Deploy custom templates directly from S3 buckets (preferred method)
-- **Service Catalog**: Deploy custom templates through AWS Service Catalog
+This repository contains custom [SageMaker AI Project](https://docs.aws.amazon.com/sagemaker/latest/dg/sagemaker-projects-whatis.html) templates. You can be deploy custom templates with two different methods:
+- **Amazon S3**: Deploy custom templates directly from S3 buckets (preferred method)
+- **Amazon Service Catalog**: Deploy custom templates through AWS Service Catalog.
 
-Each folder contains a custom project template with details on what it achieves and setup instructions.
+> [!Important]
+> You can find instructions about SageMaker AI projects based on S3 templates provisioning method in this repository's folder - [s3_templates](./s3_templates/README.md) along with S3 based custom templates samples.
+
+Each other folder contains a custom project template with details on what it achieves and setup instructions.
 
 ## Getting Started
 
-You have two main deployment options to deploy the custom MLOps templates using SageMaker AI Projects:
+You have two deployment options to deploy the custom MLOps templates using SageMaker AI Projects:
 - **SageMaker AI projects based on S3 templates** Allows you to provision custom templates directly from S3 buckets. See [Method 1](#method-1-provision-via-s3-preferred) for details. 
 - **Provision via Service Catalog** Provisioning custom templates through AWS Service Catalog. See [Method 2](#method-2-provisioning-via-service-catalog) for details. 
 
@@ -16,13 +19,12 @@ You have two main deployment options to deploy the custom MLOps templates using 
 
 ### Method 1: Provision via S3 (Preferred)
 
-The SageMaker AI projects based on S3 templates is a (newly released support)[https://aws.amazon.com/about-aws/whats-new/2025/10/amazon-sagemaker-ai-projects-custom-template-s3-provisioning/] and allows provisioning custom machine learning (ML) project templates from Amazon S3. 
+The SageMaker AI projects based on S3 templates is a (newly released support)[https://aws.amazon.com/about-aws/whats-new/2025/10/amazon-sagemaker-ai-projects-custom-template-s3-provisioning/] in SageMaker AI projects allowing for provisioning custom machine learning (ML) project templates directly from Amazon S3. 
 
 ![](images/custom_temp_s3.png)
 
-> [!Important]
-> You can find instructions about SageMaker AI projects based on S3 templates provisioning method in this repositories folder [s3_templates](./s3_templates/README.md) along with custom templates samples.
-
+> [!CAUTION]
+> Proceed to this repository's folder - [s3_templates](./s3_templates/README.md) for information on SageMaker AI projects based on S3 templates provisioning and S3 based custom templates samples.
 
 ### Method 2: Provisioning via Service Catalog
 
