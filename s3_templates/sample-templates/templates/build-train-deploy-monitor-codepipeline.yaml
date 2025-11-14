@@ -1,0 +1,827 @@
+Description: |-
+  Toolchain template which provides the resources needed to represent infrastructure as code. This template specifically creates a CI/CD pipeline to build a model using a SageMaker Pipeline and deploy the resulting trained ML Model from Model Registry to two stages in CD -- staging and production. It also creates a codepipeline to deploy Amazon SageMaker Model Monitor to two stages in CD -- staging and production.
+Parameters:
+  SageMakerProjectName:
+    Type: String
+    AllowedPattern: ^[a-zA-Z](-*[a-zA-Z0-9])*
+    Description: Name of the project
+    MaxLength: 32
+    MinLength: 1
+  SageMakerProjectId:
+    Type: String
+    Description: Service generated Id of the project.
+
+  ModelBuildCodeRepositoryBranch:
+    Type: String
+    Default: 'main'
+    MaxLength: 255
+    Description: Branch name for the Model Building and Training Code Repository
+
+  ModelBuildCodeRepositoryFullname:
+    Type: String
+    MaxLength: 1024
+    Description: Full repository name of the Model Building and Training Code Repository, which would be username/reponame or organizationname/reponame
+
+  ModelDeployCodeRepositoryBranch:
+    Type: String
+    Default: 'main'
+    Description: Branch name for the Model Deployment Code Repository
+
+  ModelDeployCodeRepositoryFullname:
+    Type: String
+    MaxLength: 1024
+    Description: Full repository name of the Model Deployment Code Repository, which would be username/reponame or organizationname/reponame
+
+  ModelMonitorCodeRepositoryBranch:
+    Type: String
+    Default: 'main'
+    Description: Branch name for the Model Monitor Code Repository
+
+  ModelMonitorCodeRepositoryFullname:
+    Type: String
+    MaxLength: 1024
+    Description: Full repository name of the Model Monitor Code Repository, which would be username/reponame or organizationname/reponame
+
+  CodeConnectionArn:
+    Type: String
+    Description: Codestar Connection Arn for the Model Building, Training and Model Deployment Code Repository
+
+Metadata:
+  SagemakerTemplateParameterRules:
+    ModelBuildCodeRepositoryBranch:
+      Optional: true
+    ModelDeployCodeRepositoryBranch:
+      Optional: true
+    ModelMonitorCodeRepositoryBranch:
+      Optional: true
+  AWS::CloudFormation::Interface:
+    ParameterGroups:
+      -
+        Label:
+          default: "ModelBuild CodeRepository Info"
+        Parameters:
+          - ModelBuildCodeRepositoryBranch
+          - ModelBuildCodeRepositoryFullname
+      -
+        Label:
+          default: "ModelDeploy CodeRepository Info"
+        Parameters:
+          - ModelDeployCodeRepositoryBranch
+          - ModelDeployCodeRepositoryFullname
+      -
+        Label:
+          default: "ModelMonitor CodeRepository Info"
+        Parameters:
+          - ModelMonitorCodeRepositoryBranch
+          - ModelMonitorCodeRepositoryFullname
+    ParameterLabels:
+      ModelBuildCodeRepositoryBranch:
+        default: "Branch"
+      ModelBuildCodeRepositoryFullname:
+        default: "Full Repository Name"
+      ModelDeployCodeRepositoryBranch:
+        default: "Branch"
+      ModelDeployCodeRepositoryFullname:
+        default: "Full Repository Name"
+      ModelMonitorCodeRepositoryBranch:
+        default: "Branch"
+      ModelMonitorCodeRepositoryFullname:
+        default: "Full Repository Name"
+      CodeConnectionArn:
+        default: "Code Connection ARN"
+
+Resources:
+  MlOpsArtifactsBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName:
+        Fn::Sub: sagemaker-project-${SageMakerProjectId}
+    DeletionPolicy: Retain
+  SageMakerModelPipelineBuildProject:
+    Type: AWS::CodeBuild::Project
+    Properties:
+      Artifacts:
+        Type: CODEPIPELINE
+      Environment:
+        ComputeType: BUILD_GENERAL1_SMALL
+        EnvironmentVariables:
+          - Name: SAGEMAKER_PROJECT_NAME
+            Value:
+              Ref: SageMakerProjectName
+          - Name: SAGEMAKER_PROJECT_ID
+            Value:
+              Ref: SageMakerProjectId
+          - Name: ARTIFACT_BUCKET
+            Value:
+              Ref: MlOpsArtifactsBucket
+          - Name: SAGEMAKER_PIPELINE_NAME
+            Value:
+              Fn::Sub: sagemaker-${SageMakerProjectName}
+          - Name: SAGEMAKER_PIPELINE_ROLE_ARN
+            Value: !Join [ ':', [ 'arn', !Ref 'AWS::Partition', 'iam:', !Ref 'AWS::AccountId', 'role/service-role/AmazonSageMakerProjectsExecutionRole' ] ]
+          - Name: AWS_REGION
+            Value:
+              Ref: AWS::Region
+        Image: aws/codebuild/amazonlinux2-x86_64-standard:5.0
+        Type: LINUX_CONTAINER
+      ServiceRole: !Join [ ':', [ 'arn', !Ref 'AWS::Partition', 'iam:', !Ref 'AWS::AccountId', 'role/service-role/AmazonSageMakerProjectsCodeBuildRole'] ]
+      Source:
+        BuildSpec: codebuild-buildspec.yml
+        Type: CODEPIPELINE
+      Description: Builds the model building workflow code repository, creates the SageMaker Pipeline and executes it
+      Name:
+        Fn::Sub: sagemaker-${SageMakerProjectName}-${SageMakerProjectId}-modelbuild
+      TimeoutInMinutes: 480
+  ModelBuildPipeline:
+    Type: AWS::CodePipeline::Pipeline
+    Properties:
+      RoleArn:  !Join [ ':', [ 'arn', !Ref 'AWS::Partition', 'iam:', !Ref 'AWS::AccountId', 'role/service-role/AmazonSageMakerProjectsCodePipelineRole'] ]
+      PipelineType: V2
+      Stages:
+        - Actions:
+            - Name: ModelBuildWorkflowCode
+              ActionTypeId:
+                Category: Source
+                Owner: AWS
+                Provider: CodeStarSourceConnection
+                Version: 1
+              Configuration:
+                ConnectionArn: !Sub ${CodeConnectionArn}
+                FullRepositoryId: !Sub ${ModelBuildCodeRepositoryFullname}
+                BranchName: !Sub ${ModelBuildCodeRepositoryBranch}
+              OutputArtifacts:
+                - Name: ModelBuildSourceArtifact
+          Name: Source
+        - Actions:
+            - ActionTypeId:
+                Category: Build
+                Owner: AWS
+                Provider: CodeBuild
+                Version: '1'
+              Configuration:
+                ProjectName:
+                  Ref: SageMakerModelPipelineBuildProject
+              InputArtifacts:
+                - Name: ModelBuildSourceArtifact
+              Name: BuildAndExecuteSageMakerPipeline
+              OutputArtifacts:
+                - Name: ModelBuildBuildArtifact
+              RunOrder: 1
+          Name: Build
+      ArtifactStore:
+        Location:
+          Ref: MlOpsArtifactsBucket
+        Type: S3
+      Name:
+        Fn::Sub: sagemaker-${SageMakerProjectName}-${SageMakerProjectId}-modelbuild
+    DependsOn:
+      - MlOpsArtifactsBucket
+  ModelDeployBuildProject:
+    Type: AWS::CodeBuild::Project
+    Properties:
+      Artifacts:
+        Type: CODEPIPELINE
+      Environment:
+        ComputeType: BUILD_GENERAL1_SMALL
+        EnvironmentVariables:
+          - Name: SAGEMAKER_PROJECT_NAME
+            Value:
+              Ref: SageMakerProjectName
+          - Name: SAGEMAKER_PROJECT_ID
+            Value:
+              Ref: SageMakerProjectId
+          - Name: ARTIFACT_BUCKET
+            Value:
+              Ref: MlOpsArtifactsBucket
+          - Name: MODEL_EXECUTION_ROLE_ARN
+            Value: !Join [ ':', [ 'arn', !Ref 'AWS::Partition', 'iam:', !Ref 'AWS::AccountId', 'role/service-role/AmazonSageMakerProjectsExecutionRole' ] ]
+          - Name: SOURCE_MODEL_PACKAGE_GROUP_NAME
+            Value:
+              Fn::Sub: ${SageMakerProjectName}-${SageMakerProjectId}
+          - Name: AWS_REGION
+            Value:
+              Ref: AWS::Region
+          - Name: EXPORT_TEMPLATE_NAME
+            Value: template-export.yml
+          - Name: EXPORT_TEMPLATE_STAGING_CONFIG
+            Value: staging-config-export.json
+          - Name: EXPORT_TEMPLATE_PROD_CONFIG
+            Value: prod-config-export.json
+        Image: aws/codebuild/amazonlinux2-x86_64-standard:5.0
+        Type: LINUX_CONTAINER
+      ServiceRole: !Join [ ':', [ 'arn', !Ref 'AWS::Partition', 'iam:', !Ref 'AWS::AccountId', 'role/service-role/AmazonSageMakerProjectsCodeBuildRole'] ]
+      Source:
+        BuildSpec: buildspec.yml
+        Type: CODEPIPELINE
+      Description: Builds the Cfn template which defines the Endpoint with specified configuration
+      Name:
+        Fn::Sub: sagemaker-${SageMakerProjectName}-${SageMakerProjectId}-modeldeploy
+      TimeoutInMinutes: 30
+  ModelDeployTestProject:
+    Type: AWS::CodeBuild::Project
+    Properties:
+      Artifacts:
+        Type: CODEPIPELINE
+      Environment:
+        ComputeType: BUILD_GENERAL1_SMALL
+        EnvironmentVariables:
+          - Name: SAGEMAKER_PROJECT_NAME
+            Value:
+              Ref: SageMakerProjectName
+          - Name: SAGEMAKER_PROJECT_ID
+            Value:
+              Ref: SageMakerProjectId
+          - Name: AWS_REGION
+            Value:
+              Ref: AWS::Region
+          - Name: BUILD_CONFIG
+            Value: staging-config-export.json
+          - Name: EXPORT_TEST_RESULTS
+            Value: test-results.json
+        Image: aws/codebuild/amazonlinux2-x86_64-standard:5.0
+        Type: LINUX_CONTAINER
+      ServiceRole: !Join [ ':', [ 'arn', !Ref 'AWS::Partition', 'iam:', !Ref 'AWS::AccountId', 'role/service-role/AmazonSageMakerProjectsCodeBuildRole'] ]
+      Source:
+        BuildSpec: test/buildspec.yml
+        Type: CODEPIPELINE
+      Description: Test the deployment endpoint
+      Name:
+        Fn::Sub: sagemaker-${SageMakerProjectName}-${SageMakerProjectId}-testing
+      TimeoutInMinutes: 30
+  ModelDeployPipeline:
+    Type: AWS::CodePipeline::Pipeline
+    Properties:
+      RoleArn:  !Join [ ':', [ 'arn', !Ref 'AWS::Partition', 'iam:', !Ref 'AWS::AccountId', 'role/service-role/AmazonSageMakerProjectsCodePipelineRole'] ]
+      PipelineType: V2
+      Stages:
+        - Actions:
+            - Name: ModelDeployInfraCode
+              ActionTypeId:
+                Category: Source
+                Owner: AWS
+                Provider: CodeStarSourceConnection
+                Version: 1
+              Configuration:
+                ConnectionArn: !Sub ${CodeConnectionArn}
+                FullRepositoryId: !Sub ${ModelDeployCodeRepositoryFullname}
+                BranchName: !Sub ${ModelDeployCodeRepositoryBranch}
+              OutputArtifacts:
+                - Name: SourceArtifact
+          Name: Source
+        - Actions:
+            - ActionTypeId:
+                Category: Build
+                Owner: AWS
+                Provider: CodeBuild
+                Version: '1'
+              Configuration:
+                ProjectName:
+                  Ref: ModelDeployBuildProject
+              InputArtifacts:
+                - Name: SourceArtifact
+              Name: BuildDeploymentTemplates
+              OutputArtifacts:
+                - Name: BuildArtifact
+              RunOrder: 1
+          Name: Build
+        - Actions:
+            - ActionTypeId:
+                Category: Deploy
+                Owner: AWS
+                Provider: CloudFormation
+                Version: '1'
+              Configuration:
+                ActionMode: REPLACE_ON_FAILURE
+                Capabilities: CAPABILITY_NAMED_IAM
+                RoleArn:
+                  !Join [ ':', [ 'arn', !Ref 'AWS::Partition', 'iam:', !Ref 'AWS::AccountId', 'role/service-role/AmazonSageMakerProjectsCloudformationRole' ] ]
+                StackName:
+                  Fn::Sub: sagemaker-${SageMakerProjectName}-${SageMakerProjectId}-deploy-staging
+                TemplateConfiguration: BuildArtifact::staging-config-export.json
+                TemplatePath: BuildArtifact::template-export.yml
+              InputArtifacts:
+                - Name: BuildArtifact
+              Name: DeployResourcesStaging
+              RunOrder: 1
+            - ActionTypeId:
+                Category: Build
+                Owner: AWS
+                Provider: CodeBuild
+                Version: '1'
+              Configuration:
+                ProjectName:
+                  Ref: ModelDeployTestProject
+                PrimarySource: SourceArtifact
+              InputArtifacts:
+                - Name: SourceArtifact
+                - Name: BuildArtifact
+              Name: TestStaging
+              OutputArtifacts:
+                - Name: TestArtifact
+              RunOrder: 2
+            - ActionTypeId:
+                Category: Approval
+                Owner: AWS
+                Provider: Manual
+                Version: '1'
+              Configuration:
+                CustomData: Approve this model for Production
+              Name: ApproveDeployment
+              RunOrder: 3
+          Name: DeployStaging
+        - Actions:
+            - ActionTypeId:
+                Category: Deploy
+                Owner: AWS
+                Provider: CloudFormation
+                Version: '1'
+              Configuration:
+                ActionMode: CREATE_UPDATE
+                RoleArn:
+                  !Join [ ':', [ 'arn', !Ref 'AWS::Partition', 'iam:', !Ref 'AWS::AccountId', 'role/service-role/AmazonSageMakerProjectsCloudformationRole'] ]
+                Capabilities: CAPABILITY_NAMED_IAM
+                StackName:
+                  Fn::Sub: sagemaker-${SageMakerProjectName}-${SageMakerProjectId}-deploy-prod
+                TemplateConfiguration: BuildArtifact::prod-config-export.json
+                TemplatePath: BuildArtifact::template-export.yml
+              InputArtifacts:
+                - Name: BuildArtifact
+              Name: DeployResourcesProd
+              RunOrder: 1
+          Name: DeployProd
+      ArtifactStore:
+        Location:
+          Ref: MlOpsArtifactsBucket
+        Type: S3
+      Name:
+        Fn::Sub: sagemaker-${SageMakerProjectName}-${SageMakerProjectId}-modeldeploy
+    DependsOn:
+      - MlOpsArtifactsBucket
+  ModelDeploySageMakerEventRule:
+    Type: AWS::Events::Rule
+    Properties:
+      Description: Rule to trigger a deployment when SageMaker Model registry is updated with a new model package. For example, a new model package is registered with Registry
+      EventPattern:
+        source:
+          - aws.sagemaker
+        detail-type:
+          - SageMaker Model Package State Change
+        detail:
+          ModelPackageGroupName:
+            - Fn::Sub: ${SageMakerProjectName}-${SageMakerProjectId}
+          ModelApprovalStatus:
+            - anything-but:
+              - PendingManualApproval
+      Name:
+        Fn::Sub: sagemaker-${SageMakerProjectName}-${SageMakerProjectId}-model
+      State: ENABLED
+      Targets:
+        - Arn:
+            Fn::Join:
+              - ':'
+              - - arn
+                - Ref: AWS::Partition
+                - codepipeline
+                - Ref: AWS::Region
+                - Ref: AWS::AccountId
+                - Ref: ModelDeployPipeline
+          Id:
+            Fn::Sub: sagemaker-${SageMakerProjectName}-trigger
+          RoleArn:
+            !Join [ ':', [ 'arn', !Ref 'AWS::Partition', 'iam:', !Ref 'AWS::AccountId', 'role/service-role/AmazonSageMakerProjectsEventsRole' ] ]
+  GetBaselinesAndConfigs:
+    Type: AWS::CodeBuild::Project
+    Properties:
+      Artifacts:
+        Type: CODEPIPELINE
+      Environment:
+        ComputeType: BUILD_GENERAL1_SMALL
+        EnvironmentVariables:
+          - Name: SAGEMAKER_PROJECT_NAME
+            Type: PLAINTEXT
+            Value:
+              Ref: SageMakerProjectName
+          - Name: SAGEMAKER_PROJECT_ID
+            Type: PLAINTEXT
+            Value:
+              Ref: SageMakerProjectId
+          - Name: ARTIFACT_BUCKET
+            Type: PLAINTEXT
+            Value:
+              Ref: MlOpsArtifactsBucket
+          - Name: MONITOR_OUTPUTS_BUCKET
+            Type: PLAINTEXT
+            Value:
+              Ref: MlOpsArtifactsBucket
+          - Name: MODEL_MONITOR_ROLE_ARN
+            Type: PLAINTEXT
+            Value: !Join [ ':', [ 'arn', !Ref 'AWS::Partition', 'iam:', !Ref 'AWS::AccountId', 'role/service-role/AmazonSageMakerProjectsExecutionRole'] ]
+          - Name: AWS_REGION
+            Type: PLAINTEXT
+            Value:
+              Ref: AWS::Region
+          - Name: EXPORT_TEMPLATE_NAME
+            Type: PLAINTEXT
+            Value: model-monitor-template-export.yml
+          - Name: EXPORT_TEMPLATE_STAGING_CONFIG
+            Type: PLAINTEXT
+            Value: staging-monitoring-schedule-config-export.json
+          - Name: EXPORT_TEMPLATE_PROD_CONFIG
+            Type: PLAINTEXT
+            Value: prod-monitoring-schedule-config-export.json
+        Image: aws/codebuild/amazonlinux2-x86_64-standard:5.0
+        ImagePullCredentialsType: CODEBUILD
+        PrivilegedMode: false
+        Type: LINUX_CONTAINER
+      ServiceRole: !Join [ ':', [ 'arn', !Ref 'AWS::Partition', 'iam:', !Ref 'AWS::AccountId', 'role/service-role/AmazonSageMakerProjectsCodeBuildRole'] ]
+      Source:
+        BuildSpec: buildspec.yml
+        Type: CODEPIPELINE
+      Description: Gets the Baselines from Model Registry and updates the Monitoring Schedule configs.
+      EncryptionKey: alias/aws/s3
+      Name:
+        Fn::Sub: sagemaker-${SageMakerProjectName}-${SageMakerProjectId}-modelmonitor
+  SageMakerMonitorPipeline:
+    Type: AWS::CodePipeline::Pipeline
+    Properties:
+      RoleArn:  !Join [ ':', [ 'arn', !Ref 'AWS::Partition', 'iam:', !Ref 'AWS::AccountId', 'role/service-role/AmazonSageMakerProjectsCodePipelineRole'] ]
+      PipelineType: V2
+      Stages:
+        - Actions:
+            - ActionTypeId:
+                Category: Source
+                Owner: AWS
+                Provider: CodeStarSourceConnection
+                Version: '1'
+              Configuration:
+                ConnectionArn: !Sub ${CodeConnectionArn}
+                FullRepositoryId: !Sub ${ModelMonitorCodeRepositoryFullname}
+                BranchName: !Sub ${ModelMonitorCodeRepositoryBranch}
+              Name: ModelMonitorInfraCode
+              OutputArtifacts:
+                - Name: ModelMonitorSourceArtifact
+              RunOrder: 1
+          Name: Source
+        - Actions:
+            - ActionTypeId:
+                Category: Build
+                Owner: AWS
+                Provider: CodeBuild
+                Version: '1'
+              Configuration:
+                ProjectName:
+                  Ref: GetBaselinesAndConfigs
+              InputArtifacts:
+                - Name: ModelMonitorSourceArtifact
+              Name: GetBaselinesAndConfigs
+              OutputArtifacts:
+                - Name: ModelMonitorBuildArtifact
+              RunOrder: 1
+          Name: Build
+        - Actions:
+            - ActionTypeId:
+                Category: Deploy
+                Owner: AWS
+                Provider: CloudFormation
+                Version: '1'
+              Configuration:
+                StackName:
+                  Fn::Sub: sagemaker-${SageMakerProjectName}-${SageMakerProjectId}-modelmonitor-staging
+                Capabilities: CAPABILITY_NAMED_IAM
+                RoleArn:
+                  !Join [ ':', [ 'arn', !Ref 'AWS::Partition', 'iam:', !Ref 'AWS::AccountId', 'role/service-role/AmazonSageMakerProjectsCloudformationRole' ] ]
+                TemplateConfiguration: ModelMonitorBuildArtifact::staging-monitoring-schedule-config-export.json
+                ActionMode: REPLACE_ON_FAILURE
+                TemplatePath: ModelMonitorBuildArtifact::model-monitor-template-export.yml
+              InputArtifacts:
+                - Name: ModelMonitorBuildArtifact
+              Name: DeployMonitorsStaging
+              RunOrder: 1
+            - ActionTypeId:
+                Category: Approval
+                Owner: AWS
+                Provider: Manual
+                Version: '1'
+              Configuration:
+                CustomData: Make Sure the prod's SageMaker Endpoint is running before approving Model Monitor deployment.
+              Name: ApproveMonitorsProdDeployment
+              RunOrder: 2
+          Name: DeployStaging
+        - Actions:
+            - ActionTypeId:
+                Category: Deploy
+                Owner: AWS
+                Provider: CloudFormation
+                Version: '1'
+              Configuration:
+                StackName:
+                  Fn::Sub: sagemaker-${SageMakerProjectName}-${SageMakerProjectId}-modelmonitor-prod
+                Capabilities: CAPABILITY_NAMED_IAM
+                RoleArn:
+                  !Join [ ':', [ 'arn', !Ref 'AWS::Partition', 'iam:', !Ref 'AWS::AccountId', 'role/service-role/AmazonSageMakerProjectsCloudformationRole' ] ]
+                TemplateConfiguration: ModelMonitorBuildArtifact::prod-monitoring-schedule-config-export.json
+                ActionMode: CREATE_UPDATE
+                TemplatePath: ModelMonitorBuildArtifact::model-monitor-template-export.yml
+              InputArtifacts:
+                - Name: ModelMonitorBuildArtifact
+              Name: DeployMonitorsProd
+              RunOrder: 1
+          Name: DeployProd
+      ArtifactStore:
+        Location:
+          Ref: MlOpsArtifactsBucket
+        Type: S3
+      Name:
+        Fn::Sub: sagemaker-${SageMakerProjectName}-${SageMakerProjectId}-modelmonitor
+  InServiceEndpointEventRule:
+    Type: AWS::Events::Rule
+    Properties:
+      Description: Rule to trigger a Model Monitor codepipeline, when the staging endpoint status changes to 'IN_SERVICE'
+      EventPattern:
+        detail:
+          EndpointName:
+            - Fn::Sub: ${SageMakerProjectName}-staging
+          EndpointStatus:
+            - IN_SERVICE
+        detail-type:
+          - SageMaker Endpoint State Change
+        source:
+          - aws.sagemaker
+      Name:
+        Fn::Sub: sagemaker-${SageMakerProjectName}-${SageMakerProjectId}-ep
+      State: ENABLED
+      Targets:
+        - Arn:
+            Fn::Join:
+              - ''
+              - - 'arn:'
+                - Ref: AWS::Partition
+                - ':codepipeline:'
+                - Ref: AWS::Region
+                - ':'
+                - Ref: AWS::AccountId
+                - ':'
+                - Ref: SageMakerMonitorPipeline
+          Id:
+            Fn::Sub: sagemaker-${SageMakerProjectName}-endpoint-trigger
+          RoleArn:
+            !Join [ ':', [ 'arn', !Ref 'AWS::Partition', 'iam:', !Ref 'AWS::AccountId', 'role/service-role/AmazonSageMakerProjectsEventsRole' ] ]
+  GitSeedCodeCheckinProject:
+    Type: AWS::CodeBuild::Project
+    Properties:
+      # Max length: 255 chars
+      Name: !Sub sagemaker-${SageMakerProjectName}-${SageMakerProjectId}-git-seedcodecheckin # max: 10+33+15+19=77
+      Description: Checkin the initial seedcode into the given repository
+      ServiceRole: !Join [ ':', [ 'arn', !Ref 'AWS::Partition', 'iam:', !Ref 'AWS::AccountId', 'role/service-role/AmazonSageMakerProjectsCodeBuildRole'] ]
+      Artifacts:
+        Type: NO_ARTIFACTS
+      Environment:
+        Type: LINUX_CONTAINER
+        ComputeType: BUILD_GENERAL1_SMALL
+        Image: 'aws/codebuild/amazonlinux2-x86_64-standard:5.0'
+      Source:
+        Type: S3
+        Location: !Join 
+        - ''
+        - - 'sagemaker-servicecatalog-seedcode-'
+          - !Ref 'AWS::Region'
+          - '/bootstrap/GitRepositorySeedCodeCheckinCodeBuildProject-v1.1.zip'
+        BuildSpec: buildspec.yml
+      TimeoutInMinutes: 14
+  GitSeedCodeCheckinProjectTriggerLambda:
+    DependsOn: GitSeedCodeCheckinProject
+    Type: 'AWS::Lambda::Function'
+    Properties:
+      Description: To trigger the codebuild project for the seedcode checkin
+      Handler: index.lambda_handler
+      Runtime: python3.12
+      FunctionName: !Sub sagemaker-${SageMakerProjectId}-git-seedcodecheckin # max: 10+15+19=44 out of 64 max
+      Timeout: 900
+      Role: !Join [ ':', [ 'arn', !Ref 'AWS::Partition', 'iam:', !Ref 'AWS::AccountId', 'role/service-role/AmazonSageMakerProjectsLambdaRole'] ]
+      Code:
+        ZipFile: |
+          import boto3
+          import cfnresponse
+          import os
+          import time
+          from botocore.exceptions import ClientError
+
+          # This function should be triggered by the custom resource in the cfn template, Called along with the
+          # seedcode information (what code needs to be populated), the git repository information (where it
+          # needs to be populated) and the git codestar connection information. This would inturn trigger
+          # the codebuild which does the population of the seedcode
+          def lambda_handler(event, context):
+            responseData = {}
+            if event['RequestType'] == 'Create':
+              try:
+                time.sleep(20) # Sleep for few seconds before triggering seed code for configuration update of code build.
+                print("Starting seed code checkin")
+                client = boto3.client('codebuild')
+                response = retry_on_access_denied(lambda: client.start_build(
+                  projectName=os.environ['CodeBuildProjectName'],
+                  environmentVariablesOverride=get_build_environment_variables_override(event),
+                  secondarySourcesOverride=get_secondary_sources_override(event)
+                ))
+                poll_timeout = 840 # This Value is assigned based on the codebuild project timeout value
+                max_poll_time = time.time() + poll_timeout
+                print("Polling Codebuild to check if seed check checkin is complete")
+                build_status = poll_and_get_build_status(client, response['build']['id'], max_poll_time)
+                if (build_status != 'SUCCEEDED'):
+                  if (time.time() > max_poll_time and build_status == 'IN_PROGRESS'):
+                    failure_reason = 'Codebuild to checkin seedcode did not complete within ' + poll_timeout + ' seconds'
+                  else:
+                    failure_reason = 'Codebuild to checkin seedcode has status ' + build_status
+                  cfnresponse.send(event, context, cfnresponse.FAILED, responseData, reason=failure_reason)
+                else:
+                  responseData['url'] = get_repository_url(event)
+                  cfnresponse.send(event, context, cfnresponse.SUCCESS, responseData)
+              except Exception as err:
+                print("An exception occurred", err)
+                cfnresponse.send(event, context, cfnresponse.FAILED, responseData, reason=str(err))
+            else:
+              cfnresponse.send(event, context, cfnresponse.SUCCESS, responseData)
+
+          def retry_on_access_denied(func, max_retries=3, initial_delay=1):
+            retries = 0
+            delay = initial_delay
+          
+            while retries < max_retries:
+              try:
+                return func()
+              except ClientError as e:
+                if e.response['Error']['Code'] == 'AccessDeniedException':
+                  print(f"AccessDenied error occurred. Retrying in {delay} seconds...")
+                  time.sleep(delay)
+                  retries += 1
+                  delay *= 2  # Exponential backoff
+                else:
+                  raise  # Re-raise the exception if it's not AccessDenied
+          
+            raise Exception(f"Max retries ({max_retries}) exceeded. Unable to perform the operation.")
+          
+          def get_build_environment_variables_override(event):
+            return [
+              {
+                'name': 'GIT_REPOSITORY_BRANCH',
+                'value': event['ResourceProperties']['GIT_REPOSITORY_BRANCH'],
+                'type': 'PLAINTEXT'
+              },
+              {
+                'name': 'GIT_REPOSITORY_URL',
+                'value': get_repository_url(event),
+                'type': 'PLAINTEXT'
+              }
+            ]
+          
+          def get_secondary_sources_override(event):
+            return [
+              {
+                'location': '{}/{}'.format(event['ResourceProperties']['SEEDCODE_BUCKET_NAME'], event['ResourceProperties']['SEEDCODE_BUCKET_KEY']),
+                'type': 'S3',
+                'sourceIdentifier': 'source'
+              }
+            ]
+          
+          def get_repository_url(event):
+            parsed_connection_arn = parse_arn(event['ResourceProperties']['GIT_REPOSITORY_CONNECTION_ARN'])
+            url_prefix = 'codeconnections'
+            if 'codestar-connections' in parsed_connection_arn['service']:
+              url_prefix = 'codestar-connections'
+            return 'https://{}.{}.amazonaws.com/git-http/{}/{}/{}/{}.git'.format(url_prefix, 
+              parsed_connection_arn['region'], parsed_connection_arn['account'], parsed_connection_arn['region'], parsed_connection_arn['resource'], 
+              event['ResourceProperties']['GIT_REPOSITORY_FULL_NAME'])
+          
+          def parse_arn(arn):
+            # http://docs.aws.amazon.com/general/latest/gr/aws-arns-and-namespaces.html
+            elements = arn.split(':', 5)
+            result = {
+              'arn': elements[0],
+              'partition': elements[1],
+              'service': elements[2],
+              'region': elements[3],
+              'account': elements[4],
+              'resource': elements[5],
+              'resource_type': None
+            }
+            if '/' in result['resource']:
+              result['resource_type'], result['resource'] = result['resource'].split('/',1)
+            elif ':' in result['resource']:
+              result['resource_type'], result['resource'] = result['resource'].split(':',1)
+            return result
+
+          def poll_and_get_build_status(client, build_id, max_poll_time):
+            # usually it takes around 70 to 85 seconds for initializing the codebuild and
+            # for the seedcode to get checked in
+            initial_poll_interval = 60
+            poll_interval = 15
+            time.sleep(initial_poll_interval)
+            build_status='IN_PROGRESS'
+            while build_status == 'IN_PROGRESS' and time.time() < max_poll_time:
+                build_status = retry_on_access_denied(lambda: client.batch_get_builds(ids=[build_id]))['builds'][0]['buildStatus']
+                time.sleep(poll_interval)
+            return build_status
+
+      Environment:
+        Variables:
+          CodeBuildProjectName: !Sub sagemaker-${SageMakerProjectName}-${SageMakerProjectId}-git-seedcodecheckin
+  SageMakerModelBuildSeedCodeCheckinProjectTriggerLambdaInvoker:
+    Type: 'AWS::CloudFormation::CustomResource'
+    DependsOn: GitSeedCodeCheckinProjectTriggerLambda
+    Properties:
+      ServiceToken: !GetAtt
+        - GitSeedCodeCheckinProjectTriggerLambda
+        - Arn
+      SEEDCODE_BUCKET_NAME: !Join 
+      - ''
+      - - 'sagemaker-servicecatalog-seedcode-'
+        - !Ref 'AWS::Region'
+      SEEDCODE_BUCKET_KEY: toolchain/model-building-workflow-mm-clarify-v1.0.zip
+      GIT_REPOSITORY_FULL_NAME: !Sub ${ModelBuildCodeRepositoryFullname}
+      GIT_REPOSITORY_BRANCH: !Sub ${ModelBuildCodeRepositoryBranch}
+      GIT_REPOSITORY_CONNECTION_ARN: !Sub ${CodeConnectionArn}
+
+  SageMakerModelDeploySeedCodeCheckinProjectTriggerLambdaInvoker:
+    Type: 'AWS::CloudFormation::CustomResource'
+    DependsOn: GitSeedCodeCheckinProjectTriggerLambda
+    Properties:
+      ServiceToken: !GetAtt
+        - GitSeedCodeCheckinProjectTriggerLambda
+        - Arn
+      SEEDCODE_BUCKET_NAME: !Join 
+      - ''
+      - - 'sagemaker-servicecatalog-seedcode-'
+        - !Ref 'AWS::Region'
+      SEEDCODE_BUCKET_KEY: toolchain/mpg-deployment-config-v1.0.zip
+      GIT_REPOSITORY_FULL_NAME: !Sub ${ModelDeployCodeRepositoryFullname}
+      GIT_REPOSITORY_BRANCH: !Sub ${ModelDeployCodeRepositoryBranch}
+      GIT_REPOSITORY_CONNECTION_ARN: !Sub ${CodeConnectionArn}
+
+  SageMakerModelMonitorSeedCodeCheckinProjectTriggerLambdaInvoker:
+    Type: 'AWS::CloudFormation::CustomResource'
+    DependsOn: GitSeedCodeCheckinProjectTriggerLambda
+    Properties:
+      ServiceToken: !GetAtt
+        - GitSeedCodeCheckinProjectTriggerLambda
+        - Arn
+      SEEDCODE_BUCKET_NAME: !Join 
+      - ''
+      - - 'sagemaker-servicecatalog-seedcode-'
+        - !Ref 'AWS::Region'
+      SEEDCODE_BUCKET_KEY: toolchain/model-monitor-workflow-v1.0.zip
+      GIT_REPOSITORY_FULL_NAME: !Sub ${ModelMonitorCodeRepositoryFullname}
+      GIT_REPOSITORY_BRANCH: !Sub ${ModelMonitorCodeRepositoryBranch}
+      GIT_REPOSITORY_CONNECTION_ARN: !Sub ${CodeConnectionArn}
+
+  ModelBuildSagemakerCodeRepository:
+    Type: 'AWS::SageMaker::CodeRepository'
+    Properties:
+      CodeRepositoryName: !Sub sagemaker-${SageMakerProjectId}-modelbuild # max: 10+15+11=36 out of 63 max
+      GitConfig:
+        Branch: !Sub ${ModelBuildCodeRepositoryBranch}
+        RepositoryUrl: !GetAtt
+          - SageMakerModelBuildSeedCodeCheckinProjectTriggerLambdaInvoker
+          - url
+  ModelDeploySagemakerCodeRepository:
+    Type: 'AWS::SageMaker::CodeRepository'
+    Properties:
+      CodeRepositoryName: !Sub sagemaker-${SageMakerProjectId}-modeldeploy # max: 10+15+12=37 out of 63 max
+      GitConfig:
+        Branch: !Sub ${ModelDeployCodeRepositoryBranch}
+        RepositoryUrl: !GetAtt
+          - SageMakerModelDeploySeedCodeCheckinProjectTriggerLambdaInvoker
+          - url
+  ModelMonitorSagemakerCodeRepository:
+    Type: 'AWS::SageMaker::CodeRepository'
+    Properties:
+      CodeRepositoryName: !Sub sagemaker-${SageMakerProjectId}-modelmonitor # max: 10+15+11=36 out of 63 max
+      GitConfig:
+        Branch: !Sub ${ModelMonitorCodeRepositoryBranch}
+        RepositoryUrl: !GetAtt
+          - SageMakerModelMonitorSeedCodeCheckinProjectTriggerLambdaInvoker
+          - url
+
+Outputs:
+  ModelBuildPipeline:
+    Value:
+      Fn::Join:
+        - ''
+        - - https://console.aws.amazon.com/codesuite/codepipeline/pipelines/
+          - Ref: ModelBuildPipeline
+          - /view?region=
+          - Ref: AWS::Region
+  ModelDeployPipeline:
+    Value:
+      Fn::Join:
+        - ''
+        - - https://console.aws.amazon.com/codesuite/codepipeline/pipelines/
+          - Ref: ModelDeployPipeline
+          - /view?region=
+          - Ref: AWS::Region
+  ModelMonitorPipeline:
+    Value:
+      Fn::Join:
+        - ''
+        - - https://console.aws.amazon.com/codesuite/codepipeline/pipelines/
+          - Ref: SageMakerMonitorPipeline
+          - /view?region=
+          - Ref: AWS::Region

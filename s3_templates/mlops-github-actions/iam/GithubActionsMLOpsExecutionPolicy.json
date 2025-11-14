@@ -1,0 +1,62 @@
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Action": [
+        "s3:CreateBucket",
+        "s3:PutObject"
+      ],
+      "Resource": [
+        "arn:aws:s3:::sagemaker-*"
+      ]
+    },
+    {
+      "Effect": "Allow",
+      "Action": [
+        "iam:PassRole"
+      ],
+      "Resource": [
+        "arn:aws:iam::*:role/service-role/AmazonSageMaker*"
+      ]
+    },
+    {
+      "Effect": "Allow",
+      "Action": [
+        "sagemaker:CreatePipeline",
+        "sagemaker:DescribePipeline",
+        "sagemaker:DescribePipelineExecution",
+        "sagemaker:ListPipelineExecutionSteps",
+        "sagemaker:StartPipelineExecution",
+        "sagemaker:UpdatePipeline",
+        "sagemaker:ListModelPackages",
+        "sagemaker:ListTags",
+        "sagemaker:AddTags",
+        "sagemaker:DeleteTags",
+        "sagemaker:CreateModel",
+        "sagemaker:CreateEndpointConfig",
+        "sagemaker:CreateEndpoint",
+        "sagemaker:DeleteModel",
+        "sagemaker:DeleteEndpointConfig",
+        "sagemaker:DeleteEndpoint",
+        "sagemaker:DescribeEndpoint",
+        "sagemaker:DescribeModel",
+        "sagemaker:DescribeEndpointConfig",
+        "sagemaker:UpdateEndpoint",
+        "sagemaker:DescribeProject",
+        "sagemaker:DescribeDomain"
+      ],
+      "Resource": "arn:aws:sagemaker:*:*:*"
+    },
+    {
+      "Effect": "Allow",
+      "Action": [
+        "cloudformation:CreateStack",
+        "cloudformation:DescribeStacks",
+        "cloudformation:UpdateStack",
+        "cloudformation:DeleteStack"
+      ],
+      "Resource": "arn:aws:cloudformation:*:*:stack/sagemaker-*"
+    }
+  ]
+}

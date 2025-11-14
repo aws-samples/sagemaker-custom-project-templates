@@ -1,0 +1,34 @@
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "AmazonSageMakerProjectsCFnMutatePermission",
+      "Effect": "Allow",
+      "Action": [
+          "cloudformation:CreateStack",
+          "cloudformation:UpdateStack",
+          "cloudformation:DeleteStack",
+          "cloudformation:DescribeStacks"
+      ],
+      "Resource": [
+          "arn:aws:cloudformation:*:*:stack/SP-*"
+      ]
+    },
+    {
+      "Sid": "AmazonSageMakerProjectsCFnTagPermission",
+      "Effect": "Allow",
+      "Action": [
+          "cloudformation:TagResource",
+          "cloudformation:UntagResource"
+      ],
+      "Resource": [
+          "arn:aws:cloudformation:*:*:stack/SP-*"
+      ],
+      "Condition": {
+          "Null": {
+              "aws:ResourceTag/sagemaker:project-name": "false"
+          }
+      }
+    }
+  ]
+}

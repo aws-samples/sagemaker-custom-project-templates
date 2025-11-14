@@ -1,0 +1,206 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: 'S3-based MLOps template using Amazon SageMaker and GitHub Actions. This template creates a CI/CD pipeline using GitHub Actions to build a model using a SageMaker Pipeline and deploy the resulting trained ML Model from Model Registry to staging and production environments.'
+
+Parameters:
+  SageMakerProjectName:
+    Type: String
+    Description: Name of the project
+    MinLength: 1
+    MaxLength: 32
+    AllowedPattern: ^[a-zA-Z](-*[a-zA-Z0-9])*
+
+  SageMakerProjectId:
+    Type: String
+    Description: Service generated ID of the project.
+
+  CodeRepositoryName:
+    Type: String
+    MaxLength: 1024
+    Description: Repository name of the Model Building, Training and Deployment in GitHub
+
+  GitHubRepositoryOwnerName:
+    Type: String
+    MaxLength: 1024
+    Description: GitHub Repository Owner Name
+
+  CodestarConnectionUniqueId:
+    Type: String
+    MaxLength: 1024
+    Description: Codestar connection unique identifier
+
+  GitHubTokenSecretName:
+    Type: String
+    MaxLength: 1024
+    Description: Name of GitHub Token in AWS Secret Manager. This is to call deploy github workflow.
+
+  GitHubWorkflowNameForDeployment:
+    Type: String
+    MaxLength: 1024
+    Default: deploy.yml
+    Description: GitHub workflow file name which runs the deployment steps.
+
+  LambdaS3Bucket:
+    Type: String
+    Description: S3 bucket containing the Lambda function zip file
+    Default: sagemaker-mlops-templates
+
+  LambdaS3Key:
+    Type: String
+    Description: S3 key for the Lambda function zip file
+    Default: lambda-github-workflow-trigger.zip
+
+Metadata:
+  AWS::CloudFormation::Interface:
+    ParameterGroups:
+      - Label:
+          default: "Project Information"
+        Parameters:
+          - SageMakerProjectName
+          - SageMakerProjectId
+      - Label:
+          default: "Code Repository Info"
+        Parameters:
+          - GitHubRepositoryOwnerName
+          - CodeRepositoryName
+          - CodestarConnectionUniqueId
+          - GitHubTokenSecretName
+          - GitHubWorkflowNameForDeployment
+      - Label:
+          default: "Lambda Configuration"
+        Parameters:
+          - LambdaS3Bucket
+          - LambdaS3Key
+
+    ParameterLabels:
+      SageMakerProjectName:
+        default: "Project Name"
+      SageMakerProjectId:
+        default: "Project ID"
+      GitHubRepositoryOwnerName:
+        default: "GitHub Repository Owner Name (username or organization)"
+      CodeRepositoryName:
+        default: "GitHub Repository Name"
+      CodestarConnectionUniqueId:
+        default: "Codestar connection unique id"
+      GitHubTokenSecretName:
+        default: "Name of the secret in the Secrets Manager which stores GitHub token"
+      GitHubWorkflowNameForDeployment:
+        default: "GitHub workflow file for deployment. e.g. deploy.yml"
+      LambdaS3Bucket:
+        default: "S3 bucket containing Lambda function"
+      LambdaS3Key:
+        default: "S3 key for Lambda function zip"
+
+Resources:
+  MlOpsArtifactsBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Sub sagemaker-project-github-${SageMakerProjectId}-${AWS::Region}
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault:
+              SSEAlgorithm: AES256
+      Tags:
+        - Key: "sagemaker:project-id"
+          Value: !Sub ${SageMakerProjectId}
+        - Key: "sagemaker:project-name"
+          Value: !Sub ${SageMakerProjectName}
+
+  GitHubWorkflowTriggerLambda:
+    Type: 'AWS::Lambda::Function'
+    Properties:
+      Description: To trigger the GitHub Workflow
+      Handler: lambda_function.lambda_handler
+      Runtime: python3.12
+      FunctionName: !Sub sagemaker-${SageMakerProjectId}-github-trigger
+      Timeout: 900
+      Role: !Sub arn:aws:iam::${AWS::AccountId}:role/service-role/AmazonSageMakerProjectsLambdaRole # Use pre-created role
+      Code:
+        S3Bucket: !Ref LambdaS3Bucket
+        S3Key: !Ref LambdaS3Key
+      Architectures:
+        - arm64
+      Environment:
+        Variables:
+          DeployRepoName: !Sub ${CodeRepositoryName}
+          GitHubWorkflowNameForDeployment: !Sub ${GitHubWorkflowNameForDeployment}
+          GitHubTokenSecretName: !Sub ${GitHubTokenSecretName}
+          Region: !Ref AWS::Region
+      Tags:
+        - Key: "sagemaker:project-id"
+          Value: !Sub ${SageMakerProjectId}
+        - Key: "sagemaker:project-name"
+          Value: !Sub ${SageMakerProjectName}
+
+  ModelDeploySageMakerEventRule:
+    Type: AWS::Events::Rule
+    Properties:
+      Name: !Sub sagemaker-${SageMakerProjectName}-${SageMakerProjectId}-event-rule
+      Description: Rule to trigger a deployment when SageMaker Model is Approved.
+      EventPattern:
+        source:
+          - "aws.sagemaker"
+        detail-type:
+          - "SageMaker Model Package State Change"
+        detail:
+          ModelPackageGroupName:
+            - !Sub ${SageMakerProjectName}-${SageMakerProjectId}
+          ModelApprovalStatus:
+            - Approved
+      State: "ENABLED"
+      Targets:
+        -
+          Arn: !GetAtt GitHubWorkflowTriggerLambda.Arn
+          Id: !Sub sagemaker-${SageMakerProjectName}-trigger
+      Tags:
+        - Key: "sagemaker:project-id"
+          Value: !Sub ${SageMakerProjectId}
+        - Key: "sagemaker:project-name"
+          Value: !Sub ${SageMakerProjectName}
+
+  PermissionForEventsToInvokeLambda:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !GetAtt GitHubWorkflowTriggerLambda.Arn
+      Action: lambda:InvokeFunction
+      Principal: events.amazonaws.com
+      SourceArn: !GetAtt ModelDeploySageMakerEventRule.Arn
+
+  SagemakerCodeRepository:
+    Type: 'AWS::SageMaker::CodeRepository'
+    Properties:
+      CodeRepositoryName: !Sub ${CodeRepositoryName}-${SageMakerProjectId}
+      GitConfig:
+        Branch: main
+        RepositoryUrl: !Sub https://codestar-connections.${AWS::Region}.amazonaws.com/git-http/${AWS::AccountId}/${AWS::Region}/${CodestarConnectionUniqueId}/${GitHubRepositoryOwnerName}/${CodeRepositoryName}.git
+      Tags:
+        - Key: "sagemaker:project-id"
+          Value: !Sub ${SageMakerProjectId}
+        - Key: "sagemaker:project-name"
+          Value: !Sub ${SageMakerProjectName}
+
+Outputs:
+  SageMakerProjectName:
+    Description: Name of the SageMaker project
+    Value: !Ref SageMakerProjectName
+
+  SageMakerProjectId:
+    Description: ID of the SageMaker project
+    Value: !Ref SageMakerProjectId
+
+  ArtifactsBucket:
+    Description: S3 bucket for storing ML artifacts
+    Value: !Ref MlOpsArtifactsBucket
+
+  CodeRepository:
+    Description: SageMaker code repository
+    Value: !Ref SagemakerCodeRepository
+
+  GitHubWorkflowTriggerLambda:
+    Description: Lambda function that triggers GitHub workflows
+    Value: !Ref GitHubWorkflowTriggerLambda

@@ -1,0 +1,316 @@
+Description: Toolchain template which provides the resources needed to represent infrastructure as code.
+  This template specifically creates a CI/CD pipeline using Jenkins to build a model using a SageMaker Pipeline and deploy the
+  resulting trained ML Model from Model Registry to two stages in CD -- staging and production.
+
+Parameters:
+  SageMakerProjectName:
+    Type: String
+    Description: Name of the project
+    NoEcho: true
+    MinLength: 1
+    MaxLength: 32
+    AllowedPattern: ^[a-zA-Z](-*[a-zA-Z0-9])*
+
+  SageMakerProjectId:
+    Type: String
+    NoEcho: true
+    Description: Service generated Id of the project.
+
+  ModelBuildCodeRepositoryUrl:
+    Type: String
+    MaxLength: 1024
+    Description: Git Repository Url for the Model Building and Training Code Repository
+
+  ModelBuildCodeRepositoryBranch:
+    Type: String
+    Default: 'main'
+    MaxLength: 255
+    Description: Branch name for the Model Building and Training Code Repository
+
+  ModelBuildCodeRepositoryFullname:
+    Type: String
+    MaxLength: 1024
+    Description: Full repository name of the Model Building and Training Code Repository, which would be username/reponame or organizationname/reponame
+
+  ModelBuildCodeRepositoryCodestarConnectionArn:
+    Type: String
+    Description: Codestar Connection Arn for the Model Building and Training Code Repository
+
+  ModelBuildCodeRepositoryIsSeedcodeRequired:
+    Type: String
+    Default: 'true'
+    AllowedValues: ["true", "false"]
+    Description: Whether Seedcode needs to be populated for Model Building and Training Code Repository
+
+  ModelDeployCodeRepositoryUrl:
+    Type: String
+    Description: Git Repository Url for the Model Deployment Code Repository
+
+  ModelDeployCodeRepositoryBranch:
+    Type: String
+    Default: 'main'
+    Description: Branch name for the Model Deployment Code Repository
+
+  ModelDeployCodeRepositoryFullname:
+    Type: String
+    MaxLength: 1024
+    Description: Full repository name of the Model Deployment Code Repository, which would be username/reponame or organizationname/reponame
+
+  ModelDeployCodeRepositoryCodestarConnectionArn:
+    Type: String
+    Description: Codestar Connection Arn for the Model Deployment Code Repository
+
+  ModelDeployCodeRepositoryIsSeedcodeRequired:
+    Type: String
+    Default: 'true'
+    AllowedValues: ["true", "false"]
+    Description: Whether Seedcode needs to be populated for Model Deployment Code Repository
+
+Metadata:
+  SagemakerTemplateParameterRules:
+    ModelBuildCodeRepositoryBranch:
+      Optional: true
+    ModelDeployCodeRepositoryBranch:
+      Optional: true
+  AWS::CloudFormation::Interface:
+    ParameterGroups:
+      -
+        Label:
+          default: "ModelBuild CodeRepository Info"
+        Parameters:
+          - ModelBuildCodeRepositoryUrl
+          - ModelBuildCodeRepositoryBranch
+          - ModelBuildCodeRepositoryFullname
+          - ModelBuildCodeRepositoryCodestarConnectionArn
+          - ModelBuildCodeRepositoryIsSeedcodeRequired
+      -
+        Label:
+          default: "ModelDeploy CodeRepository Info"
+        Parameters:
+          - ModelDeployCodeRepositoryUrl
+          - ModelDeployCodeRepositoryBranch
+          - ModelDeployCodeRepositoryFullname
+          - ModelDeployCodeRepositoryCodestarConnectionArn
+          - ModelDeployCodeRepositoryIsSeedcodeRequired
+
+    ParameterLabels:
+      ModelBuildCodeRepositoryUrl:
+        default: "URL"
+      ModelBuildCodeRepositoryBranch:
+        default: "Branch"
+      ModelBuildCodeRepositoryFullname:
+        default: "Full Repository Name"
+      ModelBuildCodeRepositoryCodestarConnectionArn:
+        default: "Codestar Connection ARN"
+      ModelBuildCodeRepositoryIsSeedcodeRequired:
+        default: "Sample Code"
+      ModelDeployCodeRepositoryUrl:
+        default: "URL"
+      ModelDeployCodeRepositoryBranch:
+        default: "Branch"
+      ModelDeployCodeRepositoryFullname:
+        default: "Full Repository Name"
+      ModelDeployCodeRepositoryCodestarConnectionArn:
+        default: "Codestar Connection ARN"
+      ModelDeployCodeRepositoryIsSeedcodeRequired:
+        default: "Sample Code"
+
+Conditions:
+  CreateResourceForModelBuildSeedcodeCheckin:
+    !Equals [!Ref ModelBuildCodeRepositoryIsSeedcodeRequired, "true"]
+  CreateResourceForModelDeploySeedcodeCheckin:
+    !Equals [!Ref ModelDeployCodeRepositoryIsSeedcodeRequired, "true"]
+  CreateResourceForAnySeedCodeCheckin:
+    !Or [ Condition: CreateResourceForModelBuildSeedcodeCheckin, Condition: CreateResourceForModelDeploySeedcodeCheckin ]
+
+Resources:
+  MlOpsArtifactsBucket:
+    Type: AWS::S3::Bucket
+    DeletionPolicy: Retain
+    Properties:
+      BucketName: !Sub sagemaker-project-${SageMakerProjectId} # 58 chars max/ 64 allowed
+
+  GitSeedCodeCheckinProject:
+    Type: AWS::CodeBuild::Project
+    Condition: CreateResourceForAnySeedCodeCheckin
+    Properties:
+      # Max length: 255 chars
+      Name: !Sub sagemaker-${SageMakerProjectName}-${SageMakerProjectId}-git-seedcodecheckin # max: 10+33+15+19=77
+      Description: Checkin the initial seedcode into the given repository
+      ServiceRole: !Join [ ':', [ 'arn', !Ref 'AWS::Partition', 'iam:', !Ref 'AWS::AccountId', 'role/service-role/AmazonSageMakerProjectsCodeBuildRole'] ]
+      Artifacts:
+        Type: NO_ARTIFACTS
+      Environment:
+        Type: LINUX_CONTAINER
+        ComputeType: BUILD_GENERAL1_SMALL
+        Image: 'aws/codebuild/amazonlinux2-x86_64-standard:5.0'
+        EnvironmentVariables:
+          - Name: SAGEMAKER_PROJECT_NAME
+            Value: !Ref SageMakerProjectName
+          - Name: SAGEMAKER_PROJECT_ID
+            Value: !Ref SageMakerProjectId
+          - Name: ARTIFACT_BUCKET
+            Value: !Ref MlOpsArtifactsBucket
+          - Name: MODEL_EXECUTION_ROLE_ARN
+            Value: !Join [ ':', [ 'arn', !Ref 'AWS::Partition', 'iam:', !Ref 'AWS::AccountId', 'role/service-role/AmazonSageMakerProjectsExecutionRole'] ]
+          - Name: SAGEMAKER_PIPELINE_ROLE_ARN
+            Value: !Join [ ':', [ 'arn', !Ref 'AWS::Partition', 'iam:', !Ref 'AWS::AccountId', 'role/service-role/AmazonSageMakerProjectsExecutionRole'] ]
+          - Name: AWS_REGION
+            Value: !Ref AWS::Region
+          - Name: SOURCE_MODEL_PACKAGE_GROUP_NAME
+            Value: !Sub ${SageMakerProjectName}-${SageMakerProjectId}
+      Source:
+        Type: S3
+        Location: !Join 
+        - ''
+        - - 'sagemaker-servicecatalog-seedcode-'
+          - !Ref 'AWS::Region'
+          - '/bootstrap/GitRepositorySeedCodeCheckinCodeBuildProject-v1.0.zip'
+        BuildSpec: buildspec-jenkins.yml
+      TimeoutInMinutes: 14
+
+  GitSeedCodeCheckinProjectTriggerLambda:
+    DependsOn: GitSeedCodeCheckinProject
+    Condition: CreateResourceForAnySeedCodeCheckin
+    Type: 'AWS::Lambda::Function'
+    Properties:
+      Description: To trigger the codebuild project for the seedcode checkin
+      Handler: index.lambda_handler
+      Runtime: python3.12
+      FunctionName: !Sub sagemaker-${SageMakerProjectId}-git-seedcodecheckin # max: 10+15+19=44 out of 64 max
+      Timeout: 900
+      Role: !Join [ ':', [ 'arn', !Ref 'AWS::Partition', 'iam:', !Ref 'AWS::AccountId', 'role/service-role/AmazonSageMakerProjectsLambdaRole'] ]
+      Code:
+        ZipFile: |
+          import boto3
+          import cfnresponse
+          import os
+          import time
+
+          # This function should be triggered by the custom resource in the cfn template, Called along with the
+          # seedcode information (what code needs to be populated), the git repository information (where it
+          # needs to be populated) and the git codestar connection information. This would inturn trigger
+          # the codebuild which does the population of the seedcode
+          def lambda_handler(event, context):
+            responseData = {}
+            if event['RequestType'] == 'Create':
+              client = boto3.client('codebuild')
+              response = client.start_build(
+                projectName=os.environ['CodeBuildProjectName'],
+                environmentVariablesOverride=get_build_environment_variables_override(event)
+              )
+              poll_timeout = 840 # This Value is assigned based on the codebuild project timeout value
+              max_poll_time = time.time() + poll_timeout
+              build_status = poll_and_get_build_status(client, response['build']['id'], max_poll_time)
+              if (build_status != 'SUCCEEDED'):
+                if (time.time() > max_poll_time and build_status == 'IN_PROGRESS'):
+                  failure_reason = "Codebuild to checkin seedcode did not complete within " + poll_timeout + " seconds"
+                else:
+                  failure_reason = 'Codebuild to checkin seedcode has status ' + build_status
+                cfnresponse.send(event, context, cfnresponse.FAILED, responseData, reason=failure_reason)
+              else:
+                cfnresponse.send(event, context, cfnresponse.SUCCESS, responseData)
+            else:
+              cfnresponse.send(event, context, cfnresponse.SUCCESS, responseData)
+
+          def get_build_environment_variables_override(event):
+            return [
+              {
+                'name': 'SEEDCODE_BUCKET_NAME',
+                'value': event['ResourceProperties']['SEEDCODE_BUCKET_NAME'],
+                'type': 'PLAINTEXT'
+              },
+              {
+                'name': 'SEEDCODE_BUCKET_KEY',
+                'value': event['ResourceProperties']['SEEDCODE_BUCKET_KEY'],
+                'type': 'PLAINTEXT'
+              },
+              {
+                'name': 'GIT_REPOSITORY_FULL_NAME',
+                'value': event['ResourceProperties']['GIT_REPOSITORY_FULL_NAME'],
+                'type': 'PLAINTEXT'
+              },
+              {
+                'name': 'GIT_REPOSITORY_BRANCH',
+                'value': event['ResourceProperties']['GIT_REPOSITORY_BRANCH'],
+                'type': 'PLAINTEXT'
+              },
+              {
+                'name': 'GIT_REPOSITORY_CONNECTION_ARN',
+                'value': event['ResourceProperties']['GIT_REPOSITORY_CONNECTION_ARN'],
+                'type': 'PLAINTEXT'
+              },
+              {
+                'name': 'SEED_CODE_UPDATE_FILE_NAME',
+                'value': event['ResourceProperties']['SEED_CODE_UPDATE_FILE_NAME'],
+                'type': 'PLAINTEXT'
+              }
+            ]
+
+          def poll_and_get_build_status(client, build_id, max_poll_time):
+            # usually it takes around 70 to 85 seconds for initializing the codebuild and
+            # for the seedcode to get checked in
+            initial_poll_interval = 60
+            poll_interval = 15
+            time.sleep(initial_poll_interval)
+            build_status='IN_PROGRESS'
+            while build_status == 'IN_PROGRESS' and time.time() < max_poll_time:
+                build_status = client.batch_get_builds(ids=[build_id])['builds'][0]['buildStatus']
+                time.sleep(poll_interval)
+            return build_status
+
+      Environment:
+        Variables:
+          CodeBuildProjectName: !Sub sagemaker-${SageMakerProjectName}-${SageMakerProjectId}-git-seedcodecheckin
+
+  SageMakerModelBuildSeedCodeCheckinProjectTriggerLambdaInvoker:
+    Type: 'AWS::CloudFormation::CustomResource'
+    Condition: CreateResourceForModelBuildSeedcodeCheckin
+    DependsOn: GitSeedCodeCheckinProjectTriggerLambda
+    Properties:
+      ServiceToken: !GetAtt
+        - GitSeedCodeCheckinProjectTriggerLambda
+        - Arn
+      SEEDCODE_BUCKET_NAME: !Join 
+      - ''
+      - - 'sagemaker-servicecatalog-seedcode-'
+        - !Ref 'AWS::Region'
+      SEEDCODE_BUCKET_KEY: toolchain/model-building-workflow-jenkins-v1.0.zip
+      GIT_REPOSITORY_FULL_NAME: !Sub ${ModelBuildCodeRepositoryFullname}
+      GIT_REPOSITORY_BRANCH: !Sub ${ModelBuildCodeRepositoryBranch}
+      GIT_REPOSITORY_CONNECTION_ARN: !Sub ${ModelBuildCodeRepositoryCodestarConnectionArn}
+      SEED_CODE_UPDATE_FILE_NAME: 'jenkins/seed_job.groovy'
+
+  SageMakerModelDeploySeedCodeCheckinProjectTriggerLambdaInvoker:
+    Type: 'AWS::CloudFormation::CustomResource'
+    Condition: CreateResourceForModelDeploySeedcodeCheckin
+    DependsOn: GitSeedCodeCheckinProjectTriggerLambda
+    Properties:
+      ServiceToken: !GetAtt
+        - GitSeedCodeCheckinProjectTriggerLambda
+        - Arn
+      SEEDCODE_BUCKET_NAME: !Join 
+      - ''
+      - - 'sagemaker-servicecatalog-seedcode-'
+        - !Ref 'AWS::Region'
+      SEEDCODE_BUCKET_KEY: toolchain/mpg-deployment-config-jenkins-v1.0.zip
+      GIT_REPOSITORY_FULL_NAME: !Sub ${ModelDeployCodeRepositoryFullname}
+      GIT_REPOSITORY_BRANCH: !Sub ${ModelDeployCodeRepositoryBranch}
+      GIT_REPOSITORY_CONNECTION_ARN: !Sub ${ModelDeployCodeRepositoryCodestarConnectionArn}
+      SEED_CODE_UPDATE_FILE_NAME: 'jenkins/seed_job.groovy'
+
+  ModelBuildSagemakerCodeRepository:
+    Type: 'AWS::SageMaker::CodeRepository'
+    Properties:
+      CodeRepositoryName: !Sub sagemaker-${SageMakerProjectId}-modelbuild # max: 10+15+11=36 out of 63 max
+      GitConfig:
+        Branch: !Sub ${ModelBuildCodeRepositoryBranch}
+        RepositoryUrl: !Sub ${ModelBuildCodeRepositoryUrl}
+
+  ModelDeploySagemakerCodeRepository:
+    Type: 'AWS::SageMaker::CodeRepository'
+    Properties:
+      CodeRepositoryName: !Sub sagemaker-${SageMakerProjectId}-modeldeploy # max: 10+15+12=37 out of 63 max
+      GitConfig:
+        Branch: !Sub ${ModelDeployCodeRepositoryBranch}
+        RepositoryUrl: !Sub ${ModelDeployCodeRepositoryUrl}

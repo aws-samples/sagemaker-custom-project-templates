@@ -1,0 +1,97 @@
+name: DeploySageMakerModel
+
+on: workflow_dispatch
+
+env:
+  AWS_REGION: us-west-2
+  SAGEMAKER_PROJECT_NAME: custom-build-deploy
+  EXPORT_TEMPLATE_STAGING_CONFIG: "staging-config-export.json"
+  EXPORT_TEMPLATE_PROD_CONFIG: "prod-config-export.json"
+
+jobs:
+  StagingDeploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository code
+        uses: actions/checkout@v4  # Updated from v3
+
+      - name: Setup python 3.12
+        uses: actions/setup-python@v5  # Updated from v4
+        with:
+          python-version: '3.12'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip botocore boto3 awscli
+
+      - name: Configure AWS Credentials
+        id: aws_creds
+        uses: aws-actions/configure-aws-credentials@v4  # Updated from v1
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Build deployment configs
+        run: |
+          python build_deployment_configs.py \
+            --region "$AWS_REGION" \
+            --sagemaker-project-name "$SAGEMAKER_PROJECT_NAME"
+
+      - name: Store configs to artifacts
+        uses: actions/upload-artifact@v4  # Updated from v3
+        with:
+          name: config-files
+          path: |
+            endpoint-config-template.yml
+            deploy_stack.py
+            *-export.json
+
+      - name: Deploy to Staging
+        run: |
+          python deploy_stack.py \
+            --region ${{ env.AWS_REGION }} \
+            --stack-name github-stg \
+            --param-file ${{ env.EXPORT_TEMPLATE_STAGING_CONFIG }} \
+            --project-name ${{ env.SAGEMAKER_PROJECT_NAME }}
+
+      - name: Test Staging
+        run: | 
+          echo "Test Staging... This will take about a few seconds."
+          echo "No issues found."
+
+  ProductionDeploy:
+    needs: StagingDeploy
+    runs-on: ubuntu-latest
+    environment:
+      name: production
+    steps:
+      - name: Setup python 3.12
+        uses: actions/setup-python@v5  # Updated from v4
+        with:
+          python-version: '3.12'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip botocore boto3 awscli
+
+      - name: Configure AWS Credentials
+        id: aws_creds
+        uses: aws-actions/configure-aws-credentials@v4  # Updated from v1
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Load configs
+        uses: actions/download-artifact@v4  # Updated from v3
+        with:
+          name: config-files
+
+      - name: Deploying to Production
+        run: |
+          python deploy_stack.py \
+            --region ${{ env.AWS_REGION }} \
+            --stack-name github-prd \
+            --param-file ${{ env.EXPORT_TEMPLATE_PROD_CONFIG }} \
+            --project-name ${{ env.SAGEMAKER_PROJECT_NAME }}

@@ -1,0 +1,52 @@
+name: BuildSageMakerModel
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - pipelines/**
+env:
+  AWS_REGION: us-west-2
+  SAGEMAKER_PROJECT_NAME: custom-build-deploy
+
+jobs:
+  Build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository code
+        uses: actions/checkout@v4
+
+      - name: setup python 3.10
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10' 
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade . botocore boto3 awscli
+
+      - name: Configure AWS Credentials
+        id: aws_creds
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Build SageMaker Pipeline
+        run: |
+          export SAGEMAKER_PROJECT_ID=$(aws sagemaker describe-project \
+            --project-name ${{ env.SAGEMAKER_PROJECT_NAME }} \
+            --query ProjectId \
+            --output text)
+          export SAGEMAKER_PROJECT_ARN=$(aws sagemaker describe-project \
+            --project-name ${{ env.SAGEMAKER_PROJECT_NAME }} \
+            --query ProjectArn \
+            --output text)
+          export ARTIFACT_BUCKET=sagemaker-project-github-$SAGEMAKER_PROJECT_ID-${{ env.AWS_REGION }}
+          export SAGEMAKER_PROJECT_NAME_ID="${{ env.SAGEMAKER_PROJECT_NAME }}-$SAGEMAKER_PROJECT_ID"
+          export SAGEMAKER_PIPELINE_ROLE_ARN=arn:aws:iam::${{ steps.aws_creds.outputs.aws-account-id }}:role/service-role/AmazonSageMakerProjectsUseRole
+          run-pipeline --module-name pipelines.abalone.pipeline \
+            --role-arn ${SAGEMAKER_PIPELINE_ROLE_ARN} \
+            --tags "[{\"Key\":\"sagemaker:project-name\", \"Value\":\"${SAGEMAKER_PROJECT_NAME}\"}, {\"Key\":\"sagemaker:project-id\", \"Value\":\"${SAGEMAKER_PROJECT_ID}\"}]" \
+            --kwargs "{\"region\":\"${AWS_REGION}\",\"sagemaker_project_arn\":\"${SAGEMAKER_PROJECT_ARN}\",\"role\":\"${SAGEMAKER_PIPELINE_ROLE_ARN}\",\"default_bucket\":\"${ARTIFACT_BUCKET}\",\"pipeline_name\":\"${SAGEMAKER_PROJECT_NAME_ID}\",\"model_package_group_name\":\"${SAGEMAKER_PROJECT_NAME_ID}\",\"base_job_prefix\":\"${SAGEMAKER_PROJECT_NAME_ID}\"}"
