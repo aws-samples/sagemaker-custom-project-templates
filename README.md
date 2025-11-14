@@ -1,7 +1,7 @@
 # Custom Project Templates in SageMaker
 
 This repository contains custom [SageMaker AI Project](https://docs.aws.amazon.com/sagemaker/latest/dg/sagemaker-projects-whatis.html) templates. You can be deploy custom templates with two different methods:
-- **Amazon S3**: Deploy custom templates directly from S3 buckets (preferred method)
+- **Amazon S3**: Deploy custom templates directly from S3 buckets $${\color{red}(preferred method)}$$
 - **Amazon Service Catalog**: Deploy custom templates through AWS Service Catalog.
 
 > [!Important]
