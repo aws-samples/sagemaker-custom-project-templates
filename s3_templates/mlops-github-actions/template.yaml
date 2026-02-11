@@ -42,7 +42,6 @@ Parameters:
   LambdaS3Bucket:
     Type: String
     Description: S3 bucket containing the Lambda function zip file
-    Default: sagemaker-mlops-templates
 
   LambdaS3Key:
     Type: String
@@ -94,6 +93,8 @@ Metadata:
 Resources:
   MlOpsArtifactsBucket:
     Type: AWS::S3::Bucket
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
     Properties:
       BucketName: !Sub sagemaker-project-github-${SageMakerProjectId}-${AWS::Region}
       PublicAccessBlockConfiguration:

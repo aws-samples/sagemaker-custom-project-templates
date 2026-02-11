@@ -22,7 +22,7 @@ In this repository we have provided the following SageMaker AI project S3 based 
 | # | Sample | Location | Description |
 |--------|----------|-------|-----------------|
 |1. | Multiple sample templates converted to S3 based SageMaker AI projects | [`sample-templates/`](./sample-templates/) | Multiple existing templates that are converted to S3 based SageMaker AI projects |
-|2. | MLOps with GitHub Actions S3 based SageMaker AI project template | [`mlops-github-actions/`](./mlops-github-actions/) | Complete MLOps pipeline using GitHub Actions for CI/CD: SageMaker AI Pipelines for model training, GitHub Actions workflows for build and deployment, EventBridge integration for automated deployments, Model Registry approval workflows, Multi-environment deployment (staging/production) |
+|2. | ModelOps with GitHub Actions S3 based SageMaker AI project template | [`mlops-github-actions/`](./mlops-github-actions/) | Complete ModelOps pipeline using GitHub Actions for CI/CD: SageMaker AI Pipelines for model training, GitHub Actions workflows for build and deployment, EventBridge integration for automated deployments, Model Registry approval workflows, Multi-environment deployment (staging/production) |
 
 
 ## Prerequisites

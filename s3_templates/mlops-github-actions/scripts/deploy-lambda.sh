@@ -19,7 +19,7 @@ echo "Deploying Lambda function to S3 bucket: $S3_BUCKET"
 echo "AWS Region: $AWS_REGION"
 
 # Navigate to lambda functions directory
-SCRIPT_DIR="$(dirname "$0")"
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 cd "$SCRIPT_DIR/../lambda_functions"
 
 # Create temporary build directory
@@ -51,16 +51,16 @@ echo "Uploading Lambda function to S3..."
 aws s3 cp lambda-github-workflow-trigger.zip "s3://$S3_BUCKET/lambda-github-workflow-trigger.zip" --region "$AWS_REGION"
 
 # Store the zip file locally (optional)
-cp lambda-github-workflow-trigger.zip "$SCRIPT_DIR/../lambda_functions/"
+cp lambda-github-workflow-trigger.zip "$SCRIPT_DIR/lambda-github-workflow-trigger.zip"
 
 echo ""
-echo "✅ Deployment complete!"
-echo "S3 Location: s3://$S3_BUCKET/lambda-github-workflow-trigger.zip"
 echo "Package size: $(du -h lambda-github-workflow-trigger.zip | cut -f1)"
+echo "S3 Location: s3://$S3_BUCKET/lambda-github-workflow-trigger.zip"
+
 
 # Cleanup
 echo "Cleaning up temporary files..."
-cd - &gt; /dev/null
+cd - > /dev/null
 rm -rf "$BUILD_DIR"
 
 echo ""
