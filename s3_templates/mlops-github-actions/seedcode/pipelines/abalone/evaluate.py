@@ -19,6 +19,11 @@ logger.addHandler(logging.StreamHandler())
 
 if __name__ == "__main__":
     logger.debug("Starting evaluation.")
+
+    # MLflow child run for evaluation
+    from mlflow_helper import setup_mlflow, end_mlflow
+    mlflow_enabled = setup_mlflow("EvaluateAbaloneModel")
+
     model_path = "/opt/ml/processing/model/model.tar.gz"
     with tarfile.open(model_path) as tar:
         tar.extractall(path=".")
@@ -50,6 +55,14 @@ if __name__ == "__main__":
         },
     }
 
+    # Log evaluation metrics to MLflow
+    if mlflow_enabled:
+        try:
+            import mlflow
+            mlflow.log_metrics({"mse": mse, "mse_std": std})
+        except Exception as e:
+            logger.warning("Failed to log evaluation metrics to MLflow: %s", e)
+
     output_dir = "/opt/ml/processing/evaluation"
     pathlib.Path(output_dir).mkdir(parents=True, exist_ok=True)
 
@@ -57,3 +70,5 @@ if __name__ == "__main__":
     evaluation_path = f"{output_dir}/evaluation.json"
     with open(evaluation_path, "w") as f:
         f.write(json.dumps(report_dict))
+
+    end_mlflow(mlflow_enabled)

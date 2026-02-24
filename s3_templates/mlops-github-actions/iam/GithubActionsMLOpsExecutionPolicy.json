@@ -5,7 +5,8 @@
       "Effect": "Allow",
       "Action": [
         "s3:CreateBucket",
-        "s3:PutObject"
+        "s3:PutObject",
+        "s3:ListBucket"
       ],
       "Resource": [
         "arn:aws:s3:::sagemaker-*"

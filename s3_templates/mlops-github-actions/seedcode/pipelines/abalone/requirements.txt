@@ -1,0 +1,4 @@
+# Optional: mlflow dependencies are only needed when MLFLOW_TRACKING_ARN is set.
+# The training script gracefully handles the case where mlflow is not installed.
+mlflow
+sagemaker-mlflow==0.2.0

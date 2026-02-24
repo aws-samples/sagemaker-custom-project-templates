@@ -67,7 +67,8 @@ def lambda_handler(event, context):
 
     # Getting repository and trigger the deploy GitHub workflow
     try:
-        repo = g.get_user().get_repo(github_repo_name)
+        print("new lambda")
+        repo = g.get_repo(github_repo_name)
         workflow = repo.get_workflow(github_workflow_name)
         branch = repo.get_branch("main")
         res = workflow.create_dispatch(branch)

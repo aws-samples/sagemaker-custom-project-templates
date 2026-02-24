@@ -59,6 +59,10 @@ if __name__ == "__main__":
     parser.add_argument("--input-data", type=str, required=True)
     args = parser.parse_args()
 
+    # MLflow child run for preprocessing
+    from mlflow_helper import setup_mlflow, end_mlflow
+    mlflow_enabled = setup_mlflow("PreprocessAbaloneData")
+
     base_dir = "/opt/ml/processing"
     pathlib.Path(f"{base_dir}/data").mkdir(parents=True, exist_ok=True)
     input_data = args.input_data
@@ -123,6 +127,21 @@ if __name__ == "__main__":
         X, [int(0.7 * len(X)), int(0.85 * len(X))]
     )
 
+    # Log dataset stats to MLflow
+    if mlflow_enabled:
+        try:
+            import mlflow
+            mlflow.log_params({
+                "input_data": args.input_data,
+                "total_rows": len(X),
+                "num_features": X.shape[1] - 1,
+                "train_rows": len(train),
+                "validation_rows": len(validation),
+                "test_rows": len(test),
+            })
+        except Exception as e:
+            logger.warning("Failed to log preprocessing params to MLflow: %s", e)
+
     logger.info("Writing out datasets to %s.", base_dir)
     pd.DataFrame(train).to_csv(
         f"{base_dir}/train/train.csv", header=False, index=False
@@ -133,3 +152,5 @@ if __name__ == "__main__":
     pd.DataFrame(test).to_csv(
         f"{base_dir}/test/test.csv", header=False, index=False
     )
+
+    end_mlflow(mlflow_enabled)
