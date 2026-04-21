@@ -1,0 +1,10 @@
+sagemaker>=3.4.0
+mlflow
+sagemaker-mlflow==0.2.0
+scikit-learn
+xgboost>=1.7.0
+pandas>=2.0.0
+numpy
+boto3
+s3fs
+fsspec

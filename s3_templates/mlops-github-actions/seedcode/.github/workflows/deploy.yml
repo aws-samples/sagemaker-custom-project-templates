@@ -3,8 +3,8 @@ name: DeploySageMakerModel
 on: workflow_dispatch
 
 env:
-  AWS_REGION: us-west-2
-  SAGEMAKER_PROJECT_NAME: custom-build-deploy
+  AWS_REGION: <REGION> # AWS Region
+  SAGEMAKER_PROJECT_NAME: <YOUR_PROJECT_NAME> # Your SageMaker AI project name
   EXPORT_TEMPLATE_STAGING_CONFIG: "staging-config-export.json"
   EXPORT_TEMPLATE_PROD_CONFIG: "prod-config-export.json"
 

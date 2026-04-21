@@ -128,7 +128,7 @@ Resources:
         - arm64
       Environment:
         Variables:
-          DeployRepoName: !Sub ${CodeRepositoryName}
+          DeployRepoName: !Sub ${GitHubRepositoryOwnerName}/${CodeRepositoryName}
           GitHubWorkflowNameForDeployment: !Sub ${GitHubWorkflowNameForDeployment}
           GitHubTokenSecretName: !Sub ${GitHubTokenSecretName}
           Region: !Ref AWS::Region

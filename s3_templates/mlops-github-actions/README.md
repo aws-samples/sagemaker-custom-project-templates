@@ -56,7 +56,7 @@ key=sagemaker value=true
 
 In the above example, `aEXAMPLE-8aad-4d5d-8878-dfcab0bc441f` is the unique ID for this connection. We use this ID when we create our SageMaker project later in this example.
 
-### 2. GitHub Personal Access Token
+### 2. GitHub Personal Access Token (PAT)
 Create a GitHub personal access token with access to **Contents** and **Actions** permissions, following the instructions on [Managing your personal access tokens](https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/managing-your-personal-access-tokens)
 
 > Note: You can create either classic or fine-grained access token. However, make sure the token has access to the Contents and Actions (workflows, runs and artifacts) for that repository.
@@ -79,6 +79,18 @@ Create a GitHub personal access token with access to **Contents** and **Actions*
     * ✅repo(Full control of private repositories) - Required
     * ✅workflow(Update GitHub Action workflows) - Required
 * Click "Generate token"
+
+> ⚠️ **Note:** If your repo is part of an Organization, your PAT must be granted access to that Organization.
+
+* Ensure your token has access to the organization with the required repository permissions (Actions, Contents, Metadata, Workflows).
+![](./images/org-pta-1.png)
+
+* Go to Organization Settings → Third-party Access → Personal access tokens and approve the token request.
+![](./images/org-pta-2.png)
+
+* Confirm your token appears as active before proceeding
+![](./images/org-pta-3.png)
+
 
 **then store it in AWS Secrets Manager.**
 
@@ -297,7 +309,7 @@ Add these secrets to your GitHub repository as follows:
 To create a manual approval step in our deployment pipelines, we use a [GitHub environment](https://docs.github.com/en/actions/how-tos/deploy/configure-and-manage-deployments/manage-environments). Complete the following steps:
 1. Go to your repository **Settings** > **Environments**
 2. Create environment named `production`
-3. Add required reviewers for deployment approval. These are the people who can approve model deployment to production environment
+3. Add required reviewers for deployment approval (only available on public repo if using the free version). These are the people who can approve model deployment to production environment
    ![](./images/reviewer.png)
 
 ## Template Deployment
@@ -395,7 +407,8 @@ After creating the project:
    ```yaml
    env:
      AWS_REGION: <REGION>  # Your AWS region
-     SAGEMAKER_PROJECT_NAME: your-project-name  # Your project name
+     SAGEMAKER_PROJECT_NAME: <your-project-name>  # Your project name
+     MLFLOW_TRACKING_APP_ARN: ""  # Optional: ARN of SageMaker managed MLflow Tracking Server
    ```
 
 2. **Test the Pipeline:**
@@ -408,6 +421,10 @@ After creating the project:
 The template will then create two automated ModelOps workflows—one for model building and one for model deployment—that work together to provide CI/CD for your ML models. 
 
    ![](./images/sagemaker_pipeline.png)
+
+Pipeline experiments are automatically tracked in the SageMaker Managed MLflow App. You can view the experiment, individual step runs, metrics, datasets, and registered models.
+    ![](./images/MLflow-1.png)
+    ![](./images/MLflow-2.png)
   
 ## Clean up
 After deployment, you will incur costs for the deployed resources. If you don’t intend to continue using the setup, delete the ModelOps project resources to avoid unnecessary charges.
