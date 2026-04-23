@@ -1,2 +1,2 @@
 sagemaker==2.52.1
-scikit-learn==0.24.2
+scikit-learn==1.0.1
