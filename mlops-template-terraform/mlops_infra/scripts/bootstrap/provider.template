@@ -1,0 +1,12 @@
+provider "aws" {
+  region = "$BUCKET_REGION"
+}
+
+terraform {
+  required_version = ">= 1.0.0"
+  backend "s3" {
+    bucket = "$BUCKET_NAME"
+    key    = "mlops.tfstate"
+    region = "$BUCKET_REGION"
+  }
+}

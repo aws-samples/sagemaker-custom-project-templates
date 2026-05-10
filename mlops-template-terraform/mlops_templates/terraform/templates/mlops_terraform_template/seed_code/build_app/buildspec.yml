@@ -1,0 +1,17 @@
+version: 0.2
+
+phases:
+  install:
+    runtime-versions:
+      python: 3.8
+    commands:
+      - pip install --upgrade --force-reinstall . "awscli>1.20.30" 
+  build:
+    commands:
+      - export PYTHONUNBUFFERED=TRUE
+      - |
+        run-pipeline --module-name ml_pipelines.training.pipeline \
+          --role-arn $SAGEMAKER_PIPELINE_ROLE_ARN \
+          --tags "[{\"Key\":\"sagemaker:project-name\", \"Value\":\"${SAGEMAKER_PROJECT_NAME}\"}, {\"Key\":\"sagemaker:project-id\", \"Value\":\"${SAGEMAKER_PROJECT_ID}\"}]" \
+          --kwargs "{\"region\":\"${AWS_REGION}\",\"role\":\"${SAGEMAKER_PIPELINE_ROLE_ARN}\",\"default_bucket\":\"${ARTIFACT_BUCKET}\",\"pipeline_name\":\"${PIPELINE_NAME}\",\"model_package_group_name\":\"${MODEL_PACKAGE_GROUP_NAME}\",\"base_job_prefix\":\"${PIPELINE_NAME}\", \"bucket_kms_id\":\"${ARTIFACT_BUCKET_KMS_ID}\"}"
+      - echo "Create/Update of the SageMaker Pipeline and execution completed."

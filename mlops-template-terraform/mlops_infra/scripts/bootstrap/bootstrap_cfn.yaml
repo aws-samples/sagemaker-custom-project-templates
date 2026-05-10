@@ -1,0 +1,13 @@
+Resources:
+  S3Bucket:
+    Type: 'AWS::S3::Bucket'
+    DeletionPolicy: Retain
+    Properties:
+      BucketName: !Sub 'mlops-${AWS::AccountId}-${AWS::Region}-tf-state'
+Outputs:
+  BucketName:
+    Value: !Ref S3Bucket
+    Description: Name of the sample Amazon S3 bucket with CORS enabled.
+  BucketRegion:
+    Value: !Sub "${AWS::Region}"
+    Description: Region on state bucket
